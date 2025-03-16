@@ -21,6 +21,7 @@ export default function Account() {
   const queryClient = useQueryClient();
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [showUploadMenu, setShowUploadMenu] = useState<boolean>(false);
 
   const { data: user, isLoading } = useQuery<User>({
     queryKey: ["/api/users/me"],
@@ -56,6 +57,15 @@ export default function Account() {
       const reader = new FileReader();
       reader.onload = () => {
         setPreviewUrl(reader.result as string);
+        
+        // Close the upload menu modal
+        setShowUploadMenu(false);
+        
+        // Show a toast notification
+        toast({
+          title: "Image selected",
+          description: "Click 'Update Photo' to save your new profile picture.",
+        });
       };
       reader.readAsDataURL(file);
     }
@@ -135,20 +145,110 @@ export default function Account() {
                             {user ? getInitials(user.username) : "U"}
                           </AvatarFallback>
                         </Avatar>
-                        <label 
-                          htmlFor="profile-upload" 
+                        <div 
+                          onClick={() => setShowUploadMenu(true)}
                           className="absolute bottom-0 right-0 bg-red-600 text-white p-1 rounded-full cursor-pointer"
                         >
-                          <Camera size={18} />
-                        </label>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus">
+                            <path d="M5 12h14" />
+                            <path d="M12 5v14" />
+                          </svg>
+                        </div>
+                        
+                        {/* Hidden file inputs for different sources */}
                         <input 
-                          id="profile-upload" 
+                          id="photo-library" 
                           type="file" 
                           className="hidden" 
                           accept="image/*"
                           onChange={handleImageChange}
                         />
+                        <input 
+                          id="take-photo" 
+                          type="file" 
+                          className="hidden" 
+                          accept="image/*"
+                          capture="environment"
+                          onChange={handleImageChange}
+                        />
+                        <input 
+                          id="document-upload" 
+                          type="file" 
+                          className="hidden" 
+                          accept="image/*,.pdf"
+                          onChange={handleImageChange}
+                        />
                       </div>
+                      
+                      {/* Upload Menu Modal */}
+                      {showUploadMenu && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end justify-center sm:items-center">
+                          <div className="bg-white rounded-t-xl w-full max-w-md sm:rounded-xl overflow-hidden">
+                            <div className="p-4 border-b">
+                              <h3 className="text-lg font-semibold text-center">Upload Profile Picture</h3>
+                            </div>
+                            
+                            <div className="p-2">
+                              <label htmlFor="photo-library" className="flex items-center p-3 hover:bg-gray-50 rounded-lg cursor-pointer">
+                                <div className="bg-red-100 p-2 rounded-full mr-3">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600">
+                                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                                    <circle cx="9" cy="9" r="2" />
+                                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                                  </svg>
+                                </div>
+                                <span>Choose from library</span>
+                              </label>
+                              
+                              <label htmlFor="take-photo" className="flex items-center p-3 hover:bg-gray-50 rounded-lg cursor-pointer">
+                                <div className="bg-red-100 p-2 rounded-full mr-3">
+                                  <Camera size={20} className="text-red-600" />
+                                </div>
+                                <span>Take a photo</span>
+                              </label>
+                              
+                              <label htmlFor="document-upload" className="flex items-center p-3 hover:bg-gray-50 rounded-lg cursor-pointer">
+                                <div className="bg-red-100 p-2 rounded-full mr-3">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600">
+                                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                                    <polyline points="14 2 14 8 20 8" />
+                                  </svg>
+                                </div>
+                                <span>Upload document</span>
+                              </label>
+                              
+                              <div className="flex items-center p-3 hover:bg-gray-50 rounded-lg cursor-pointer" 
+                                onClick={() => {
+                                  setShowUploadMenu(false);
+                                  window.location.href = '/add-profile-picture';
+                                }}>
+                                <div className="bg-red-100 p-2 rounded-full mr-3">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600">
+                                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7" />
+                                    <line x1="16" x2="22" y1="5" y2="5" />
+                                    <line x1="19" x2="19" y1="2" y2="8" />
+                                    <circle cx="9" cy="9" r="2" />
+                                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                                  </svg>
+                                </div>
+                                <span>Use full screen editor</span>
+                              </div>
+                            </div>
+                            
+                            <div className="p-3 border-t">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full"
+                                onClick={() => setShowUploadMenu(false)}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
                       {profileImage && (
                         <Button
                           type="submit"

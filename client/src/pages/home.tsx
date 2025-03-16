@@ -34,7 +34,14 @@ export default function Home() {
       <Header />
       <main className="container mx-auto px-4 py-6 mb-20 md:mb-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold mb-4">Find your perfect ride</h1>
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-2xl font-semibold">Find your perfect ride</h1>
+            <Link href="/become-host">
+              <Button className="bg-red-600 hover:bg-red-700 text-white">
+                Become a Host
+              </Button>
+            </Link>
+          </div>
           <div className="flex gap-2">
             <div className="relative flex-grow">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />

@@ -63,6 +63,13 @@ function Router() {
       <ProtectedRoute path="/add-profile-picture" component={AddProfilePicture} />
       <ProtectedRoute path="/booking-success" component={BookingSuccess} />
       
+      {/* Car listing flow */}
+      <ProtectedRoute path="/become-host" component={BecomeHost} />
+      <ProtectedRoute path="/become-host/car-details" component={BecomeHostCarDetails} />
+      <ProtectedRoute path="/become-host/location" component={BecomeHostLocation} />
+      <ProtectedRoute path="/become-host/rates" component={BecomeHostRates} />
+      <ProtectedRoute path="/become-host/summary" component={BecomeHostSummary} />
+      
       <Route component={NotFound} />
     </Switch>
   );

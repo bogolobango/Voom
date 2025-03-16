@@ -35,7 +35,7 @@ export default function BecomeHost() {
   const form = useForm<HostDetailsFormValues>({
     resolver: zodResolver(hostDetailsSchema),
     defaultValues: {
-      fullName: user?.fullName || "",
+      fullName: user?.username || "",  // Use username instead as fullName is not in the User type
       phoneNumber: user?.phoneNumber || "",
       email: "",
       address: "",

@@ -101,38 +101,14 @@ export default function BecomeHostSummary() {
       make: carData.car.make,
       model: carData.car.model,
       year: parseInt(carData.car.year),
-      color: carData.car.color,
       description: carData.car.description,
       dailyRate: carData.rates.dailyRate,
       location: `${carData.location.city}, ${carData.location.country}`,
-      latitude: carData.location.latitude,
-      longitude: carData.location.longitude,
-      transmission: carData.car.transmission,
-      fuelType: carData.car.fuelType,
-      features: [
-        ...(carData.rates.hasChildSeat ? ["Child Seat"] : []),
-        ...(carData.rates.hasGPS ? ["GPS"] : []),
-        ...(carData.rates.hasBluetooth ? ["Bluetooth"] : []),
-        ...(carData.rates.hasUSB ? ["USB Port"] : []),
-        ...(carData.rates.hasSunroof ? ["Sunroof"] : [])
-      ],
       hostId: 1, // This would be the actual user's ID in a real implementation
-      cancellationPolicy: carData.rates.cancellationPolicy,
-      securityDeposit: carData.rates.securityDeposit,
-      weeklyDiscount: carData.rates.weeklyDiscount,
-      monthlyDiscount: carData.rates.monthlyDiscount,
-      minimumRentalDays: carData.rates.minimumRentalDays,
-      instantBooking: carData.rates.instantBooking,
-      rules: {
-        allowPets: carData.rates.allowPets,
-        allowSmoking: carData.rates.allowSmoking
-      },
-      // These would be real image URLs in a production implementation
-      images: [
-        "https://images.unsplash.com/photo-1590362891991-f776e747a588?ixlib=rb-4.0.3",
-        "https://images.unsplash.com/photo-1612051855810-275f94785789?ixlib=rb-4.0.3"
-      ],
-      status: "available"
+      // Add additional fields as needed based on the Car schema
+      currency: "FCFA",
+      imageUrl: "https://images.unsplash.com/photo-1590362891991-f776e747a588?ixlib=rb-4.0.3",
+      available: true
     };
     
     createCarMutation.mutate(car);

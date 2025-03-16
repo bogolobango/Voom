@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/layout/header";
 import { BottomNav } from "@/components/layout/bottom-nav";
@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Car, Booking } from "@shared/schema";
 import { getInitials, formatCurrency } from "@/lib/utils";
 import { LoadingScreen } from "@/components/ui/loader";
+import { useToast } from "@/hooks/use-toast";
 import {
   Calendar,
   Car as CarIcon,
@@ -19,11 +20,52 @@ import {
   MessageSquare,
   Star,
   Users,
+  ArrowLeft,
 } from "lucide-react";
 import { Link } from "wouter";
 
 export default function HostDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
+  const { toast } = useToast();
+  const [location, setLocation] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Welcome toast message when dashboard loads
+    toast({
+      title: "Welcome to Host Dashboard",
+      description: "Manage your cars, bookings, and earnings in one place",
+      variant: "default"
+    });
+  }, []);
+  
+  // Track tab changes for better UX
+  useEffect(() => {
+    if (activeTab === "overview") {
+      toast({
+        title: "Dashboard Overview",
+        description: "View your hosting activity at a glance",
+        variant: "default"
+      });
+    } else if (activeTab === "cars") {
+      toast({
+        title: "Your Listed Cars",
+        description: "Manage your vehicle listings",
+        variant: "default"
+      });
+    } else if (activeTab === "bookings") {
+      toast({
+        title: "Your Bookings",
+        description: "Track your upcoming and past bookings",
+        variant: "default"
+      });
+    } else if (activeTab === "earnings") {
+      toast({
+        title: "Earnings Dashboard",
+        description: "Monitor your rental income",
+        variant: "default"
+      });
+    }
+  }, [activeTab]);
 
   const { data: user, isLoading: isLoadingUser } = useQuery<User>({
     queryKey: ["/api/users/me"],
@@ -61,7 +103,17 @@ export default function HostDashboard() {
 
   return (
     <>
-      <Header title="Host Dashboard" showBack />
+      <Header 
+        title="Host Dashboard" 
+        showBack 
+        onBack={() => {
+          toast({
+            title: "Returning to Account",
+            description: "Navigating back to your account page",
+          });
+          window.location.href = "/account";
+        }} 
+      />
       <main className="container mx-auto px-4 py-6 mb-20 md:mb-6">
         {/* Host Profile Summary */}
         <Card className="mb-6">
@@ -238,7 +290,17 @@ export default function HostDashboard() {
                 {cars && cars.length > 0 ? (
                   <div className="space-y-4">
                     {cars.map((car) => (
-                      <div key={car.id} className="flex items-center justify-between border-b pb-4 last:border-0">
+                      <div 
+                        key={car.id} 
+                        className="flex items-center justify-between border-b pb-4 last:border-0 cursor-pointer hover:bg-gray-50 rounded-md p-2"
+                        onClick={() => {
+                          toast({
+                            title: "Car Details",
+                            description: `Viewing details for ${car.make} ${car.model}`,
+                          });
+                          window.location.href = `/car-detail?id=${car.id}`;
+                        }}
+                      >
                         <div className="flex items-center">
                           <div className="h-16 w-16 rounded-md overflow-hidden relative mr-3">
                             <img 
@@ -286,7 +348,17 @@ export default function HostDashboard() {
                 {bookings && bookings.length > 0 ? (
                   <div className="space-y-4">
                     {bookings.map((booking) => (
-                      <div key={booking.id} className="border rounded-lg p-4">
+                      <div 
+                        key={booking.id} 
+                        className="border rounded-lg p-4 hover:border-red-200 hover:shadow-sm transition-all cursor-pointer"
+                        onClick={() => {
+                          toast({
+                            title: "Booking Details",
+                            description: `Viewing booking for ${booking.car.make} ${booking.car.model}`,
+                          });
+                          window.location.href = `/booking-detail/${booking.id}`;
+                        }}
+                      >
                         <div className="flex justify-between items-start mb-3">
                           <div>
                             <h3 className="font-medium">{booking.car.make} {booking.car.model}</h3>
@@ -305,7 +377,7 @@ export default function HostDashboard() {
                         </div>
                         <div className="flex justify-between items-center">
                           <p className="font-semibold">{formatCurrency(booking.totalAmount || 0)}</p>
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" className="hover:bg-red-50">
                             View Details
                           </Button>
                         </div>

@@ -229,36 +229,81 @@ export class MemStorage implements IStorage {
     };
     this.bookings.set(booking.id, booking);
     
-    // Create messages
-    const message1: Message = {
-      id: this.messageId++,
-      senderId: demoUser.id,
-      receiverId: hostUser.id,
-      content: "Hello, I'm interested in renting your Mitsubishi Pajero. Is it available next weekend?",
-      read: true,
-      createdAt: new Date(Date.now() - 3600000 * 24).toISOString() // 1 day ago
-    };
-    this.messages.set(message1.id, message1);
+    // Create messages - full conversation history
+    const messages: Partial<Message>[] = [
+      {
+        senderId: demoUser.id,
+        receiverId: hostUser.id,
+        content: "Hello, I'm interested in renting your Mitsubishi Pajero. Is it available next weekend?",
+        read: true,
+        createdAt: new Date(Date.now() - 3600000 * 48).toISOString() // 2 days ago
+      },
+      {
+        senderId: hostUser.id,
+        receiverId: demoUser.id,
+        content: "Yes, it's available. When exactly do you need it?",
+        read: true,
+        createdAt: new Date(Date.now() - 3600000 * 47).toISOString() // 47 hours ago
+      },
+      {
+        senderId: demoUser.id,
+        receiverId: hostUser.id,
+        content: "I need it from April 16 to April 24. I'm planning a trip to the mountains.",
+        read: true,
+        createdAt: new Date(Date.now() - 3600000 * 46).toISOString() // 46 hours ago
+      },
+      {
+        senderId: hostUser.id,
+        receiverId: demoUser.id,
+        content: "That works for me. The rate is 85,000 FCFA per day. Where would you like to pick it up?",
+        read: true,
+        createdAt: new Date(Date.now() - 3600000 * 45).toISOString() // 45 hours ago
+      },
+      {
+        senderId: demoUser.id,
+        receiverId: hostUser.id,
+        content: "The ADL pickup location is fine. What time can I get it on the 16th?",
+        read: true,
+        createdAt: new Date(Date.now() - 3600000 * 44).toISOString() // 44 hours ago
+      },
+      {
+        senderId: hostUser.id,
+        receiverId: demoUser.id,
+        content: "You can pick it up around 10:30 AM. I'll need your ID and driver's license for verification before confirming the booking.",
+        read: true,
+        createdAt: new Date(Date.now() - 3600000 * 36).toISOString() // 36 hours ago
+      },
+      {
+        senderId: demoUser.id,
+        receiverId: hostUser.id,
+        content: "Perfect. I've gone ahead and made the booking through the app. You should see it on your end.",
+        read: true,
+        createdAt: new Date(Date.now() - 3600000 * 24).toISOString() // 24 hours ago
+      },
+      {
+        senderId: hostUser.id,
+        receiverId: demoUser.id,
+        content: "I've approved your booking! I'll meet you at the pickup location at 10:30 AM on April 16th. The car will be fully fueled and cleaned.",
+        read: false, 
+        createdAt: new Date(Date.now() - 3600000 * 12).toISOString() // 12 hours ago
+      },
+      {
+        senderId: hostUser.id,
+        receiverId: demoUser.id,
+        content: "One more thing - the car has a full-size spare tire in the back, just in case you need it during your trip to the mountains.",
+        read: false,
+        createdAt: new Date(Date.now() - 3600000 * 2).toISOString() // 2 hours ago
+      }
+    ];
     
-    const message2: Message = {
-      id: this.messageId++,
-      senderId: hostUser.id,
-      receiverId: demoUser.id,
-      content: "Yes, it's available. When exactly do you need it?",
-      read: false,
-      createdAt: new Date(Date.now() - 3600000 * 12).toISOString() // 12 hours ago
-    };
-    this.messages.set(message2.id, message2);
-    
-    const message3: Message = {
-      id: this.messageId++,
-      senderId: hostUser.id,
-      receiverId: demoUser.id,
-      content: "I'll need your ID and driver's license for verification before confirming the booking.",
-      read: false,
-      createdAt: new Date(Date.now() - 3600000 * 2).toISOString() // 2 hours ago
-    };
-    this.messages.set(message3.id, message3);
+    // Add all messages to storage
+    messages.forEach(msg => {
+      const message: Message = { 
+        ...msg as Omit<Message, 'id'>, 
+        id: this.messageId++ 
+      };
+      this.messages.set(message.id, message);
+    });
   }
 
   // User operations

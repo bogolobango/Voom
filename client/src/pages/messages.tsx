@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/header";
 import { BottomNav } from "@/components/layout/bottom-nav";
@@ -28,17 +28,48 @@ export default function Messages() {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const queryClient = useQueryClient();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Auto-select the first conversation when the page loads
+  const autoSelectFirstConversation = (conversations: ConversationUser[] | undefined) => {
+    if (conversations && conversations.length > 0 && !selectedUserId) {
+      // Find the conversation with unread messages first, otherwise select the first one
+      const unreadConversation = conversations.find(c => c.unreadCount > 0);
+      const conversationToSelect = unreadConversation || conversations[0];
+      
+      handleSelectConversation(conversationToSelect.id);
+    }
+  };
+  
+  // Scroll to bottom of messages
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   // Get all conversations
   const { data: conversations, isLoading: loadingConversations } = useQuery<ConversationUser[]>({
     queryKey: ["/api/messages/conversations"],
+    onSuccess: (data) => {
+      autoSelectFirstConversation(data);
+    }
   });
 
   // Get messages for selected conversation
   const { data: messages, isLoading: loadingMessages } = useQuery<MessageWithUser[]>({
     queryKey: ["/api/messages/conversation", selectedUserId],
     enabled: !!selectedUserId,
+    onSuccess: () => {
+      // Scroll to bottom when messages are loaded
+      setTimeout(scrollToBottom, 100);
+    }
   });
+  
+  // Scroll to bottom whenever messages change
+  useEffect(() => {
+    if (messages && messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [messages]);
 
   // Send message mutation
   const sendMessageMutation = useMutation({

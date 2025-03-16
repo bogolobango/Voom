@@ -43,7 +43,7 @@ export function BottomNav() {
       <div className="flex justify-between px-4 py-2">
         {navItems.map((item) => (
           <Link key={item.name} href={item.path}>
-            <a className="flex flex-col items-center text-xs p-2 relative">
+            <div className="flex flex-col items-center text-xs p-2 relative cursor-pointer">
               <item.icon
                 className={cn(
                   "h-6 w-6",
@@ -58,7 +58,7 @@ export function BottomNav() {
               <span className={location === item.path ? "text-red-600" : "text-gray-500"}>
                 {item.name}
               </span>
-            </a>
+            </div>
           </Link>
         ))}
       </div>

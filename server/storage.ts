@@ -96,6 +96,8 @@ export class MemStorage implements IStorage {
   private favorites: Map<number, Favorite>;
   private messages: Map<number, Message>;
   private verificationDocuments: Map<number, VerificationDocument>;
+  private payoutMethods: Map<number, PayoutMethod>;
+  private payoutTransactions: Map<number, PayoutTransaction>;
   
   // Auto-increment IDs
   private userId: number;

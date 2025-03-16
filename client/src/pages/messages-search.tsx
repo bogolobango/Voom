@@ -3,7 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import { ConversationUser } from "@shared/schema";
+
+// Define the ConversationUser interface locally
+interface ConversationUser {
+  id: number;
+  username: string;
+  profilePicture?: string;
+  unreadCount: number;
+}
 
 export default function MessagesSearch() {
   const [searchTerm, setSearchTerm] = useState("");

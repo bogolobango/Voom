@@ -27,7 +27,7 @@ export default function MessageProfile() {
         <div className="rounded-full overflow-hidden mb-4 border-4 border-white w-24 h-24">
           <Avatar className="w-full h-full">
             <AvatarImage 
-              src={user?.profilePicture} 
+              src={user?.profilePicture || undefined} 
               alt={profileName} 
               className="w-full h-full object-cover" 
             />

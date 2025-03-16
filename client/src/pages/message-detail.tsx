@@ -226,7 +226,7 @@ export default function MessageDetail() {
                   {!isCurrentUser && isFirstInSeries && (
                     <Avatar className="h-8 w-8 mr-2 self-end">
                       <AvatarImage 
-                        src={user?.profilePicture} 
+                        src={user?.profilePicture || undefined} 
                         alt={user?.username || ""} 
                       />
                       <AvatarFallback>

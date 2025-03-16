@@ -43,8 +43,8 @@ function Router() {
       <ProtectedRoute path="/messages-new" component={MessagesNew} />
       <ProtectedRoute path="/messages-empty" component={MessagesEmpty} />
       <ProtectedRoute path="/messages-search" component={MessagesSearch} />
-      <ProtectedRoute path="/messages/:userId" component={MessageDetail} />
       <ProtectedRoute path="/messages/profile/:userId" component={MessageProfile} />
+      <ProtectedRoute path="/messages/:userId" component={MessageDetail} />
       <ProtectedRoute path="/account" component={Account} />
       <ProtectedRoute path="/account-preferences" component={AccountPreferences} />
       <ProtectedRoute path="/payment-methods" component={PaymentMethods} />

@@ -54,20 +54,27 @@ export default function Messages() {
   // Get all conversations
   const { data: conversations, isLoading: loadingConversations } = useQuery<ConversationUser[]>({
     queryKey: ["/api/messages/conversations"],
-    onSuccess: (data) => {
-      autoSelectFirstConversation(data);
-    }
   });
+
+  // Effect to auto-select first conversation when data loads
+  useEffect(() => {
+    if (conversations) {
+      autoSelectFirstConversation(conversations);
+    }
+  }, [conversations]);
 
   // Get messages for selected conversation
   const { data: messages, isLoading: loadingMessages } = useQuery<MessageWithUser[]>({
     queryKey: ["/api/messages/conversation", selectedUserId],
     enabled: !!selectedUserId,
-    onSuccess: () => {
-      // Scroll to bottom when messages are loaded
+  });
+  
+  // Effect to scroll to bottom when messages change
+  useEffect(() => {
+    if (messages) {
       setTimeout(scrollToBottom, 100);
     }
-  });
+  }, [messages]);
   
   // Scroll to bottom whenever messages change
   useEffect(() => {
@@ -217,7 +224,7 @@ export default function Messages() {
                       <p className={`text-xs mt-1 text-right ${
                         isCurrentUser ? "text-red-100" : "text-gray-500"
                       }`}>
-                        {formatMessageTime(message.createdAt)}
+                        {message.createdAt ? formatMessageTime(message.createdAt.toString()) : '--'}
                       </p>
                     </div>
                     {isCurrentUser && isFirstInSeries && (

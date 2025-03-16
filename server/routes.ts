@@ -302,6 +302,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.json(cars);
   });
   
+  // Get current host's cars
+  apiRouter.get("/hosts/cars", async (req: Request, res: Response) => {
+    // In a real app, this would use the authenticated user ID
+    // For this demo, we'll use hostId = 2
+    const hostId = 2;
+    const cars = await storage.getCarsByHost(hostId);
+    return res.json(cars);
+  });
+  
+  // Get current host's bookings
+  apiRouter.get("/hosts/bookings", async (req: Request, res: Response) => {
+    // In a real app, this would use the authenticated user ID
+    // For this demo, we'll use hostId = 2
+    const hostId = 2;
+    
+    // Get all cars for this host
+    const cars = await storage.getCarsByHost(hostId);
+    
+    if (!cars || cars.length === 0) {
+      return res.json([]);
+    }
+    
+    // For each car, get bookings
+    const bookingsPromises = cars.map(async (car) => {
+      const bookings = await storage.getBookingsByCar(car.id);
+      return bookings.map(booking => ({ ...booking, car }));
+    });
+    
+    const bookingsNested = await Promise.all(bookingsPromises);
+    const bookings = bookingsNested.flat();
+    
+    return res.json(bookings);
+  });
+  
   // Create a new car listing
   apiRouter.post("/cars", async (req: Request, res: Response) => {
     try {

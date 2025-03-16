@@ -35,6 +35,9 @@ import BecomeHostLocation from "@/pages/become-host-location";
 import BecomeHostRates from "@/pages/become-host-rates";
 import BecomeHostSummary from "@/pages/become-host-summary";
 
+// Host dashboard
+import HostDashboard from "@/pages/host-dashboard";
+
 function Router() {
   return (
     <Switch>
@@ -69,6 +72,9 @@ function Router() {
       <ProtectedRoute path="/become-host/location" component={BecomeHostLocation} />
       <ProtectedRoute path="/become-host/rates" component={BecomeHostRates} />
       <ProtectedRoute path="/become-host/summary" component={BecomeHostSummary} />
+      
+      {/* Host dashboard */}
+      <ProtectedRoute path="/host-dashboard" component={HostDashboard} />
       
       <Route component={NotFound} />
     </Switch>

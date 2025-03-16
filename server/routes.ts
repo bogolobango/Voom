@@ -10,7 +10,7 @@ import {
   insertMessageSchema 
 } from "@shared/schema";
 import { z } from "zod";
-import { formatZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const apiRouter = express.Router();
@@ -21,7 +21,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return schema.parse(data);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const formattedError = formatZodError(error);
+        const formattedError = fromZodError(error);
         throw new Error(formattedError.message);
       }
       throw error;

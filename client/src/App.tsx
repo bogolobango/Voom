@@ -11,6 +11,11 @@ import Favorites from "@/pages/favorites";
 import Bookings from "@/pages/bookings";
 import BookingDetail from "@/pages/booking-detail";
 import Messages from "@/pages/messages";
+import MessagesNew from "@/pages/messages-new";
+import MessagesEmpty from "@/pages/messages-empty";
+import MessagesSearch from "@/pages/messages-search";
+import MessageDetail from "@/pages/message-detail";
+import MessageProfile from "@/pages/message-profile";
 import Account from "@/pages/account";
 import AccountPreferences from "@/pages/account-preferences";
 import PaymentMethods from "@/pages/payment-methods";
@@ -35,6 +40,11 @@ function Router() {
       <ProtectedRoute path="/bookings" component={Bookings} />
       <ProtectedRoute path="/bookings/:id" component={BookingDetail} />
       <ProtectedRoute path="/messages" component={Messages} />
+      <ProtectedRoute path="/messages-new" component={MessagesNew} />
+      <ProtectedRoute path="/messages-empty" component={MessagesEmpty} />
+      <ProtectedRoute path="/messages-search" component={MessagesSearch} />
+      <ProtectedRoute path="/messages/:userId" component={MessageDetail} />
+      <ProtectedRoute path="/messages/profile/:userId" component={MessageProfile} />
       <ProtectedRoute path="/account" component={Account} />
       <ProtectedRoute path="/account-preferences" component={AccountPreferences} />
       <ProtectedRoute path="/payment-methods" component={PaymentMethods} />

@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Header } from "@/components/layout/header";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { LoadingScreen } from "@/components/ui/loader";
 import { Button } from "@/components/ui/button";
@@ -33,40 +32,15 @@ export default function Messages() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   
-  // Auto-select the first conversation when the page loads
-  const autoSelectFirstConversation = (conversations: ConversationUser[] | undefined) => {
-    if (conversations && conversations.length > 0 && !selectedUserId) {
-      // Find the conversation with unread messages first, otherwise select the first one
-      const unreadConversation = conversations.find(c => c.unreadCount > 0);
-      const conversationToSelect = unreadConversation || conversations[0];
-      
-      handleSelectConversation(conversationToSelect.id);
-    } else if (conversations && conversations.length === 0) {
-      setShowEmptyState(true);
-    }
-  };
-  
-  // Scroll to bottom of messages
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
   // Get all conversations
   const { data: conversations, isLoading: loadingConversations } = useQuery<ConversationUser[]>({
-    queryKey: ["/api/messages/conversations"],
-    onSuccess: (data) => {
-      autoSelectFirstConversation(data);
-    }
+    queryKey: ["/api/messages/conversations"]
   });
 
   // Get messages for selected conversation
   const { data: messages, isLoading: loadingMessages } = useQuery<MessageWithUser[]>({
     queryKey: ["/api/messages/conversation", selectedUserId],
-    enabled: !!selectedUserId,
-    onSuccess: () => {
-      // Scroll to bottom when messages are loaded
-      setTimeout(scrollToBottom, 100);
-    }
+    enabled: !!selectedUserId
   });
   
   // Scroll to bottom whenever messages change
@@ -75,6 +49,18 @@ export default function Messages() {
       scrollToBottom();
     }
   }, [messages]);
+
+  // Set empty state if no conversations
+  useEffect(() => {
+    if (conversations && conversations.length === 0) {
+      setShowEmptyState(true);
+    }
+  }, [conversations]);
+
+  // Scroll to bottom of messages
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   // Send message mutation
   const sendMessageMutation = useMutation({
@@ -120,7 +106,8 @@ export default function Messages() {
     setSelectedUserId(userId);
     
     // Mark conversation as read when selected
-    if (conversations?.find(c => c.id === userId)?.unreadCount) {
+    const userConversation = conversations?.find(c => c.id === userId);
+    if (userConversation?.unreadCount && userConversation.unreadCount > 0) {
       markAsReadMutation.mutate(userId);
     }
   };
@@ -133,8 +120,7 @@ export default function Messages() {
   const formatMessageTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], { 
       hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false 
+      minute: '2-digit'
     });
   };
 
@@ -185,7 +171,8 @@ export default function Messages() {
             <>
               {messages.map((message, index) => {
                 // Check if this is the first message of a series from the same sender
-                const isFirstInSeries = index === 0 || messages[index - 1].senderId !== message.senderId;
+                const isFirstInSeries = index === 0 || 
+                  (messages[index - 1] && messages[index - 1].senderId !== message.senderId);
                 
                 // Is this message from the current user
                 const isCurrentUser = message.senderId === 1; // Assuming current user ID is 1
@@ -217,7 +204,7 @@ export default function Messages() {
                       <p className={`text-xs mt-1 text-right ${
                         isCurrentUser ? "text-red-100" : "text-gray-500"
                       }`}>
-                        {formatMessageTime(message.createdAt)}
+                        {message.createdAt ? formatMessageTime(message.createdAt.toString()) : '--'}
                       </p>
                     </div>
                     {isCurrentUser && isFirstInSeries && (
@@ -272,6 +259,34 @@ export default function Messages() {
     );
   }
 
+  // Empty state - no messages
+  if (showEmptyState) {
+    return (
+      <div className="flex flex-col h-screen bg-white">
+        <div className="p-4 border-b">
+          <h1 className="text-xl font-semibold">Messages</h1>
+        </div>
+        
+        <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
+          <div className="mb-4">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto text-gray-400">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium mb-2">No new messages</h3>
+          <p className="text-gray-500 mb-6">
+            When you connect or get added to a host, you'll see your conversations here.
+          </p>
+          <p className="text-sm text-gray-400 mb-3">
+            When you contact car hosts, you'll see your messages here.
+          </p>
+        </div>
+        
+        <BottomNav />
+      </div>
+    );
+  }
+
   // Conversations list view
   return (
     <div className="flex flex-col h-screen bg-white">
@@ -296,23 +311,6 @@ export default function Messages() {
       <div className="flex-1 overflow-y-auto">
         {loadingConversations ? (
           <LoadingScreen />
-        ) : showEmptyState ? (
-          <div className="flex flex-col items-center justify-center h-full p-4 text-center">
-            <div className="mb-4">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto text-gray-400">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-              </svg>
-            </div>
-            <h3 className="text-lg font-medium mb-2">No new messages</h3>
-            <p className="text-gray-500 mb-4">
-              When you connect or get added to a host, you'll see your conversations here.
-            </p>
-            <Link href="/">
-              <Button className="bg-red-600 hover:bg-red-700 text-white">
-                Find cars to book
-              </Button>
-            </Link>
-          </div>
         ) : filteredConversations && filteredConversations.length > 0 ? (
           <div className="divide-y">
             {filteredConversations.map((user) => (
@@ -346,7 +344,9 @@ export default function Messages() {
               No conversations match your search. Try a different term.
             </p>
           </div>
-        ) : null}
+        ) : (
+          <LoadingScreen />
+        )}
       </div>
       
       <BottomNav />

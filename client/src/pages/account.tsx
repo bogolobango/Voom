@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/header";
 import { BottomNav } from "@/components/layout/bottom-nav";
@@ -8,13 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
 import { User } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { getInitials } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { LoadingScreen } from "@/components/ui/loader";
-import { Camera, Settings, Car, CreditCard, LogOut, Shield } from "lucide-react";
-import { Link } from "wouter";
+import { Camera, Settings, Car, CreditCard, LogOut, Shield, UserCog, ChevronRight } from "lucide-react";
+import { Link, useLocation } from "wouter";
 
 export default function Account() {
   const { toast } = useToast();
@@ -22,10 +23,13 @@ export default function Account() {
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showUploadMenu, setShowUploadMenu] = useState<boolean>(false);
+  const [isHostMode, setIsHostMode] = useState<boolean>(false);
 
   const { data: user, isLoading } = useQuery<User>({
     queryKey: ["/api/users/me"],
   });
+  
+  const [, setLocation] = useLocation();
 
   const updateProfileMutation = useMutation({
     mutationFn: async (formData: FormData) => {
@@ -106,14 +110,38 @@ export default function Account() {
       <main className="container mx-auto px-4 py-6 mb-20 md:mb-6">
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <div className="flex items-center">
-              <Avatar className="h-16 w-16 mr-4">
-                <AvatarImage src={user?.profilePicture} alt={user?.username} />
-                <AvatarFallback>{user ? getInitials(user.username) : "U"}</AvatarFallback>
-              </Avatar>
-              <div>
-                <h2 className="text-xl font-semibold">{user?.username}</h2>
-                <p className="text-sm text-gray-500">Member since {new Date(user?.createdAt || "").toLocaleDateString()}</p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Avatar className="h-16 w-16 mr-4">
+                  <AvatarImage src={user?.profilePicture} alt={user?.username} />
+                  <AvatarFallback>{user ? getInitials(user.username) : "U"}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <h2 className="text-xl font-semibold">{user?.username}</h2>
+                  <p className="text-sm text-gray-500">Member since {new Date(user?.createdAt || "").toLocaleDateString()}</p>
+                </div>
+              </div>
+              <div className="flex flex-col items-end">
+                <div className="flex items-center space-x-2 mb-2">
+                  <div className="text-sm text-gray-600">{isHostMode ? "Host" : "User"}</div>
+                  <Switch 
+                    checked={isHostMode}
+                    onCheckedChange={setIsHostMode}
+                    className="data-[state=checked]:bg-red-600"
+                  />
+                  <UserCog className="h-5 w-5 text-gray-600" />
+                </div>
+                {isHostMode && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="border-red-600 text-red-600"
+                    onClick={() => setLocation("/host-dashboard")}
+                  >
+                    Host Dashboard
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
           </CardContent>
@@ -284,16 +312,40 @@ export default function Account() {
 
           <TabsContent value="cars">
             <Card>
-              <CardHeader>
-                <CardTitle>My Listed Cars</CardTitle>
+              <CardHeader className="flex justify-between items-center pb-2">
+                <CardTitle>{isHostMode ? "My Listed Cars" : "My Bookings"}</CardTitle>
+                {isHostMode && (
+                  <Link href="/become-host">
+                    <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white">
+                      + Add Car
+                    </Button>
+                  </Link>
+                )}
               </CardHeader>
               <CardContent>
-                <div className="text-center py-6">
-                  <p className="text-gray-500 mb-4">You haven't listed any cars yet</p>
-                  <Button className="bg-red-600 hover:bg-red-700 text-white">
-                    List Your Car
-                  </Button>
-                </div>
+                {isHostMode ? (
+                  <div className="space-y-4">
+                    <div className="text-center py-6">
+                      <p className="text-gray-500 mb-4">You haven't listed any cars yet</p>
+                      <Link href="/become-host">
+                        <Button className="bg-red-600 hover:bg-red-700 text-white">
+                          List Your First Car
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="text-center py-6">
+                      <p className="text-gray-500 mb-4">You don't have any car bookings yet</p>
+                      <Link href="/">
+                        <Button className="bg-red-600 hover:bg-red-700 text-white">
+                          Find a Car
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

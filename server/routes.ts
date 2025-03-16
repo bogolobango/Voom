@@ -7,7 +7,8 @@ import {
   insertCarSchema, 
   insertBookingSchema, 
   insertFavoriteSchema, 
-  insertMessageSchema 
+  insertMessageSchema,
+  insertVerificationDocumentSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";

@@ -129,5 +129,58 @@ export const insertVerificationDocumentSchema = createInsertSchema(verificationD
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 
+// Payout methods schema
+export const payoutMethods = pgTable("payout_methods", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  methodType: text("method_type").notNull(), // 'airtel_money', 'ach', 'bitcoin'
+  accountName: text("account_name"),
+  accountNumber: text("account_number"),
+  routingNumber: text("routing_number"),
+  phoneNumber: text("phone_number"),
+  bitcoinAddress: text("bitcoin_address"),
+  isDefault: boolean("is_default").default(false),
+  status: text("status").default("verified"), // pending, verified, rejected
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertPayoutMethodSchema = createInsertSchema(payoutMethods).omit({
+  id: true,
+  status: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Payout transactions schema
+export const payoutTransactions = pgTable("payout_transactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  payoutMethodId: integer("payout_method_id").notNull(),
+  amount: integer("amount").notNull(),
+  currency: text("currency").default("FCFA"),
+  status: text("status").default("pending"), // pending, completed, failed
+  reference: text("reference").notNull(),
+  description: text("description"),
+  failureReason: text("failure_reason"),
+  createdAt: timestamp("created_at").defaultNow(),
+  processedAt: timestamp("processed_at"),
+});
+
+export const insertPayoutTransactionSchema = createInsertSchema(payoutTransactions).omit({
+  id: true,
+  status: true,
+  reference: true,
+  failureReason: true,
+  createdAt: true,
+  processedAt: true,
+});
+
 export type VerificationDocument = typeof verificationDocuments.$inferSelect;
 export type InsertVerificationDocument = z.infer<typeof insertVerificationDocumentSchema>;
+
+export type PayoutMethod = typeof payoutMethods.$inferSelect;
+export type InsertPayoutMethod = z.infer<typeof insertPayoutMethodSchema>;
+
+export type PayoutTransaction = typeof payoutTransactions.$inferSelect;
+export type InsertPayoutTransaction = z.infer<typeof insertPayoutTransactionSchema>;

@@ -5,6 +5,8 @@ import {
   favorites, 
   messages,
   verificationDocuments,
+  payoutMethods,
+  payoutTransactions,
   type User, 
   type InsertUser, 
   type Car, 
@@ -16,7 +18,11 @@ import {
   type Message, 
   type InsertMessage,
   type VerificationDocument,
-  type InsertVerificationDocument
+  type InsertVerificationDocument,
+  type PayoutMethod,
+  type InsertPayoutMethod,
+  type PayoutTransaction,
+  type InsertPayoutTransaction
 } from "@shared/schema";
 
 // Interface for storage operations
@@ -66,6 +72,20 @@ export interface IStorage {
   createVerificationDocument(document: InsertVerificationDocument): Promise<VerificationDocument>;
   updateVerificationDocument(id: number, data: Partial<VerificationDocument>): Promise<VerificationDocument | undefined>;
   updateUserVerificationStatus(userId: number, status: string): Promise<User | undefined>;
+  
+  // Payout operations
+  getPayoutMethods(userId: number): Promise<PayoutMethod[]>;
+  getPayoutMethod(id: number): Promise<PayoutMethod | undefined>;
+  createPayoutMethod(method: InsertPayoutMethod): Promise<PayoutMethod>;
+  updatePayoutMethod(id: number, data: Partial<PayoutMethod>): Promise<PayoutMethod | undefined>;
+  deletePayoutMethod(id: number): Promise<void>;
+  setDefaultPayoutMethod(userId: number, methodId: number): Promise<void>;
+  
+  // Payout transaction operations
+  getPayoutTransactions(userId: number): Promise<PayoutTransaction[]>;
+  getPayoutTransaction(id: number): Promise<PayoutTransaction | undefined>;
+  createPayoutTransaction(transaction: InsertPayoutTransaction): Promise<PayoutTransaction>;
+  updatePayoutTransactionStatus(id: number, status: string, failureReason?: string): Promise<PayoutTransaction | undefined>;
 }
 
 // In-memory storage implementation
@@ -91,12 +111,14 @@ export class MemStorage implements IStorage {
     this.bookings = new Map();
     this.favorites = new Map();
     this.messages = new Map();
+    this.verificationDocuments = new Map();
     
     this.userId = 1;
     this.carId = 1;
     this.bookingId = 1;
     this.favoriteId = 1;
     this.messageId = 1;
+    this.verificationDocumentId = 1;
     
     // Add some seed data
     this.seedData();
@@ -516,6 +538,84 @@ export class MemStorage implements IStorage {
       const updatedMessage = { ...message, read: true };
       this.messages.set(message.id, updatedMessage);
     });
+  }
+
+  // Verification operations
+  async getVerificationDocuments(userId: number): Promise<VerificationDocument[]> {
+    return Array.from(this.verificationDocuments.values()).filter(
+      (doc) => doc.userId === userId
+    );
+  }
+
+  async getVerificationDocument(id: number): Promise<VerificationDocument | undefined> {
+    return this.verificationDocuments.get(id);
+  }
+
+  async createVerificationDocument(document: InsertVerificationDocument): Promise<VerificationDocument> {
+    const id = this.verificationDocumentId++;
+    const verificationDocument: VerificationDocument = {
+      ...document,
+      id,
+      verificationStatus: "pending",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    this.verificationDocuments.set(id, verificationDocument);
+    
+    // Update user verification status if not already pending
+    const user = await this.getUser(document.userId);
+    if (user && user.verificationStatus === "unverified") {
+      await this.updateUserVerificationStatus(document.userId, "pending");
+    }
+    
+    return verificationDocument;
+  }
+
+  async updateVerificationDocument(id: number, data: Partial<VerificationDocument>): Promise<VerificationDocument | undefined> {
+    const document = this.verificationDocuments.get(id);
+    if (!document) return undefined;
+    
+    const updatedDocument = { 
+      ...document, 
+      ...data,
+      updatedAt: new Date().toISOString()
+    };
+    this.verificationDocuments.set(id, updatedDocument);
+    
+    // If document is being approved/rejected, update user verification status
+    if (data.verificationStatus && document.verificationStatus !== data.verificationStatus) {
+      const userDocs = await this.getVerificationDocuments(document.userId);
+      
+      // Check if all required documents are submitted and approved
+      const hasApprovedIdFront = userDocs.some(d => d.documentType === "id_front" && d.verificationStatus === "approved");
+      const hasApprovedIdBack = userDocs.some(d => d.documentType === "id_back" && d.verificationStatus === "approved");
+      const hasApprovedSelfie = userDocs.some(d => d.documentType === "selfie" && d.verificationStatus === "approved");
+      
+      if (hasApprovedIdFront && hasApprovedIdBack && hasApprovedSelfie) {
+        await this.updateUserVerificationStatus(document.userId, "approved");
+      } else if (data.verificationStatus === "rejected") {
+        // If any document is rejected, user verification is rejected
+        await this.updateUserVerificationStatus(document.userId, "rejected");
+      }
+    }
+    
+    return updatedDocument;
+  }
+
+  async updateUserVerificationStatus(userId: number, status: string): Promise<User | undefined> {
+    const user = await this.getUser(userId);
+    if (!user) return undefined;
+    
+    const isVerified = status === "approved";
+    
+    const updatedUser = { 
+      ...user,
+      verificationStatus: status,
+      isVerified
+    };
+    
+    this.users.set(userId, updatedUser);
+    return updatedUser;
   }
 }
 

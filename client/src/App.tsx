@@ -39,12 +39,14 @@ function Router() {
       <ProtectedRoute path="/favorites" component={Favorites} />
       <ProtectedRoute path="/bookings" component={Bookings} />
       <ProtectedRoute path="/bookings/:id" component={BookingDetail} />
-      <ProtectedRoute path="/messages" component={Messages} />
+      
+      {/* Message routes - specific routes first */}
+      <ProtectedRoute path="/messages/profile/:userId" component={MessageProfile} />
+      <ProtectedRoute path="/messages/:userId" component={MessageDetail} />
       <ProtectedRoute path="/messages-new" component={MessagesNew} />
       <ProtectedRoute path="/messages-empty" component={MessagesEmpty} />
       <ProtectedRoute path="/messages-search" component={MessagesSearch} />
-      <ProtectedRoute path="/messages/profile/:userId" component={MessageProfile} />
-      <ProtectedRoute path="/messages/:userId" component={MessageDetail} />
+      <ProtectedRoute path="/messages" component={Messages} />
       <ProtectedRoute path="/account" component={Account} />
       <ProtectedRoute path="/account-preferences" component={AccountPreferences} />
       <ProtectedRoute path="/payment-methods" component={PaymentMethods} />

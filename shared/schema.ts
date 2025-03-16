@@ -9,6 +9,9 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   phoneNumber: text("phone_number"),
   profilePicture: text("profile_picture"),
+  isHost: boolean("is_host").default(false),
+  isVerified: boolean("is_verified").default(false),
+  verificationStatus: text("verification_status").default("unverified"), // unverified, pending, approved, rejected
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -103,5 +106,28 @@ export type InsertBooking = z.infer<typeof insertBookingSchema>;
 export type Favorite = typeof favorites.$inferSelect;
 export type InsertFavorite = z.infer<typeof insertFavoriteSchema>;
 
+// Verification documents schema
+export const verificationDocuments = pgTable("verification_documents", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  documentType: text("document_type").notNull(), // 'id_front', 'id_back', 'selfie'
+  documentUrl: text("document_url").notNull(),
+  verificationStatus: text("verification_status").default("pending"), // pending, approved, rejected
+  adminFeedback: text("admin_feedback"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertVerificationDocumentSchema = createInsertSchema(verificationDocuments).omit({
+  id: true,
+  verificationStatus: true,
+  adminFeedback: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
+
+export type VerificationDocument = typeof verificationDocuments.$inferSelect;
+export type InsertVerificationDocument = z.infer<typeof insertVerificationDocumentSchema>;

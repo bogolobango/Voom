@@ -3,7 +3,8 @@ import {
   cars, 
   bookings, 
   favorites, 
-  messages, 
+  messages,
+  verificationDocuments,
   type User, 
   type InsertUser, 
   type Car, 
@@ -13,7 +14,9 @@ import {
   type Favorite, 
   type InsertFavorite, 
   type Message, 
-  type InsertMessage 
+  type InsertMessage,
+  type VerificationDocument,
+  type InsertVerificationDocument
 } from "@shared/schema";
 
 // Interface for storage operations
@@ -56,6 +59,13 @@ export interface IStorage {
   getConversationMessages(userId: number, otherUserId: number): Promise<(Message & { sender: User })[]>;
   createMessage(message: InsertMessage): Promise<Message>;
   markConversationAsRead(userId: number, otherUserId: number): Promise<void>;
+  
+  // Verification operations
+  getVerificationDocuments(userId: number): Promise<VerificationDocument[]>;
+  getVerificationDocument(id: number): Promise<VerificationDocument | undefined>;
+  createVerificationDocument(document: InsertVerificationDocument): Promise<VerificationDocument>;
+  updateVerificationDocument(id: number, data: Partial<VerificationDocument>): Promise<VerificationDocument | undefined>;
+  updateUserVerificationStatus(userId: number, status: string): Promise<User | undefined>;
 }
 
 // In-memory storage implementation
@@ -65,6 +75,7 @@ export class MemStorage implements IStorage {
   private bookings: Map<number, Booking>;
   private favorites: Map<number, Favorite>;
   private messages: Map<number, Message>;
+  private verificationDocuments: Map<number, VerificationDocument>;
   
   // Auto-increment IDs
   private userId: number;
@@ -72,6 +83,7 @@ export class MemStorage implements IStorage {
   private bookingId: number;
   private favoriteId: number;
   private messageId: number;
+  private verificationDocumentId: number;
 
   constructor() {
     this.users = new Map();

@@ -28,6 +28,13 @@ import BookingSuccess from "@/pages/booking-success";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 
+// Car listing flow pages
+import BecomeHost from "@/pages/become-host";
+import BecomeHostCarDetails from "@/pages/become-host-car-details";
+import BecomeHostLocation from "@/pages/become-host-location";
+import BecomeHostRates from "@/pages/become-host-rates";
+import BecomeHostSummary from "@/pages/become-host-summary";
+
 function Router() {
   return (
     <Switch>

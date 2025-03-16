@@ -2,6 +2,8 @@ import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
+import { AuthProvider } from "@/hooks/use-auth";
+import { ProtectedRoute } from "@/components/protected-route";
 
 // Import pages
 import Home from "@/pages/home";
@@ -17,30 +19,31 @@ import CarDetail from "@/pages/car-detail";
 import BookingConfirm from "@/pages/booking-confirm";
 import AddPhone from "@/pages/add-phone";
 import AddProfilePicture from "@/pages/add-profile-picture";
-import AuthCode from "@/pages/auth-code";
 import BookingSuccess from "@/pages/booking-success";
-import Login from "@/pages/login";
+import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/favorites" component={Favorites} />
-      <Route path="/bookings" component={Bookings} />
-      <Route path="/bookings/:id" component={BookingDetail} />
-      <Route path="/messages" component={Messages} />
-      <Route path="/account" component={Account} />
-      <Route path="/account-preferences" component={AccountPreferences} />
-      <Route path="/payment-methods" component={PaymentMethods} />
-      <Route path="/privacy-security" component={PrivacySecurity} />
+      <Route path="/auth" component={AuthPage} />
       <Route path="/cars/:id" component={CarDetail} />
-      <Route path="/booking-confirm/:id" component={BookingConfirm} />
-      <Route path="/add-phone" component={AddPhone} />
-      <Route path="/add-profile-picture" component={AddProfilePicture} />
-      <Route path="/auth-code" component={AuthCode} />
-      <Route path="/booking-success" component={BookingSuccess} />
-      <Route path="/login" component={Login} />
+      
+      {/* Protected routes */}
+      <ProtectedRoute path="/favorites" component={Favorites} />
+      <ProtectedRoute path="/bookings" component={Bookings} />
+      <ProtectedRoute path="/bookings/:id" component={BookingDetail} />
+      <ProtectedRoute path="/messages" component={Messages} />
+      <ProtectedRoute path="/account" component={Account} />
+      <ProtectedRoute path="/account-preferences" component={AccountPreferences} />
+      <ProtectedRoute path="/payment-methods" component={PaymentMethods} />
+      <ProtectedRoute path="/privacy-security" component={PrivacySecurity} />
+      <ProtectedRoute path="/booking-confirm/:id" component={BookingConfirm} />
+      <ProtectedRoute path="/add-phone" component={AddPhone} />
+      <ProtectedRoute path="/add-profile-picture" component={AddProfilePicture} />
+      <ProtectedRoute path="/booking-success" component={BookingSuccess} />
+      
       <Route component={NotFound} />
     </Switch>
   );
@@ -49,8 +52,10 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
-      <Toaster />
+      <AuthProvider>
+        <Router />
+        <Toaster />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

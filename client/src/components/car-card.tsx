@@ -69,7 +69,7 @@ export function CarCard({ car, isFavorite = false }: CarCardProps) {
       </div>
       
       <Link href={`/cars/${car.id}`}>
-        <a className="block">
+        <div className="block cursor-pointer">
           <img
             src={car.imageUrl}
             alt={`${car.make} ${car.model}`}
@@ -101,7 +101,7 @@ export function CarCard({ car, isFavorite = false }: CarCardProps) {
               </div>
             </div>
           </div>
-        </a>
+        </div>
       </Link>
     </Card>
   );

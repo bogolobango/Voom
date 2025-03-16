@@ -117,38 +117,152 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Auth routes (simplified for demo)
+  // Auth routes
+  
+  // Step 1: Initial login (username/password) - returns verification requirement
   apiRouter.post("/auth/login", async (req: Request, res: Response) => {
     try {
-      const { loginMethod, code } = req.body;
+      const { username, password } = req.body;
       
-      if (!code || code.length < 6) {
-        return res.status(400).json({ message: "Valid verification code is required" });
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
       }
       
-      // For demo purposes, any 6-digit code works
-      if (code.length === 6) {
-        const user = await storage.getUser(1); // Demo user ID
-        const { password, ...userWithoutPassword } = user!;
-        return res.json(userWithoutPassword);
-      }
+      // For demo purposes, any credentials work
+      const user = await storage.getUser(1); // Demo user ID
       
-      return res.status(401).json({ message: "Invalid verification code" });
+      // Rather than returning the user directly, return a verification requirement
+      return res.json({ 
+        success: true, 
+        message: "Verification required",
+        userId: user?.id || 1,
+        requiresVerification: true
+      });
     } catch (error) {
       return res.status(400).json({ message: (error as Error).message });
     }
   });
   
+  // Step 2: Verify code from SMS/Authenticator
   apiRouter.post("/auth/verify-code", async (req: Request, res: Response) => {
     try {
-      const { code } = req.body;
+      const { code, userId } = req.body;
       
       if (!code || code.length !== 6) {
         return res.status(400).json({ message: "Valid 6-digit code is required" });
       }
       
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+      
       // For demo purposes, any 6-digit code works
-      return res.json({ success: true });
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const { password, ...userWithoutPassword } = user;
+      
+      return res.json({ 
+        success: true,
+        message: "Successfully authenticated",
+        user: userWithoutPassword 
+      });
+    } catch (error) {
+      return res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
+  // Social login (Google, Facebook)
+  apiRouter.post("/auth/social-login", async (req: Request, res: Response) => {
+    try {
+      const { provider } = req.body;
+      
+      if (!provider) {
+        return res.status(400).json({ message: "Social provider is required" });
+      }
+      
+      // For demo purposes, return the demo user
+      const user = await storage.getUser(1);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const { password, ...userWithoutPassword } = user;
+      
+      return res.json({ 
+        success: true,
+        message: `Successfully authenticated with ${provider}`,
+        user: userWithoutPassword 
+      });
+    } catch (error) {
+      return res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
+  // Register new user
+  apiRouter.post("/auth/register", async (req: Request, res: Response) => {
+    try {
+      const { fullName, username, phoneNumber, password } = req.body;
+      
+      if (!fullName || !username || !phoneNumber || !password) {
+        return res.status(400).json({ 
+          message: "Full name, username, phone number, and password are required" 
+        });
+      }
+      
+      // In a real app, we would check if the username is already taken
+      
+      // For demo purposes, just return success
+      return res.json({ 
+        success: true,
+        message: "Verification code sent to your phone",
+        userId: 1, // Demo user ID
+        requiresVerification: true 
+      });
+    } catch (error) {
+      return res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
+  // Forgot password
+  apiRouter.post("/auth/forgot-password", async (req: Request, res: Response) => {
+    try {
+      const { phoneNumber } = req.body;
+      
+      if (!phoneNumber) {
+        return res.status(400).json({ message: "Phone number is required" });
+      }
+      
+      // For demo purposes, just return success
+      return res.json({ 
+        success: true,
+        message: "Verification code sent to your phone",
+        userId: 1, // Demo user ID
+        requiresVerification: true 
+      });
+    } catch (error) {
+      return res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
+  // Reset password (after verification)
+  apiRouter.post("/auth/reset-password", async (req: Request, res: Response) => {
+    try {
+      const { userId, newPassword } = req.body;
+      
+      if (!userId || !newPassword) {
+        return res.status(400).json({ message: "User ID and new password are required" });
+      }
+      
+      // For demo purposes, just return success
+      return res.json({ 
+        success: true,
+        message: "Password reset successfully" 
+      });
     } catch (error) {
       return res.status(400).json({ message: (error as Error).message });
     }

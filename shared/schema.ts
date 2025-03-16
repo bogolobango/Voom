@@ -20,6 +20,26 @@ export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
 });
 
+export const loginSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
+});
+
+export const registerSchema = z.object({
+  fullName: z.string().min(1, "Full name is required"),
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  phoneNumber: z.string().min(1, "Phone number is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+export const verificationCodeSchema = z.object({
+  code: z.string().length(6, "Verification code must be 6 digits"),
+});
+
+export const forgotPasswordSchema = z.object({
+  phoneNumber: z.string().min(1, "Phone number is required"),
+});
+
 // Car listings schema
 export const cars = pgTable("cars", {
   id: serial("id").primaryKey(),

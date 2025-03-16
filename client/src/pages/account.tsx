@@ -206,17 +206,23 @@ export default function Account() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <Button variant="ghost" className="w-full justify-start">
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Account Preferences</span>
+                    <Button variant="ghost" className="w-full justify-start" asChild>
+                      <Link href="/account-preferences">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Account Preferences</span>
+                      </Link>
                     </Button>
-                    <Button variant="ghost" className="w-full justify-start">
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      <span>Payment Methods</span>
+                    <Button variant="ghost" className="w-full justify-start" asChild>
+                      <Link href="/payment-methods">
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        <span>Payment Methods</span>
+                      </Link>
                     </Button>
-                    <Button variant="ghost" className="w-full justify-start">
-                      <Shield className="mr-2 h-4 w-4" />
-                      <span>Privacy & Security</span>
+                    <Button variant="ghost" className="w-full justify-start" asChild>
+                      <Link href="/privacy-security">
+                        <Shield className="mr-2 h-4 w-4" />
+                        <span>Privacy & Security</span>
+                      </Link>
                     </Button>
                   </div>
                 </CardContent>

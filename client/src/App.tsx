@@ -9,6 +9,9 @@ import Favorites from "@/pages/favorites";
 import Bookings from "@/pages/bookings";
 import Messages from "@/pages/messages";
 import Account from "@/pages/account";
+import AccountPreferences from "@/pages/account-preferences";
+import PaymentMethods from "@/pages/payment-methods";
+import PrivacySecurity from "@/pages/privacy-security";
 import CarDetail from "@/pages/car-detail";
 import BookingConfirm from "@/pages/booking-confirm";
 import AddPhone from "@/pages/add-phone";
@@ -26,6 +29,9 @@ function Router() {
       <Route path="/bookings" component={Bookings} />
       <Route path="/messages" component={Messages} />
       <Route path="/account" component={Account} />
+      <Route path="/account-preferences" component={AccountPreferences} />
+      <Route path="/payment-methods" component={PaymentMethods} />
+      <Route path="/privacy-security" component={PrivacySecurity} />
       <Route path="/cars/:id" component={CarDetail} />
       <Route path="/booking-confirm/:id" component={BookingConfirm} />
       <Route path="/add-phone" component={AddPhone} />

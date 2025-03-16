@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import Home from "@/pages/home";
 import Favorites from "@/pages/favorites";
 import Bookings from "@/pages/bookings";
+import BookingDetail from "@/pages/booking-detail";
 import Messages from "@/pages/messages";
 import Account from "@/pages/account";
 import AccountPreferences from "@/pages/account-preferences";
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/favorites" component={Favorites} />
       <Route path="/bookings" component={Bookings} />
+      <Route path="/bookings/:id" component={BookingDetail} />
       <Route path="/messages" component={Messages} />
       <Route path="/account" component={Account} />
       <Route path="/account-preferences" component={AccountPreferences} />

@@ -95,13 +95,15 @@ export default function Bookings() {
                       </Button>
                     </Link>
                     {booking.status === "confirmed" && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="bg-red-600 hover:bg-red-700"
-                      >
-                        Cancel Booking
-                      </Button>
+                      <Link href={`/bookings/${booking.id}`}>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Cancel Booking
+                        </Button>
+                      </Link>
                     )}
                   </div>
                 </CardContent>

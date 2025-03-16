@@ -218,6 +218,7 @@ export default function Messages() {
                     </p>
                   </div>
                 )}
+                <div ref={messagesEndRef} />
               </div>
               
               <form onSubmit={handleSendMessage} className="mt-auto">

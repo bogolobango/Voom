@@ -133,19 +133,19 @@ export type InsertFavorite = z.infer<typeof insertFavoriteSchema>;
 export const verificationDocuments = pgTable("verification_documents", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
-  documentType: text("document_type").notNull(), // 'id_front', 'id_back', 'selfie'
+  documentType: text("document_type").notNull(), // 'identity', 'license', 'insurance', 'vin'
   documentUrl: text("document_url").notNull(),
-  verificationStatus: text("verification_status").default("pending"), // pending, approved, rejected
-  adminFeedback: text("admin_feedback"),
-  createdAt: timestamp("created_at").defaultNow(),
+  status: text("status").default("pending"), // pending, completed, verified, failed
+  notes: text("notes"), // Used for error messages or admin feedback
+  submittedAt: timestamp("submitted_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const insertVerificationDocumentSchema = createInsertSchema(verificationDocuments).omit({
   id: true,
-  verificationStatus: true,
-  adminFeedback: true,
-  createdAt: true,
+  status: true,
+  notes: true,
+  submittedAt: true,
   updatedAt: true,
 });
 

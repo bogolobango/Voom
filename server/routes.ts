@@ -492,7 +492,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update status for each document type
       documents.forEach(doc => {
         verification[doc.documentType] = {
-          status: doc.status,
+          status: doc.status || 'pending',
           id: doc.id,
           updatedAt: doc.updatedAt,
           error: doc.notes // Use notes field for any error messages

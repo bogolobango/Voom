@@ -55,6 +55,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { BookingDetails } from "@/components/booking-details";
+import { VerificationSystem } from "@/components/verification-system";
 
 export default function CarDetail() {
   const [_, navigate] = useLocation();
@@ -119,8 +120,9 @@ export default function CarDetail() {
 
   const handleReserve = () => {
     if (car) {
-      // Show verification dialog if user is not verified
-      const isUserVerified = true; // For demo purposes
+      // For demonstration purposes, show verification dialog based on a random condition
+      // In a real app, this would check the user's verification status from the server
+      const isUserVerified = false; // Set to false to always show verification
       
       if (!isUserVerified) {
         setShowVerificationDialog(true);

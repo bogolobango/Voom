@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/layout/header";
@@ -18,6 +18,7 @@ import { Search, MapPin, Calendar as CalendarIcon, Shield, Gift, Car as CarIcon,
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { CarGridSkeleton } from "@/components/ui/car-skeleton";
+import { motion, AnimatePresence, stagger } from "framer-motion";
 
 export default function Home() {
   const [, navigate] = useLocation();
@@ -95,34 +96,74 @@ export default function Home() {
       <main className="flex-grow">
         {/* List a New Car Banner - Prominently displayed at top */}
         {user && (
-          <div className="bg-gradient-to-r from-red-500 to-red-600 py-4">
+          <motion.div 
+            className="bg-gradient-to-r from-red-500 to-red-600 py-4"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
             <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center">
-              <div className="text-white mb-3 md:mb-0">
+              <motion.div 
+                className="text-white mb-3 md:mb-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+              >
                 <h2 className="text-xl font-semibold mb-1">Have a car? Earn money by sharing it!</h2>
                 <p className="text-white/90">Join thousands of hosts making extra income on Voom</p>
-              </div>
-              <Button 
-                onClick={() => navigate("/become-host")} 
-                className="bg-white text-red-600 hover:bg-gray-100 font-semibold"
-                size="lg"
+              </motion.div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
               >
-                List a New Car
-              </Button>
+                <Button 
+                  onClick={() => navigate("/become-host")} 
+                  className="bg-white text-red-600 hover:bg-gray-100 font-semibold"
+                  size="lg"
+                >
+                  List a New Car
+                </Button>
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
         )}
         
         {/* Hero Section with Check-in Form FIRST */}
         <div className="relative bg-gray-100">
           <div className="container mx-auto px-4 md:px-8 py-10 md:py-20">
-            <div className="max-w-lg bg-white p-6 rounded-xl shadow-sm">
-              <h1 className="text-3xl font-bold mb-2">Find cars and homes in Accra</h1>
-              <p className="text-gray-600 mb-6">
+            <motion.div 
+              className="max-w-lg bg-white p-6 rounded-xl shadow-sm"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, ease: "easeOut" }}
+            >
+              <motion.h1 
+                className="text-3xl font-bold mb-2"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+              >
+                Find cars and homes in Accra
+              </motion.h1>
+              <motion.p 
+                className="text-gray-600 mb-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+              >
                 Whether it's a trip for business or a family getaway, your next journey begins on Voom.
-              </p>
+              </motion.p>
 
               <form onSubmit={handleSearchSubmit} className="space-y-4">
-                <div className="space-y-2">
+                <motion.div 
+                  className="space-y-2"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.6, duration: 0.5 }}
+                >
                   <label className="text-sm font-medium">LOCATION</label>
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
@@ -133,9 +174,14 @@ export default function Home() {
                       onChange={(e) => setSelectedLocation(e.target.value)}
                     />
                   </div>
-                </div>
+                </motion.div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <motion.div 
+                  className="grid grid-cols-2 gap-2"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.7, duration: 0.5 }}
+                >
                   <div className="space-y-2">
                     <label className="text-sm font-medium">CHECK IN</label>
                     <Popover>
@@ -181,9 +227,14 @@ export default function Home() {
                       </PopoverContent>
                     </Popover>
                   </div>
-                </div>
+                </motion.div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <motion.div 
+                  className="grid grid-cols-2 gap-2"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.8, duration: 0.5 }}
+                >
                   <div className="space-y-2">
                     <label className="text-sm font-medium">ADULTS</label>
                     <Select defaultValue={adults.toString()} onValueChange={(val) => setAdults(parseInt(val))}>
@@ -211,21 +262,34 @@ export default function Home() {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
+                </motion.div>
 
-                <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white">
-                  Search
-                </Button>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.9, duration: 0.5 }}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                >
+                  <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white">
+                    Search
+                  </Button>
+                </motion.div>
               </form>
-            </div>
+            </motion.div>
           </div>
-          <div className="hidden md:block absolute top-0 right-0 w-1/2 h-full">
+          <motion.div 
+            className="hidden md:block absolute top-0 right-0 w-1/2 h-full"
+            initial={{ opacity: 0, scale: 1.1 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1.2, ease: "easeOut" }}
+          >
             <img 
               src="https://source.unsplash.com/random/1200x800/?luxury-car" 
               alt="Luxury car" 
               className="w-full h-full object-cover"
             />
-          </div>
+          </motion.div>
         </div>
 
         {/* Category Selection SECOND */}
@@ -251,9 +315,41 @@ export default function Home() {
           {isLoading ? (
             <CarGridSkeleton count={4} />
           ) : luxuryCars && luxuryCars.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <motion.div 
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              variants={{
+                visible: {
+                  transition: {
+                    staggerChildren: 0.1
+                  }
+                },
+                hidden: {}
+              }}
+            >
               {luxuryCars.map((car) => (
-                <div key={car.id} className="rounded-lg overflow-hidden border border-gray-200">
+                <motion.div 
+                  key={car.id} 
+                  className="rounded-lg overflow-hidden border border-gray-200"
+                  variants={{
+                    visible: { 
+                      opacity: 1, 
+                      y: 0,
+                      transition: { duration: 0.5 }
+                    },
+                    hidden: { 
+                      opacity: 0, 
+                      y: 30
+                    }
+                  }}
+                  whileHover={{ 
+                    y: -8,
+                    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+                    transition: { duration: 0.2 } 
+                  }}
+                >
                   <div className="relative">
                     <img 
                       src={`https://source.unsplash.com/random/300x200/?${car.make}-${car.model}`}
@@ -275,14 +371,19 @@ export default function Home() {
                       <span className="font-semibold">FCFA {car.dailyRate.toLocaleString()}</span> / day
                     </p>
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           ) : (
-            <div className="text-center py-12">
+            <motion.div 
+              className="text-center py-12"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+            >
               <h3 className="text-xl font-semibold mb-2">No luxury cars available at the moment</h3>
               <p className="text-gray-500 mb-4">Check back soon for premium vehicles.</p>
-            </div>
+            </motion.div>
           )}
           
           <div className="mt-4 text-center md:hidden">
@@ -294,31 +395,107 @@ export default function Home() {
 
         {/* Features Section */}
         <div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="flex flex-col items-center text-center">
-              <Shield className="w-12 h-12 mb-4" />
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-3 gap-8"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={{
+              visible: {
+                transition: {
+                  staggerChildren: 0.2
+                }
+              },
+              hidden: {}
+            }}
+          >
+            <motion.div 
+              className="flex flex-col items-center text-center"
+              variants={{
+                visible: { 
+                  opacity: 1, 
+                  y: 0,
+                  transition: { duration: 0.6 }
+                },
+                hidden: { opacity: 0, y: 50 }
+              }}
+            >
+              <motion.div
+                initial={{ scale: 0.5, opacity: 0 }}
+                whileInView={{ scale: 1, opacity: 1 }}
+                transition={{ 
+                  type: "spring", 
+                  stiffness: 300, 
+                  delay: 0.2,
+                  duration: 0.8 
+                }}
+              >
+                <Shield className="w-12 h-12 mb-4 text-red-500" />
+              </motion.div>
               <h3 className="text-lg font-semibold mb-2">Book with confidence</h3>
               <p className="text-gray-600">
                 Get 24/7 support and discover helpful reviews from our trusted community of guests.
               </p>
-            </div>
+            </motion.div>
 
-            <div className="flex flex-col items-center text-center">
-              <Gift className="w-12 h-12 mb-4" />
+            <motion.div 
+              className="flex flex-col items-center text-center"
+              variants={{
+                visible: { 
+                  opacity: 1, 
+                  y: 0,
+                  transition: { duration: 0.6 }
+                },
+                hidden: { opacity: 0, y: 50 }
+              }}
+            >
+              <motion.div
+                initial={{ scale: 0.5, opacity: 0 }}
+                whileInView={{ scale: 1, opacity: 1 }}
+                transition={{ 
+                  type: "spring", 
+                  stiffness: 300, 
+                  delay: 0.4,
+                  duration: 0.8 
+                }}
+              >
+                <Gift className="w-12 h-12 mb-4 text-red-500" />
+              </motion.div>
               <h3 className="text-lg font-semibold mb-2">Find more amenities</h3>
               <p className="text-gray-600">
                 Explore cars based on the comforts you want for the perfect, dreamy getaway.
               </p>
-            </div>
+            </motion.div>
 
-            <div className="flex flex-col items-center text-center">
-              <CalendarIcon className="w-12 h-12 mb-4" />
+            <motion.div 
+              className="flex flex-col items-center text-center"
+              variants={{
+                visible: { 
+                  opacity: 1, 
+                  y: 0,
+                  transition: { duration: 0.6 }
+                },
+                hidden: { opacity: 0, y: 50 }
+              }}
+            >
+              <motion.div
+                initial={{ scale: 0.5, opacity: 0 }}
+                whileInView={{ scale: 1, opacity: 1 }}
+                transition={{ 
+                  type: "spring", 
+                  stiffness: 300, 
+                  delay: 0.6,
+                  duration: 0.8 
+                }}
+              >
+                <CalendarIcon className="w-12 h-12 mb-4 text-red-500" />
+              </motion.div>
               <h3 className="text-lg font-semibold mb-2">Keep it flexible</h3>
               <p className="text-gray-600">
                 Stays with flexible cancellation make it easy to re-book if your plans change.
               </p>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
 
         {/* Economic Cars Section FOURTH */}
@@ -336,9 +513,41 @@ export default function Home() {
           {isLoading ? (
             <CarGridSkeleton count={4} />
           ) : economyCars && economyCars.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <motion.div 
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              variants={{
+                visible: {
+                  transition: {
+                    staggerChildren: 0.1
+                  }
+                },
+                hidden: {}
+              }}
+            >
               {economyCars.map((car) => (
-                <div key={car.id} className="rounded-lg overflow-hidden border border-gray-200">
+                <motion.div 
+                  key={car.id} 
+                  className="rounded-lg overflow-hidden border border-gray-200"
+                  variants={{
+                    visible: { 
+                      opacity: 1, 
+                      y: 0,
+                      transition: { duration: 0.5 }
+                    },
+                    hidden: { 
+                      opacity: 0, 
+                      y: 30
+                    }
+                  }}
+                  whileHover={{ 
+                    y: -8,
+                    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+                    transition: { duration: 0.2 } 
+                  }}
+                >
                   <div className="relative">
                     <img 
                       src={`https://source.unsplash.com/random/300x200/?${car.make}-${car.model}`}
@@ -360,14 +569,19 @@ export default function Home() {
                       <span className="font-semibold">FCFA {car.dailyRate.toLocaleString()}</span> / day
                     </p>
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           ) : (
-            <div className="text-center py-12">
+            <motion.div 
+              className="text-center py-12"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+            >
               <h3 className="text-xl font-semibold mb-2">No economy cars available at the moment</h3>
               <p className="text-gray-500 mb-4">Check back soon for economy vehicles.</p>
-            </div>
+            </motion.div>
           )}
           
           <div className="mt-4 text-center md:hidden">

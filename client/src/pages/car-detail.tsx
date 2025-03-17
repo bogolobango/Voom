@@ -146,7 +146,8 @@ export default function CarDetail() {
   };
 
   const handleBack = () => {
-    navigate(-1);
+    // Convert number to string for wouter navigation
+    navigate("/");
   };
 
   const handleShare = () => {
@@ -241,8 +242,8 @@ export default function CarDetail() {
             </h1>
             <div className="flex items-center mt-1">
               <Rating 
-                value={car.rating || 0} 
-                count={car.ratingCount} 
+                value={car.rating ?? 0} 
+                count={car.ratingCount ?? 0} 
                 showCount
               />
             </div>

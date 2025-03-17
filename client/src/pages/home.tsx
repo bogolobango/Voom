@@ -21,7 +21,11 @@ export default function Home() {
   const [filters, setFilters] = useState<FilterOptions>({
     priceRange: [0, 200000],
     make: [],
-    available: false
+    available: false,
+    features: [],
+    year: null,
+    minRating: null,
+    sort: null
   });
 
   const { data: cars, isLoading } = useQuery<Car[]>({
@@ -49,13 +53,14 @@ export default function Home() {
   };
 
   // Filter cars based on all criteria
-  const filteredCars = cars?.filter((car) => {
+  let filteredCars = cars?.filter((car) => {
     // Search query filter
     const matchesSearch = 
       searchQuery === "" || 
       car.make.toLowerCase().includes(searchQuery.toLowerCase()) ||
       car.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      car.location.toLowerCase().includes(searchQuery.toLowerCase());
+      car.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (car.type && car.type.toLowerCase().includes(searchQuery.toLowerCase()));
     
     // Category filter
     const matchesCategory = 
@@ -82,8 +87,49 @@ export default function Home() {
     const matchesAvailability = 
       !filters.available || car.available;
     
-    return matchesSearch && matchesCategory && matchesPrice && matchesMake && matchesAvailability;
+    // Year filter
+    const matchesYear = 
+      !filters.year || car.year === filters.year;
+    
+    // Rating filter
+    const matchesRating = 
+      !filters.minRating || (car.rating && car.rating >= filters.minRating);
+    
+    // Features filter
+    const matchesFeatures = 
+      filters.features.length === 0 || 
+      (car.features && filters.features.every(feature => 
+        car.features?.includes(feature)
+      ));
+    
+    return matchesSearch && matchesCategory && matchesPrice && matchesMake && 
+           matchesAvailability && matchesYear && matchesRating && matchesFeatures;
   });
+  
+  // Apply sorting if needed
+  if (filteredCars && filters.sort) {
+    switch (filters.sort) {
+      case "price_low":
+        filteredCars = [...filteredCars].sort((a, b) => a.dailyRate - b.dailyRate);
+        break;
+      case "price_high":
+        filteredCars = [...filteredCars].sort((a, b) => b.dailyRate - a.dailyRate);
+        break;
+      case "rating":
+        filteredCars = [...filteredCars].sort((a, b) => {
+          const ratingA = a.rating || 0;
+          const ratingB = b.rating || 0;
+          return ratingB - ratingA;
+        });
+        break;
+      case "newest":
+        filteredCars = [...filteredCars].sort((a, b) => b.year - a.year);
+        break;
+      default:
+        // Keep original order
+        break;
+    }
+  }
 
   return (
     <>
@@ -147,7 +193,11 @@ export default function Home() {
                 setFilters({
                   priceRange: [0, 200000],
                   make: [],
-                  available: false
+                  available: false,
+                  features: [],
+                  year: null,
+                  minRating: null,
+                  sort: null
                 });
               }}
               className="bg-red-600 hover:bg-red-700 text-white"

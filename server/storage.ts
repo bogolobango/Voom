@@ -164,7 +164,7 @@ export class MemStorage implements IStorage {
         rating: 4.8,
         ratingCount: 12,
         available: true,
-        features: ["4x4", "Bluetooth", "Air conditioning", "GPS"]
+        features: ["4x4", "Bluetooth", "Air conditioning", "GPS", "Backup camera"]
       },
       {
         hostId: hostUser.id,
@@ -179,7 +179,8 @@ export class MemStorage implements IStorage {
         imageUrl: "https://images.unsplash.com/photo-1563720360478-5de823352d2e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
         rating: 4.5,
         ratingCount: 8,
-        available: true
+        available: true,
+        features: ["Leather seats", "Panoramic sunroof", "Premium audio", "Heated seats", "Adaptive cruise control"]
       },
       {
         hostId: hostUser.id,
@@ -196,6 +197,70 @@ export class MemStorage implements IStorage {
         ratingCount: 6,
         available: true,
         features: ["Bluetooth", "Air conditioning", "Heated seats", "Parking sensors"]
+      },
+      {
+        hostId: hostUser.id,
+        make: "Toyota",
+        model: "Hilux",
+        year: 2022,
+        type: "Truck",
+        dailyRate: 72000,
+        currency: "FCFA",
+        location: "GBN",
+        description: "Rugged pickup truck perfect for both work and adventure.",
+        imageUrl: "https://images.unsplash.com/photo-1559416523-140ddc3d238c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
+        rating: 4.7,
+        ratingCount: 9,
+        available: true,
+        features: ["4x4", "Towing package", "Heavy duty suspension", "Bluetooth", "Backup camera"]
+      },
+      {
+        hostId: hostUser.id,
+        make: "BMW",
+        model: "M4",
+        year: 2023,
+        type: "Sports",
+        dailyRate: 125000,
+        currency: "FCFA",
+        location: "FTN",
+        description: "High-performance sports car with aggressive styling and exhilarating driving experience.",
+        imageUrl: "https://images.unsplash.com/photo-1617814076668-8dfc6fe2d602?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
+        rating: 4.9,
+        ratingCount: 7,
+        available: true,
+        features: ["Sport mode", "Racing seats", "Carbon fiber trim", "Premium audio", "Launch control"]
+      },
+      {
+        hostId: hostUser.id,
+        make: "Honda",
+        model: "Civic",
+        year: 2021,
+        type: "Compact",
+        dailyRate: 45000,
+        currency: "FCFA",
+        location: "ADL",
+        description: "Fuel-efficient compact car with modern features and reliability.",
+        imageUrl: "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
+        rating: 4.3,
+        ratingCount: 15,
+        available: true,
+        features: ["Bluetooth", "Backup camera", "Fuel efficient", "USB ports", "Apple CarPlay"]
+      },
+      {
+        hostId: hostUser.id,
+        make: "Audi",
+        model: "A8 L",
+        year: 2022,
+        type: "Luxury",
+        dailyRate: 155000,
+        currency: "FCFA",
+        location: "FTN",
+        description: "Executive luxury sedan with premium amenities and comfortable ride.",
+        imageUrl: "https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
+        rating: 4.8,
+        ratingCount: 5,
+        available: false,
+        features: ["Massage seats", "Executive rear seating", "Premium audio", "Air suspension", "Night vision"]
       }
     ];
     

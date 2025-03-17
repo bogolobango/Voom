@@ -468,6 +468,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== Verification Routes ====================
+  
+  // Get verification status for a user
+  apiRouter.get("/verification/:userId", async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const documents = await storage.getVerificationDocuments(userId);
+      
+      // Group documents by type
+      const verification: Record<string, any> = {
+        identity: { status: 'pending' },
+        license: { status: 'pending' },
+        insurance: { status: 'pending' },
+        vin: { status: 'pending' }
+      };
+      
+      // Update status for each document type
+      documents.forEach(doc => {
+        verification[doc.documentType] = {
+          status: doc.status,
+          id: doc.id,
+          updatedAt: doc.updatedAt,
+          error: doc.notes // Use notes field for any error messages
+        };
+      });
+      
+      return res.json(verification);
+    } catch (error) {
+      return res.status(500).json({ message: (error as Error).message });
+    }
+  });
+  
+  // Upload verification document
+  apiRouter.post("/verification/upload", async (req: Request, res: Response) => {
+    try {
+      const { userId, documentType, textData } = req.body;
+      
+      if (!userId || !documentType) {
+        return res.status(400).json({ message: "User ID and document type are required" });
+      }
+      
+      // In a real app, this would handle file upload using multer or similar
+      // For this demo, we'll just use placeholder data
+      
+      // Check if document already exists and update it
+      const documents = await storage.getVerificationDocuments(parseInt(userId));
+      const existingDoc = documents.find(doc => doc.documentType === documentType);
+      
+      let verificationDoc;
+      if (existingDoc) {
+        // Update existing document
+        verificationDoc = await storage.updateVerificationDocument(existingDoc.id, {
+          status: 'completed', // In real app would be 'pending' until verified
+          documentUrl: textData || 'https://placeholder.com/verification-document',
+          notes: null
+        });
+      } else {
+        // Create new document
+        const newDoc = {
+          userId: parseInt(userId),
+          documentType,
+          documentUrl: textData || 'https://placeholder.com/verification-document',
+          status: 'completed', // In real app would be 'pending' until verified
+          submittedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          notes: null
+        };
+        
+        verificationDoc = await storage.createVerificationDocument(newDoc);
+      }
+      
+      // Simulate verification process
+      // In a real app, this would be a background process
+      setTimeout(async () => {
+        // For demo purposes, randomly verify or reject
+        const randomStatus = Math.random() > 0.2 ? 'verified' : 'failed';
+        const notes = randomStatus === 'failed' ? 'Document unclear or invalid' : null;
+        
+        await storage.updateVerificationDocument(verificationDoc!.id, {
+          status: randomStatus,
+          notes
+        });
+        
+        // If all documents are verified, update user verification status
+        if (randomStatus === 'verified') {
+          const updatedDocs = await storage.getVerificationDocuments(parseInt(userId));
+          const allVerified = updatedDocs.every(doc => doc.status === 'verified');
+          
+          if (allVerified && updatedDocs.length >= 4) {
+            await storage.updateUserVerificationStatus(parseInt(userId), 'verified');
+          }
+        }
+      }, 5000); // Simulate 5 second delay for verification
+      
+      return res.status(201).json({
+        success: true,
+        message: "Document uploaded successfully and is being processed",
+        document: verificationDoc
+      });
+    } catch (error) {
+      return res.status(500).json({ message: (error as Error).message });
+    }
+  });
+  
   // ==================== Message Routes ====================
   
   // Get all conversations for the current user

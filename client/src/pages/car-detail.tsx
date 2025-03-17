@@ -119,9 +119,18 @@ export default function CarDetail() {
 
   const handleReserve = () => {
     if (car) {
-      navigate(`/booking-confirm/${car.id}`);
+      // Show verification dialog if user is not verified
+      const isUserVerified = true; // For demo purposes
+      
+      if (!isUserVerified) {
+        setShowVerificationDialog(true);
+      } else {
+        navigate(`/booking-confirm/${car.id}`);
+      }
     }
   };
+  
+  const [showVerificationDialog, setShowVerificationDialog] = useState(false);
 
   // Set favorite status from server data
   useEffect(() => {
@@ -641,6 +650,33 @@ export default function CarDetail() {
             </Button>
           </div>
         </div>
+
+        {/* Verification Dialog */}
+        <Dialog open={showVerificationDialog} onOpenChange={setShowVerificationDialog}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Identity Verification Required</DialogTitle>
+              <DialogDescription>
+                To ensure safety and trust in our car sharing community, we need to verify your identity before booking.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              {/* Import and use the VerificationSystem component */}
+              <div className="my-4">
+                <VerificationSystem 
+                  userId={1} 
+                  onComplete={() => {
+                    setShowVerificationDialog(false);
+                    toast({
+                      title: "Verification in progress",
+                      description: "Your documents are being verified. This usually takes 24-48 hours.",
+                    });
+                  }}
+                />
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
     </>
   );

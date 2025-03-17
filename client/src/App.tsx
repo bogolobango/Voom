@@ -19,6 +19,7 @@ import MessagesSearch from "@/pages/messages-search";
 import MessageDetail from "@/pages/message-detail";
 import MessageProfile from "@/pages/message-profile";
 import Account from "@/pages/account";
+import Profile from "@/pages/profile";
 import AccountPreferences from "@/pages/account-preferences";
 import PaymentMethods from "@/pages/payment-methods";
 import PrivacySecurity from "@/pages/privacy-security";
@@ -83,6 +84,7 @@ function Router() {
         )} 
       />
       <ProtectedRoute path="/account" component={Account} />
+      <ProtectedRoute path="/profile" component={Profile} />
       <ProtectedRoute path="/account-preferences" component={AccountPreferences} />
       <ProtectedRoute path="/payment-methods" component={PaymentMethods} />
       <ProtectedRoute path="/privacy-security" component={PrivacySecurity} />

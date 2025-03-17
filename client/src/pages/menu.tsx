@@ -133,7 +133,7 @@ export default function Menu() {
       
       <div className="px-4">
         <button 
-          onClick={() => navigate("/account")}
+          onClick={() => navigate("/profile")}
           className="flex items-center justify-between w-full py-4"
         >
           <div className="flex items-center">

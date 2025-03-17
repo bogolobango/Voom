@@ -79,11 +79,12 @@ export default function Home() {
                 </Link>
               </>
             ) : (
-              <Link href="/account">
-                <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+              <Link href="/menu">
+                <Button variant="outline" size="sm" className="flex items-center gap-2 border border-gray-300 rounded-full py-1.5 pl-1.5 pr-3">
+                  <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
                     {user.username.charAt(0).toUpperCase()}
                   </div>
+                  <span>Menu</span>
                 </Button>
               </Link>
             )}

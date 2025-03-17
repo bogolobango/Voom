@@ -52,6 +52,7 @@ const HostCalendar = React.lazy(() => import("@/pages/host-calendar"));
 const HostListings = React.lazy(() => import("@/pages/host-listings"));
 const HostMessages = React.lazy(() => import("@/pages/host-messages"));
 const HostMenu = React.lazy(() => import("@/pages/host-menu"));
+const Menu = React.lazy(() => import("@/pages/menu"));
 
 function Router() {
   return (
@@ -73,6 +74,14 @@ function Router() {
       <ProtectedRoute path="/messages-empty" component={MessagesEmpty} />
       <ProtectedRoute path="/messages-search" component={MessagesSearch} />
       <ProtectedRoute path="/messages" component={Messages} />
+      <ProtectedRoute 
+        path="/menu" 
+        component={() => (
+          <Suspense fallback={<LoadingScreen message="Loading menu..." />}>
+            <Menu />
+          </Suspense>
+        )} 
+      />
       <ProtectedRoute path="/account" component={Account} />
       <ProtectedRoute path="/account-preferences" component={AccountPreferences} />
       <ProtectedRoute path="/payment-methods" component={PaymentMethods} />

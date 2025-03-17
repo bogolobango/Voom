@@ -58,12 +58,8 @@ export default function CarSummaryPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/hosts/cars"] });
-      toast({
-        title: "Car listed successfully!",
-        description: "Your car is now available for bookings.",
-        variant: "default",
-      });
-      navigate("/host-listings");
+      // Navigate to the success page instead of directly to host-listings
+      navigate("/submission-success");
     },
     onError: (error: Error) => {
       toast({

@@ -10,13 +10,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/ui/loader";
 import { Car } from "@shared/schema";
-import { Search, MapPin } from "lucide-react";
+import { Search, MapPin, LogIn, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>("all");
   const { toast } = useToast();
+  const { user, isLoading: isAuthLoading } = useAuth();
   
   const [filters, setFilters] = useState<FilterOptions>({
     priceRange: [0, 200000],

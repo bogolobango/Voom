@@ -1,12 +1,17 @@
 import { Link, useLocation } from "wouter";
-import { Menu } from "lucide-react";
+import { Menu, User, LogIn, LogOut, UserPlus } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useCallback } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { getInitials } from "@/lib/utils";
 
 interface HeaderProps {
   title?: string;
@@ -16,6 +21,7 @@ interface HeaderProps {
 
 export function Header({ title, showBack, onBack }: HeaderProps) {
   const [location] = useLocation();
+  const { user, logoutMutation } = useAuth();
 
   // Handle back navigation with history
   const handleBack = useCallback(() => {
@@ -30,6 +36,10 @@ export function Header({ title, showBack, onBack }: HeaderProps) {
       window.location.href = '/';
     }
   }, [onBack]);
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">

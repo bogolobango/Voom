@@ -1,24 +1,21 @@
-import { createContext, ReactNode, useContext, useState } from "react";
+import { createContext, ReactNode, useContext } from "react";
 import {
   useQuery,
   useMutation,
   UseMutationResult,
+  QueryClient,
 } from "@tanstack/react-query";
-import { User } from "@shared/schema";
-import { apiRequest, queryClient } from "../lib/queryClient";
+import { User, InsertUser } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 type AuthContextType = {
   user: User | null;
   isLoading: boolean;
   error: Error | null;
-  loginMutation: UseMutationResult<any, Error, LoginData>;
-  registerMutation: UseMutationResult<any, Error, RegisterData>;
-  verifyCodeMutation: UseMutationResult<any, Error, VerifyCodeData>;
-  socialLoginMutation: UseMutationResult<any, Error, SocialLoginData>;
-  forgotPasswordMutation: UseMutationResult<any, Error, ForgotPasswordData>;
-  resetPasswordMutation: UseMutationResult<any, Error, ResetPasswordData>;
-  logout: () => void;
+  loginMutation: UseMutationResult<User, Error, LoginData>;
+  logoutMutation: UseMutationResult<void, Error, void>;
+  registerMutation: UseMutationResult<User, Error, RegisterData>;
 };
 
 type LoginData = {
@@ -27,78 +24,59 @@ type LoginData = {
 };
 
 type RegisterData = {
-  fullName: string;
   username: string;
-  phoneNumber: string;
   password: string;
-};
-
-type VerifyCodeData = {
-  userId: number;
-  code: string;
-};
-
-type SocialLoginData = {
-  provider: "google" | "facebook";
-  token: string;
-};
-
-type ForgotPasswordData = {
+  fullName: string;
   phoneNumber: string;
-};
-
-type ResetPasswordData = {
-  userId: number;
-  code: string;
-  newPassword: string;
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  
+
+  // Query to fetch current authenticated user
   const {
     data: user,
     error,
     isLoading,
-    refetch,
-  } = useQuery({
-    queryKey: ["/api/users/me"],
+  } = useQuery<User | null, Error>({
+    queryKey: ["/api/auth/user"],
     queryFn: async () => {
       try {
-        const res = await apiRequest("GET", "/api/users/me");
-        return await res.json();
-      } catch (error) {
-        // If unauthorized or not logged in, return null instead of throwing
-        if ((error as any).status === 401) {
+        const res = await fetch("/api/auth/user");
+        if (res.status === 401) {
           return null;
         }
-        throw error;
+        if (!res.ok) {
+          throw new Error("Failed to fetch user");
+        }
+        return res.json();
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        return null;
       }
     },
-    retry: false,
-    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  const loginMutation = useMutation({
+  // Login mutation
+  const loginMutation = useMutation<User, Error, LoginData>({
     mutationFn: async (credentials: LoginData) => {
       const res = await apiRequest("POST", "/api/auth/login", credentials);
-      return await res.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Verification required",
-        description: "Please enter the verification code sent to your phone",
-      });
-      
-      // Store the user ID for the verification step
-      if (data.userId) {
-        setCurrentUserId(data.userId);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Login failed");
       }
+      return res.json();
     },
-    onError: (error) => {
+    onSuccess: (userData: User) => {
+      queryClient.setQueryData(["/api/auth/user"], userData);
+      toast({
+        title: "Login successful",
+        description: "Welcome to Voom Car Sharing!",
+      });
+    },
+    onError: (error: Error) => {
       toast({
         title: "Login failed",
         description: error.message,
@@ -107,52 +85,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const verifyCodeMutation = useMutation({
-    mutationFn: async (data: VerifyCodeData) => {
-      const res = await apiRequest("POST", "/api/auth/verify-code", data);
-      return await res.json();
+  // Register mutation
+  const registerMutation = useMutation<User, Error, RegisterData>({
+    mutationFn: async (userData: RegisterData) => {
+      const res = await apiRequest("POST", "/api/auth/register", userData);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Registration failed");
+      }
+      return res.json();
     },
-    onSuccess: (data) => {
-      toast({
-        title: "Login successful",
-        description: "Welcome back!",
-      });
-      
-      // Clear the temporary user ID
-      setCurrentUserId(null);
-      
-      // Update the user data in the cache
-      queryClient.setQueryData(["/api/users/me"], data.user);
-      
-      // Refresh the user data
-      refetch();
-    },
-    onError: (error) => {
-      toast({
-        title: "Verification failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-  
-  const registerMutation = useMutation({
-    mutationFn: async (data: RegisterData) => {
-      const res = await apiRequest("POST", "/api/auth/register", data);
-      return await res.json();
-    },
-    onSuccess: (data) => {
+    onSuccess: (userData: User) => {
+      queryClient.setQueryData(["/api/auth/user"], userData);
       toast({
         title: "Registration successful",
-        description: "Please enter the verification code sent to your phone",
+        description: "Welcome to Voom Car Sharing!",
       });
-      
-      // Store the user ID for the verification step
-      if (data.userId) {
-        setCurrentUserId(data.userId);
-      }
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Registration failed",
         description: error.message,
@@ -160,117 +110,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
   });
-  
-  const socialLoginMutation = useMutation({
-    mutationFn: async (data: SocialLoginData) => {
-      const res = await apiRequest("POST", "/api/auth/social-login", data);
-      return await res.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Login successful",
-        description: `Successfully logged in with ${data.provider}`,
-      });
-      
-      // Update the user data in the cache
-      queryClient.setQueryData(["/api/users/me"], data.user);
-      
-      // Refresh the user data
-      refetch();
-    },
-    onError: (error) => {
-      toast({
-        title: "Social login failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-  
-  const forgotPasswordMutation = useMutation({
-    mutationFn: async (data: ForgotPasswordData) => {
-      const res = await apiRequest("POST", "/api/auth/forgot-password", data);
-      return await res.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Verification code sent",
-        description: "Please check your phone for the verification code",
-      });
-      
-      // Store the user ID for the verification step
-      if (data.userId) {
-        setCurrentUserId(data.userId);
+
+  // Logout mutation
+  const logoutMutation = useMutation<void, Error>({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/auth/logout");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Logout failed");
       }
     },
-    onError: (error) => {
-      toast({
-        title: "Request failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-  
-  const resetPasswordMutation = useMutation({
-    mutationFn: async (data: ResetPasswordData) => {
-      const res = await apiRequest("POST", "/api/auth/reset-password", data);
-      return await res.json();
-    },
     onSuccess: () => {
-      toast({
-        title: "Password reset successful",
-        description: "You can now log in with your new password",
-      });
-      
-      // Clear the temporary user ID
-      setCurrentUserId(null);
-    },
-    onError: (error) => {
-      toast({
-        title: "Password reset failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-  
-  const logout = async () => {
-    try {
-      await apiRequest("POST", "/api/auth/logout");
-      
-      // Clear the user data in the cache
-      queryClient.setQueryData(["/api/users/me"], null);
-      
-      // Refresh the user data
-      refetch();
-      
+      queryClient.setQueryData(["/api/auth/user"], null);
       toast({
         title: "Logout successful",
-        description: "You have been logged out",
+        description: "You have been successfully logged out.",
       });
-    } catch (error) {
+    },
+    onError: (error: Error) => {
       toast({
         title: "Logout failed",
-        description: (error as Error).message,
+        description: error.message,
         variant: "destructive",
       });
-    }
-  };
+    },
+  });
 
   return (
     <AuthContext.Provider
       value={{
-        user: user ?? null,
+        user,
         isLoading,
         error,
         loginMutation,
+        logoutMutation,
         registerMutation,
-        verifyCodeMutation,
-        socialLoginMutation,
-        forgotPasswordMutation,
-        resetPasswordMutation,
-        logout,
       }}
     >
       {children}

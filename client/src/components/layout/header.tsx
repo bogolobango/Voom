@@ -189,6 +189,10 @@ function NavLinks({ mobile = false }: { mobile?: boolean }) {
         </Link>
       ))}
       
+      <div className="flex items-center">
+        <CurrencySelector variant="dropdown" className="mr-2" />
+      </div>
+      
       {user ? (
         <div className="flex items-center gap-2">
           <DropdownMenu>

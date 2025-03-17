@@ -317,6 +317,7 @@ export function VerificationSystem({ userId, onComplete, isHost = false }: Verif
       formData.append('documentType', documentType);
       formData.append('userId', userId.toString());
       
+      // Use isFormData parameter to properly handle FormData
       return await apiRequest('POST', '/api/verification/upload', formData, true);
     },
     onSuccess: (_, variables) => {

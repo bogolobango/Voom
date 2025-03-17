@@ -629,8 +629,8 @@ export default function CarDetail() {
               <BookingDetails 
                 car={car} 
                 booking={{
-                  startDate: selectedStartDate.toISOString(),
-                  endDate: selectedEndDate.toISOString(),
+                  startDate: selectedStartDate,
+                  endDate: selectedEndDate,
                   totalAmount: calculateTotalAmount(car.dailyRate, selectedStartDate, selectedEndDate)
                 }}
               />

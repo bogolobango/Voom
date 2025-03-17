@@ -52,13 +52,17 @@ export const cars = pgTable("cars", {
   currency: text("currency").notNull().default("FCFA"),
   location: text("location").notNull(),
   description: text("description"),
-  imageUrl: text("image_url"),
+  imageUrl: text("image_url"), // Main image (thumbnail)
+  images: text("images").array(), // Array of image URLs
+  color: text("color"), // Car color
+  licensePlate: text("license_plate"),
   rating: integer("rating"),
   ratingCount: integer("rating_count").default(0),
   available: boolean("available").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   /* Latitude and longitude will be added later */
   features: text("features").array(),
+  status: text("status").default("active"), // active, inactive, maintenance, pending_approval
 });
 
 export const insertCarSchema = createInsertSchema(cars).omit({

@@ -90,21 +90,12 @@ export default function CarSummaryPage() {
       description: sampleCarData.description,
       dailyRate: sampleCarData.rates.dailyRate,
       location: sampleCarData.location.address,
-      city: sampleCarData.location.city,
-      state: sampleCarData.location.state,
-      latitude: sampleCarData.location.coordinates[0],
-      longitude: sampleCarData.location.coordinates[1],
-      images: sampleCarData.images.join(","),
+      currency: "FCFA",
+      imageUrl: sampleCarData.images[0], // Set first image as main image
+      images: sampleCarData.images, // Array of image URLs
       features: ["Air Conditioning", "Bluetooth", "Backup Camera"],
-      instantBook: sampleCarData.rates.instantBook,
-      minRentalDays: sampleCarData.rates.minDays,
-      maxRentalDays: sampleCarData.rates.maxDays,
-      securityDeposit: sampleCarData.rates.securityDeposit,
-      cancellationPolicy: sampleCarData.rates.cancellationPolicy,
-      additionalRules: sampleCarData.rates.additionalRules || "",
       available: true,
-      rating: 0,
-      reviewCount: 0,
+      status: "pending_approval"
     };
     
     // Publish car listing

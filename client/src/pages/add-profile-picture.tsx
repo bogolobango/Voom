@@ -6,17 +6,24 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LoadingScreen } from "@/components/ui/loader";
-import { Camera, Image, FileText, Users, Shield } from "lucide-react";
+import { Camera, Image, FileText, Users, Shield, ShieldCheck, CheckCircle, Phone } from "lucide-react";
 import { BottomNav } from "@/components/layout/bottom-nav";
-import { User } from "@shared/schema";
+import { User, Booking, Car } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { getInitials } from "@/lib/utils";
+import { getInitials, formatCurrency, formatDuration } from "@/lib/utils";
 
 export default function AddProfilePicture() {
   const [_, navigate] = useLocation();
+  const location = useLocation()[0];
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Parse location state for booking information
+  const urlParams = new URLSearchParams(location.split('?')[1] || '');
+  const bookingId = urlParams.get('bookingId');
+  const fromBooking = urlParams.get('fromBooking') === 'true';
+  
   const [inputType, setInputType] = useState<string>("library");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -27,20 +34,41 @@ export default function AddProfilePicture() {
   const { data: user, isLoading: loadingUser } = useQuery<User>({
     queryKey: ["/api/users/me"],
   });
+  
+  // Get booking details if we came from a booking flow
+  const { data: booking, isLoading: loadingBooking } = useQuery<Booking>({
+    queryKey: [`/api/bookings/${bookingId}`],
+    enabled: !!bookingId,
+  });
+  
+  // Get car details from booking
+  const { data: car, isLoading: loadingCar } = useQuery<Car>({
+    queryKey: [`/api/cars/${booking ? booking.carId : null}`],
+    enabled: !!booking,
+  });
 
   const uploadProfilePictureMutation = useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append("profilePicture", file);
-      return apiRequest("PATCH", "/api/users/profile", formData);
+      const response = await apiRequest("POST", "/api/users/profile-picture", formData);
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users/me"] });
       toast({
         title: "Profile picture updated",
-        description: "Your profile picture has been updated successfully",
+        description: "Your profile picture has been added successfully",
       });
-      navigate("/account");
+      
+      // Choose next destination based on context
+      if (fromBooking) {
+        // If from booking flow, go to booking success
+        navigate("/booking-success");
+      } else {
+        // Normal flow
+        navigate("/account");
+      }
     },
     onError: (error) => {
       toast({
@@ -89,18 +117,34 @@ export default function AddProfilePicture() {
     }
   };
 
-  const handleBack = () => {
-    navigate("/account");
+  const handleSkip = () => {
+    if (fromBooking) {
+      navigate("/booking-success");
+    } else {
+      navigate("/account");
+    }
   };
 
-  if (loadingUser) {
+  const handleBack = () => {
+    if (fromBooking) {
+      navigate(`/add-phone?fromBooking=true${bookingId ? `&bookingId=${bookingId}` : ''}`);
+    } else {
+      navigate("/account");
+    }
+  };
+
+  const isLoading = 
+    loadingUser || 
+    (bookingId && loadingBooking) || 
+    (booking && loadingCar);
+
+  if (isLoading) {
     return (
       <>
         <Header title="Profile Picture" showBack onBack={handleBack} />
         <main className="container mx-auto px-4 py-6 mb-20 md:mb-6">
           <LoadingScreen />
         </main>
-        <BottomNav />
       </>
     );
   }
@@ -109,10 +153,86 @@ export default function AddProfilePicture() {
     <>
       <Header title="Profile Picture" showBack onBack={handleBack} />
       <main className="container mx-auto px-4 py-6 mb-20 md:mb-6">
+        {/* Progress Steps - only show when from booking */}
+        {fromBooking && (
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex flex-col items-center">
+                <div className="w-8 h-8 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-1">
+                  <CheckCircle className="w-5 h-5" />
+                </div>
+                <span className="text-xs text-green-600">Booking</span>
+              </div>
+              <div className="h-0.5 flex-1 bg-gray-200 mx-2 relative">
+                <div className="absolute inset-0 bg-green-500" style={{ width: "100%" }}></div>
+              </div>
+              <div className="flex flex-col items-center">
+                <div className="w-8 h-8 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-1">
+                  <Phone className="w-5 h-5" />
+                </div>
+                <span className="text-xs text-green-600">Phone</span>
+              </div>
+              <div className="h-0.5 flex-1 bg-gray-200 mx-2 relative">
+                <div className="absolute inset-0 bg-green-500" style={{ width: "100%" }}></div>
+              </div>
+              <div className="flex flex-col items-center">
+                <div className="w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center mb-1">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <span className="text-xs font-medium">Complete</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {car && fromBooking && (
+          <>
+            {/* Vehicle Card */}
+            <Card className="mb-6">
+              <CardContent className="p-4 flex items-center">
+                <img
+                  src={car.imageUrl}
+                  alt={`${car.make} ${car.model}`}
+                  className="w-20 h-20 object-cover rounded-md mr-4"
+                />
+                <div>
+                  <h2 className="text-lg font-semibold">{car.make} {car.model}</h2>
+                  <p className="text-sm text-gray-500">{car.year} • {car.type}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {booking && (
+              <Card className="mb-6">
+                <CardContent className="py-4">
+                  <div className="space-y-3 divide-y divide-gray-200">
+                    <div className="flex justify-between py-2">
+                      <span className="text-gray-500">
+                        {formatDuration(booking.startDate, booking.endDate)}
+                      </span>
+                      <span className="font-medium">
+                        {formatCurrency(booking.totalAmount)}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
+
         {/* Add Profile Picture */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <h2 className="text-xl font-semibold mb-6 text-center">Add a profile picture</h2>
+            <div className="flex items-center justify-center mb-6">
+              <div className="bg-red-100 p-3 rounded-full">
+                <Camera className="h-6 w-6 text-red-600" />
+              </div>
+            </div>
+            <h2 className="text-xl font-semibold mb-2 text-center">Add a profile picture</h2>
+            <p className="text-center text-gray-500 mb-6">
+              Adding a photo helps hosts recognize you and builds trust in the community.
+            </p>
             
             <div className="flex flex-col items-center justify-center">
               <div className="relative mb-6">
@@ -125,7 +245,7 @@ export default function AddProfilePicture() {
                     {user?.username ? getInitials(user.username) : "U"}
                   </AvatarFallback>
                 </Avatar>
-                {!previewUrl && (
+                {!previewUrl && !user?.profilePicture && (
                   <div className="absolute inset-0 bg-black bg-opacity-30 rounded-full flex items-center justify-center">
                     <Camera className="w-10 h-10 text-white" />
                   </div>
@@ -193,15 +313,15 @@ export default function AddProfilePicture() {
                   onClick={handleSave}
                   disabled={uploadProfilePictureMutation.isPending || !profileImage}
                 >
-                  {uploadProfilePictureMutation.isPending ? "Saving..." : "Save"}
+                  {uploadProfilePictureMutation.isPending ? "Saving..." : "Continue"}
                 </Button>
                 
                 <Button 
                   className="w-full"
                   variant="outline"
-                  onClick={handleBack}
+                  onClick={handleSkip}
                 >
-                  Cancel
+                  {fromBooking ? "Skip & complete booking" : "Skip for now"}
                 </Button>
               </div>
             </div>
@@ -233,7 +353,7 @@ export default function AddProfilePicture() {
           </div>
         </div>
       </main>
-      <BottomNav />
+      {!fromBooking && <BottomNav />}
     </>
   );
 }

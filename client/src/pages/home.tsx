@@ -304,10 +304,20 @@ export default function Home() {
 
         {/* Category Selection SECOND */}
         <div className="container mx-auto px-4 py-6">
-          <CarCategories 
-            onCategorySelect={(category) => navigate(`/category/${category}`)}
-            selectedCategory={null}
-          />
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold">Browse by category</h2>
+              <Link href="/all-cars">
+                <Button variant="link" className="text-red-500 font-semibold">
+                  See all cars <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </Link>
+            </div>
+            <CarCategories 
+              onCategorySelect={(category) => navigate(`/category/${category}`)}
+              selectedCategory={null}
+            />
+          </div>
         </div>
 
         {/* Featured Luxury Cars THIRD */}

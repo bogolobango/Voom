@@ -32,6 +32,7 @@ import AddProfilePicture from "@/pages/add-profile-picture";
 import BookingSuccess from "@/pages/booking-success";
 import SubmissionSuccess from "@/pages/submission-success";
 import CategoryPage from "@/pages/category-page";
+import AllCarsPage from "@/pages/all-cars";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 import AnimationDemo from "@/pages/animation-demo";
@@ -65,6 +66,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/cars/:id" component={CarDetail} />
+      <Route path="/all-cars" component={AllCarsPage} />
       <Route path="/category/:categoryId" component={CategoryPage} />
       <Route path="/animation-demo" component={AnimationDemo} />
       

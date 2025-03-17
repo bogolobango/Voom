@@ -112,7 +112,7 @@ export default function Home() {
           </div>
         )}
         
-        {/* Hero Section */}
+        {/* Hero Section with Check-in Form FIRST */}
         <div className="relative bg-gray-100">
           <div className="container mx-auto px-4 md:px-8 py-10 md:py-20">
             <div className="max-w-lg bg-white p-6 rounded-xl shadow-sm">
@@ -228,36 +228,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Features Section */}
-        <div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="flex flex-col items-center text-center">
-              <Shield className="w-12 h-12 mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Book with confidence</h3>
-              <p className="text-gray-600">
-                Get 24/7 support and discover helpful reviews from our trusted community of guests.
-              </p>
-            </div>
-
-            <div className="flex flex-col items-center text-center">
-              <Gift className="w-12 h-12 mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Find more amenities</h3>
-              <p className="text-gray-600">
-                Explore cars based on the comforts you want for the perfect, dreamy getaway.
-              </p>
-            </div>
-
-            <div className="flex flex-col items-center text-center">
-              <CalendarIcon className="w-12 h-12 mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Keep it flexible</h3>
-              <p className="text-gray-600">
-                Stays with flexible cancellation make it easy to re-book if your plans change.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Category Selection */}
+        {/* Category Selection SECOND */}
         <div className="container mx-auto px-4 py-6">
           <CarCategories 
             onCategorySelect={(category) => navigate(`/category/${category}`)}
@@ -265,7 +236,7 @@ export default function Home() {
           />
         </div>
 
-        {/* Featured Luxury Cars */}
+        {/* Featured Luxury Cars THIRD */}
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -321,7 +292,36 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Economic Cars Section */}
+        {/* Features Section */}
+        <div className="container mx-auto px-4 py-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="flex flex-col items-center text-center">
+              <Shield className="w-12 h-12 mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Book with confidence</h3>
+              <p className="text-gray-600">
+                Get 24/7 support and discover helpful reviews from our trusted community of guests.
+              </p>
+            </div>
+
+            <div className="flex flex-col items-center text-center">
+              <Gift className="w-12 h-12 mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Find more amenities</h3>
+              <p className="text-gray-600">
+                Explore cars based on the comforts you want for the perfect, dreamy getaway.
+              </p>
+            </div>
+
+            <div className="flex flex-col items-center text-center">
+              <CalendarIcon className="w-12 h-12 mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Keep it flexible</h3>
+              <p className="text-gray-600">
+                Stays with flexible cancellation make it easy to re-book if your plans change.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Economic Cars Section FOURTH */}
         <div className="container mx-auto px-4 py-8 mb-20">
           <div className="flex justify-between items-center mb-6">
             <div>

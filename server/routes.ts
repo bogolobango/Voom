@@ -1,5 +1,5 @@
 import express from "express";
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
@@ -12,8 +12,12 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
+import { setupAuth } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup authentication
+  const { requireAuth } = setupAuth(app);
+  
   const apiRouter = express.Router();
   
   // Helper function to handle validation
@@ -32,11 +36,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== User Routes ====================
   
   // Get current user
-  apiRouter.get("/users/me", async (req: Request, res: Response) => {
-    // In a real app, this would use the authenticated user ID
-    // For this demo, we'll use a fixed ID
-    const userId = 1;
-    const user = await storage.getUser(userId);
+  apiRouter.get("/users/me", requireAuth, async (req: Request, res: Response) => {
+    // Use the authenticated user from request
+    const user = req.user;
     
     if (!user) {
       return res.status(404).json({ message: "User not found" });

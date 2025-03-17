@@ -71,9 +71,13 @@ export function CarCard({ car, isFavorite = false }: CarCardProps) {
       <Link href={`/cars/${car.id}`}>
         <div className="block cursor-pointer">
           <img
-            src={car.imageUrl}
+            src={`${car.imageUrl}&q=80&w=800&h=600&fit=crop&crop=entropy`}
             alt={`${car.make} ${car.model}`}
             className="w-full h-48 object-cover"
+            onError={(e) => {
+              // Fallback to a placeholder if image fails to load
+              e.currentTarget.src = `https://placehold.co/800x600/e2e8f0/64748b?text=${car.make}+${car.model}`;
+            }}
           />
           <div className="p-4">
             <div className="flex justify-between items-start">

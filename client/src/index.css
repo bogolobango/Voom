@@ -2,6 +2,87 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Car loading animations */
+@keyframes drive {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.car-drive-animation {
+  animation: drive 3s linear infinite;
+}
+
+.car-bounce-animation {
+  animation: bounce 0.6s ease-in-out infinite;
+}
+
+.car-wheel-animation {
+  animation: rotate 0.8s linear infinite;
+}
+
+.car-light-animation {
+  animation: blink 1s ease-in-out infinite;
+}
+
+/* Pulse animation for interactive elements */
+.pulse-animation {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Progress bar animation */
+@keyframes progress {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+.animate-progress {
+  animation: progress 2.5s ease-in-out;
+}
+
 @layer utilities {
   .hide-scrollbar {
     -ms-overflow-style: none;  /* IE and Edge */

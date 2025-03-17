@@ -4,17 +4,29 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useHostMode } from "@/hooks/use-host-mode";
 
+interface NavItem {
+  name: string;
+  icon: React.ComponentType<any>;
+  path: string;
+  badge?: number;
+}
+
 export function BottomNav() {
   const [location] = useLocation();
   const { user } = useAuth();
   const { isHostMode } = useHostMode();
 
   // Airbnb style bottom navigation for travelers
-  const travelNavItems = [
+  const travelNavItems: NavItem[] = [
+    {
+      name: "Home",
+      icon: Home,
+      path: "/",
+    },
     {
       name: "Explore",
       icon: Search,
-      path: "/",
+      path: "/all-cars",
     },
     {
       name: "Wishlist",
@@ -27,12 +39,6 @@ export function BottomNav() {
       path: "/bookings",
     },
     {
-      name: "Inbox",
-      icon: MessageSquare,
-      path: "/messages",
-      badge: 2,
-    },
-    {
       name: "Profile",
       icon: MenuIcon,
       path: "/menu",
@@ -40,7 +46,7 @@ export function BottomNav() {
   ];
 
   // Airbnb style bottom navigation for hosts
-  const hostNavItems = [
+  const hostNavItems: NavItem[] = [
     {
       name: "Today",
       icon: Home,
@@ -69,7 +75,7 @@ export function BottomNav() {
     },
   ];
 
-  const navItems = isHostMode ? hostNavItems : travelNavItems;
+  const navItems: NavItem[] = isHostMode ? hostNavItems : travelNavItems;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 py-2">

@@ -10,14 +10,22 @@ import { BookingDetails } from "@/components/booking-details";
 import { PaymentMethodSelector } from "@/components/payment-method";
 import { RequiredInfo } from "@/components/required-info";
 import { CancellationPolicy } from "@/components/cancellation-policy";
-import { formatCurrency, formatDuration } from "@/lib/utils";
+import { formatCurrency, formatDuration, getDaysDifference } from "@/lib/utils";
 import { Car, Booking, User, InsertBooking } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Calendar, Clock } from "lucide-react";
 
-// Fixed booking dates for this demo
-const startDate = new Date("2024-04-16T10:30:00");
-const endDate = new Date("2024-04-24T11:30:00");
+// Dynamic booking dates (set default to a week from now)
+const today = new Date();
+const startDate = new Date(today);
+startDate.setDate(today.getDate() + 1); // Start tomorrow
+startDate.setHours(10, 30, 0, 0);
+
+const endDate = new Date(today);
+endDate.setDate(today.getDate() + 9); // End 8 days after
+endDate.setHours(11, 30, 0, 0);
+
 // Cancellation date (24h before start)
 const cancellationDate = new Date(startDate);
 cancellationDate.setDate(cancellationDate.getDate() - 1);
@@ -28,6 +36,9 @@ export default function BookingConfirm() {
   const [_, navigate] = useLocation();
   const [match, params] = useRoute("/booking-confirm/:id");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("airtel");
+  const [isPickupSameAsDropoff, setIsPickupSameAsDropoff] = useState(true);
+  const [pickupLocation, setPickupLocation] = useState("Dakar, Senegal");
+  const [dropoffLocation, setDropoffLocation] = useState("Dakar, Senegal");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -45,15 +56,23 @@ export default function BookingConfirm() {
   // Create booking mutation
   const createBookingMutation = useMutation({
     mutationFn: async (bookingData: InsertBooking) => {
-      return apiRequest("POST", "/api/bookings", bookingData);
+      const response = await apiRequest("POST", "/api/bookings", bookingData);
+      return await response.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
       toast({
         title: "Success",
-        description: "Your booking has been created",
+        description: "Your booking has been created successfully",
       });
-      navigate("/add-phone");
+      
+      // Check if user has completed profile
+      if (user?.phoneNumber && user?.profilePicture) {
+        navigate("/booking-success");
+      } else {
+        // If profile incomplete, redirect to add phone first
+        navigate("/add-phone", { state: { fromBooking: true, bookingId: data.id } });
+      }
     },
     onError: (error) => {
       toast({
@@ -68,19 +87,20 @@ export default function BookingConfirm() {
   const handleSubmit = () => {
     if (!car || !user) return;
     
-    const totalAmount = car.dailyRate * 8; // 8 days for this demo
+    const days = getDaysDifference(startDate, endDate);
+    const totalAmount = car.dailyRate * days;
     
     const bookingData: InsertBooking = {
       carId: car.id,
       userId: user.id,
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
-      pickupLocation: "ADL",
-      dropoffLocation: "ADL",
+      pickupLocation: pickupLocation || car.location,
+      dropoffLocation: isPickupSameAsDropoff ? (pickupLocation || car.location) : dropoffLocation,
       totalAmount,
       currency: "FCFA",
       paymentMethod,
-      status: "pending",
+      status: "confirmed", // Auto-confirm for the demo
     };
     
     createBookingMutation.mutate(bookingData);
@@ -91,10 +111,9 @@ export default function BookingConfirm() {
   };
 
   const handleEditBooking = () => {
-    // In a real app, this would navigate to a booking edit screen
     toast({
-      title: "Edit Booking",
-      description: "This functionality is not implemented in the demo",
+      title: "Edit Dates & Times",
+      description: "In a real app, this would allow you to modify your booking dates and times.",
     });
   };
 
@@ -118,14 +137,15 @@ export default function BookingConfirm() {
   }
 
   // Calculate total based on daily rate and duration
-  const totalAmount = car.dailyRate * 8; // 8 days for this demo
+  const days = getDaysDifference(startDate, endDate);
+  const totalAmount = car.dailyRate * days;
 
   // Create booking object for display purposes
   const booking: Partial<Booking> = {
     startDate: startDate.toISOString(),
     endDate: endDate.toISOString(),
-    pickupLocation: "ADL",
-    dropoffLocation: "ADL",
+    pickupLocation: pickupLocation || car.location,
+    dropoffLocation: isPickupSameAsDropoff ? (pickupLocation || car.location) : dropoffLocation,
     totalAmount,
     currency: "FCFA"
   };
@@ -144,11 +164,90 @@ export default function BookingConfirm() {
             />
             <div>
               <h2 className="text-lg font-semibold">{car.make} {car.model}</h2>
-              <Rating 
-                value={car.rating || 0} 
-                count={car.ratingCount} 
-                className="mt-1" 
-              />
+              <div className="flex items-center mt-1">
+                <Rating 
+                  value={car.rating || 0} 
+                  count={car.ratingCount} 
+                />
+                <span className="text-sm text-gray-500 ml-2">
+                  ({car.ratingCount} reviews)
+                </span>
+              </div>
+              <p className="text-sm text-gray-500 mt-1">{car.location}</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Trip Time */}
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-medium">Trip Dates</h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-red-600 -mr-2"
+                onClick={handleEditBooking}
+              >
+                Edit
+              </Button>
+            </div>
+            
+            <div className="flex flex-col space-y-4">
+              <div className="flex items-start space-x-3">
+                <div className="bg-red-50 p-2 rounded-full">
+                  <Calendar className="h-5 w-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Start Date</p>
+                  <p className="font-medium">
+                    {startDate.toLocaleDateString("en-US", { 
+                      weekday: 'short',
+                      month: 'short', 
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {startDate.toLocaleTimeString("en-US", {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-3">
+                <div className="bg-red-50 p-2 rounded-full">
+                  <Calendar className="h-5 w-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">End Date</p>
+                  <p className="font-medium">
+                    {endDate.toLocaleDateString("en-US", { 
+                      weekday: 'short',
+                      month: 'short', 
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {endDate.toLocaleTimeString("en-US", {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <div className="bg-red-50 p-2 rounded-full">
+                  <Clock className="h-5 w-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="font-medium">{days} day{days !== 1 ? 's' : ''}</p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -162,16 +261,22 @@ export default function BookingConfirm() {
             <div className="space-y-3 divide-y divide-gray-200">
               <div className="flex justify-between py-2">
                 <span className="text-gray-500">
-                  {formatDuration(startDate, endDate)}
+                  {formatCurrency(car.dailyRate)} × {days} day{days !== 1 ? 's' : ''}
                 </span>
                 <span className="font-medium">
-                  {formatCurrency(totalAmount)}
+                  {formatCurrency(car.dailyRate * days)}
+                </span>
+              </div>
+              <div className="flex justify-between py-2">
+                <span className="text-gray-500">Service fee</span>
+                <span className="font-medium">
+                  {formatCurrency(Math.round(totalAmount * 0.1))}
                 </span>
               </div>
               <div className="flex justify-between py-2">
                 <span className="font-semibold">Total</span>
                 <span className="font-semibold">
-                  {formatCurrency(totalAmount)}
+                  {formatCurrency(totalAmount + Math.round(totalAmount * 0.1))}
                 </span>
               </div>
             </div>

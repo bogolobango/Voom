@@ -24,7 +24,10 @@ export default function CategoryPage() {
     features: [],
     year: null,
     minRating: null,
-    sort: null
+    sort: null,
+    transmission: null,
+    fuelType: null,
+    seats: null
   });
 
   // Fetch cars data
@@ -216,7 +219,10 @@ export default function CategoryPage() {
                   features: [],
                   year: null,
                   minRating: null,
-                  sort: null
+                  sort: null,
+                  transmission: null,
+                  fuelType: null,
+                  seats: null
                 });
               }}>
                 Reset Filters

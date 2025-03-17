@@ -48,7 +48,7 @@ const registerSchema = z.object({
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
-  const { user, isLoading, loginMutation, registerMutation } = useAuth();
+  const { user, isLoading, loginMutation, registerMutation, googleLoginMutation } = useAuth();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
 
   // Login form
@@ -301,9 +301,23 @@ export default function AuthPage() {
               </div>
               
               <div className="grid grid-cols-1 gap-3">
-                <Button variant="outline" className="h-11 bg-white hover:bg-gray-50 border border-gray-300">
-                  <SiGoogle className="mr-2 h-4 w-4 text-red-500" />
-                  Sign up with Google
+                <Button 
+                  variant="outline" 
+                  className="h-11 bg-white hover:bg-gray-50 border border-gray-300"
+                  onClick={() => googleLoginMutation.mutate()}
+                  disabled={googleLoginMutation.isPending}
+                >
+                  {googleLoginMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Connecting to Google...
+                    </>
+                  ) : (
+                    <>
+                      <SiGoogle className="mr-2 h-4 w-4 text-red-500" />
+                      Sign up with Google
+                    </>
+                  )}
                 </Button>
                 <Button variant="outline" className="h-11">
                   <Mail className="mr-2 h-4 w-4" />

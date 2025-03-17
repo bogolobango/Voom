@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/hooks/use-auth";
 import { HostModeProvider } from "@/hooks/use-host-mode";
 import { ProtectedRoute } from "@/components/protected-route";
+import React, { Suspense } from "react";
 
 // Import pages
 import Home from "@/pages/home";
@@ -39,6 +40,12 @@ import BecomeHostSummary from "@/pages/become-host-summary";
 
 // Host dashboard
 import HostDashboard from "@/pages/host-dashboard";
+
+// Lazy-loaded host components
+const HostCalendar = React.lazy(() => import("@/pages/host-calendar"));
+const HostListings = React.lazy(() => import("@/pages/host-listings"));
+const HostMessages = React.lazy(() => import("@/pages/host-messages"));
+const HostMenu = React.lazy(() => import("@/pages/host-menu"));
 
 function Router() {
   return (
@@ -76,8 +83,40 @@ function Router() {
       <ProtectedRoute path="/become-host/rates" component={BecomeHostRates} />
       <ProtectedRoute path="/become-host/summary" component={BecomeHostSummary} />
       
-      {/* Host dashboard */}
+      {/* Host dashboard and related pages */}
       <ProtectedRoute path="/host-dashboard" component={HostDashboard} />
+      <ProtectedRoute 
+        path="/host-calendar" 
+        component={() => (
+          <Suspense fallback={<div>Loading...</div>}>
+            <HostCalendar />
+          </Suspense>
+        )} 
+      />
+      <ProtectedRoute 
+        path="/host-listings" 
+        component={() => (
+          <Suspense fallback={<div>Loading...</div>}>
+            <HostListings />
+          </Suspense>
+        )} 
+      />
+      <ProtectedRoute 
+        path="/host-messages" 
+        component={() => (
+          <Suspense fallback={<div>Loading...</div>}>
+            <HostMessages />
+          </Suspense>
+        )} 
+      />
+      <ProtectedRoute 
+        path="/host-menu" 
+        component={() => (
+          <Suspense fallback={<div>Loading...</div>}>
+            <HostMenu />
+          </Suspense>
+        )} 
+      />
       
       <Route component={NotFound} />
     </Switch>

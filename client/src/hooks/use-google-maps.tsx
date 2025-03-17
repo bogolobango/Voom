@@ -78,7 +78,7 @@ export function useGoogleMaps(options: UseGoogleMapsOptions = {}) {
           const place = places[0];
           if (!place.geometry || !place.geometry.location) return;
 
-          // Update map and marker
+          // Update map and marker without animation
           mapInstance.setCenter(place.geometry.location);
           markerInstance.setPosition(place.geometry.location);
 
@@ -119,7 +119,8 @@ export function useGoogleMaps(options: UseGoogleMapsOptions = {}) {
   const panTo = (lat: number, lng: number) => {
     if (map && marker) {
       const position = new google.maps.LatLng(lat, lng);
-      map.panTo(position);
+      // Use setCenter instead of panTo to avoid animation
+      map.setCenter(position);
       marker.setPosition(position);
       updateLocationInfo({ lat, lng });
     }

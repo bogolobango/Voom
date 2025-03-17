@@ -46,6 +46,7 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // Local authentication strategy
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
@@ -58,6 +59,46 @@ export function setupAuth(app: Express) {
         return done(error);
       }
     }),
+  );
+
+  // Google OAuth2 strategy
+  passport.use(
+    new GoogleStrategy(
+      {
+        clientID: process.env.GOOGLE_CLIENT_ID!,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+        callbackURL: "/api/auth/google/callback",
+        scope: ["email", "profile"],
+      },
+      async (accessToken, refreshToken, profile, done) => {
+        try {
+          // Check if user exists by email
+          const email = profile.emails?.[0]?.value;
+          if (!email) {
+            return done(new Error("No email found in Google profile"));
+          }
+
+          let user = await storage.getUserByUsername(email);
+
+          if (!user) {
+            // Create new user if doesn't exist
+            user = await storage.createUser({
+              username: email,
+              password: await hashPassword(randomBytes(32).toString("hex")), // Random password for OAuth users
+              phoneNumber: "", // Phone number will be collected later
+              verificationStatus: "verified",
+              isVerified: true,
+              isHost: false,
+              profilePicture: profile.photos?.[0]?.value,
+            });
+          }
+
+          return done(null, user);
+        } catch (error) {
+          return done(error);
+        }
+      }
+    )
   );
 
   passport.serializeUser((user, done) => {
@@ -145,6 +186,20 @@ export function setupAuth(app: Express) {
     }
     res.json(req.user);
   });
+
+  // Google OAuth routes
+  app.get("/api/auth/google", passport.authenticate("google"));
+
+  app.get(
+    "/api/auth/google/callback",
+    passport.authenticate("google", { 
+      failureRedirect: "/auth",
+      failureMessage: true,
+    }),
+    (req, res) => {
+      res.redirect("/");
+    }
+  );
 
   return { requireAuth };
 }

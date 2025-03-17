@@ -173,9 +173,23 @@ export default function AuthPage() {
               </div>
               
               <div className="grid grid-cols-1 gap-3">
-                <Button variant="outline" className="h-11">
-                  <SiGoogle className="mr-2 h-4 w-4 text-red-500" />
-                  Continue with Google
+                <Button 
+                  variant="outline" 
+                  className="h-11"
+                  onClick={() => googleLoginMutation.mutate()}
+                  disabled={googleLoginMutation.isPending}
+                >
+                  {googleLoginMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Connecting to Google...
+                    </>
+                  ) : (
+                    <>
+                      <SiGoogle className="mr-2 h-4 w-4 text-red-500" />
+                      Continue with Google
+                    </>
+                  )}
                 </Button>
                 <Button variant="outline" className="h-11">
                   <Mail className="mr-2 h-4 w-4" />

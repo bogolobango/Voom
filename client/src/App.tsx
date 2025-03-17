@@ -27,6 +27,7 @@ import AddProfilePicture from "@/pages/add-profile-picture";
 import BookingSuccess from "@/pages/booking-success";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
+import AnimationDemo from "@/pages/animation-demo";
 
 // Car listing flow pages
 import BecomeHost from "@/pages/become-host";
@@ -44,6 +45,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/cars/:id" component={CarDetail} />
+      <Route path="/animation-demo" component={AnimationDemo} />
       
       {/* Protected routes */}
       <ProtectedRoute path="/favorites" component={Favorites} />

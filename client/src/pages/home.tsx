@@ -93,6 +93,25 @@ export default function Home() {
       </div>
 
       <main className="flex-grow">
+        {/* List a New Car Banner - Prominently displayed at top */}
+        {user && (
+          <div className="bg-gradient-to-r from-red-500 to-red-600 py-4">
+            <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center">
+              <div className="text-white mb-3 md:mb-0">
+                <h2 className="text-xl font-semibold mb-1">Have a car? Earn money by sharing it!</h2>
+                <p className="text-white/90">Join thousands of hosts making extra income on Voom</p>
+              </div>
+              <Button 
+                onClick={() => navigate("/become-host")} 
+                className="bg-white text-red-600 hover:bg-gray-100 font-semibold"
+                size="lg"
+              >
+                List a New Car
+              </Button>
+            </div>
+          </div>
+        )}
+        
         {/* Hero Section */}
         <div className="relative bg-gray-100">
           <div className="container mx-auto px-4 md:px-8 py-10 md:py-20">

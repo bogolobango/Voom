@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -47,6 +47,7 @@ export const cars = pgTable("cars", {
   make: text("make").notNull(),
   model: text("model").notNull(),
   year: integer("year").notNull(),
+  type: text("type").notNull().default("Sedan"), // Options: Sedan, SUV, Truck, Sports, Luxury, Compact
   dailyRate: integer("daily_rate").notNull(),
   currency: text("currency").notNull().default("FCFA"),
   location: text("location").notNull(),
@@ -56,6 +57,8 @@ export const cars = pgTable("cars", {
   ratingCount: integer("rating_count").default(0),
   available: boolean("available").default(true),
   createdAt: timestamp("created_at").defaultNow(),
+  /* Latitude and longitude will be added later */
+  features: text("features").array(),
 });
 
 export const insertCarSchema = createInsertSchema(cars).omit({

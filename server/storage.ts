@@ -155,6 +155,7 @@ export class MemStorage implements IStorage {
         make: "Mitsubishi",
         model: "Pajero",
         year: 2020,
+        type: "SUV",
         dailyRate: 85000,
         currency: "FCFA",
         location: "ADL",
@@ -162,13 +163,15 @@ export class MemStorage implements IStorage {
         imageUrl: "https://images.unsplash.com/photo-1565992441121-4367c2967103?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
         rating: 4.8,
         ratingCount: 12,
-        available: true
+        available: true,
+        features: ["4x4", "Bluetooth", "Air conditioning", "GPS"]
       },
       {
         hostId: hostUser.id,
         make: "Mercedes",
         model: "G-Wagon AMG",
         year: 2022,
+        type: "Luxury",
         dailyRate: 135000,
         currency: "FCFA",
         location: "ADL",
@@ -183,6 +186,7 @@ export class MemStorage implements IStorage {
         make: "Kia",
         model: "K5 GT",
         year: 2021,
+        type: "Sedan",
         dailyRate: 65500,
         currency: "FCFA",
         location: "ADL",
@@ -190,7 +194,8 @@ export class MemStorage implements IStorage {
         imageUrl: "https://images.unsplash.com/photo-1600259828526-77f8617ceec9?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
         rating: 4.5,
         ratingCount: 6,
-        available: true
+        available: true,
+        features: ["Bluetooth", "Air conditioning", "Heated seats", "Parking sensors"]
       }
     ];
     

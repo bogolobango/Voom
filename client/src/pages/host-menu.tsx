@@ -141,6 +141,15 @@ export default function HostMenu() {
           </CardHeader>
         </Card>
 
+        {/* Add listing button */}
+        <Button
+          className="w-full mb-4 flex items-center justify-center"
+          onClick={() => navigate("/become-host/car-type")}
+        >
+          <CarFront className="h-4 w-4 mr-2" />
+          Add New Listing
+        </Button>
+
         {/* Quick actions */}
         <div className="grid grid-cols-3 gap-3 mb-6">
           <Button

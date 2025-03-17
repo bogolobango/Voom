@@ -25,7 +25,7 @@ export default function HostListings() {
   const inactiveCars = cars?.filter(car => car.status !== "active") || [];
   
   const handleAddListing = () => {
-    navigate("/become-host");
+    navigate("/become-host/car-type");
   };
 
   const handleEditListing = (id: number) => {
@@ -146,9 +146,11 @@ export default function HostListings() {
                 <Car className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="text-lg font-medium mb-2">No active listings</h3>
                 <p className="text-muted-foreground mb-4">
-                  Start earning by sharing your car when you're not using it.
+                  Start earning extra income by sharing your vehicle with travelers and businesses in your city.
+                  Get paid securely via Mobile Money or bank transfers.
                 </p>
-                <Button onClick={handleAddListing}>
+                <Button onClick={handleAddListing} className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
                   Add Your First Car
                 </Button>
               </div>
@@ -168,7 +170,11 @@ export default function HostListings() {
               </div>
             ) : (
               <div className="text-center p-10 bg-muted rounded-lg">
-                <p className="text-muted-foreground">No inactive cars</p>
+                <Car className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <h3 className="text-lg font-medium mb-2">No inactive listings</h3>
+                <p className="text-muted-foreground mb-2">
+                  Deactivated or paused listings will appear here
+                </p>
               </div>
             )}
           </TabsContent>

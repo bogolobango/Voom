@@ -1,166 +1,198 @@
 import { useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { useToast } from "@/hooks/use-toast";
-import { useLocation, Link } from "wouter";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { useLocation } from "wouter";
+import { motion } from "framer-motion";
+import { ListingIntro } from "@/components/become-host/listing-intro";
+import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
+import { useForm } from "react-hook-form";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import { ChevronLeft, Upload } from "lucide-react";
-import { Header } from "@/components/layout/header";
-import { useAuth } from "@/hooks/use-auth";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Check, Car, CarFront, ChevronRight } from "lucide-react";
 
-// Host details schema
 const hostDetailsSchema = z.object({
-  fullName: z.string().min(2, "Full name must be at least 2 characters"),
-  phoneNumber: z.string().min(8, "Phone number must be at least 8 characters"),
-  email: z.string().email("Invalid email address"),
-  address: z.string().min(5, "Address must be at least 5 characters"),
-  about: z.string().min(20, "Tell us a bit more about yourself")
+  fullName: z.string().min(2, "Full name is required"),
+  phone: z.string().min(8, "Valid phone number is required"),
+  email: z.string().email("Valid email is required"),
+  drivingExperience: z.string().min(1, "Please select your driving experience"),
+  bio: z.string().min(10, "Bio must be at least 10 characters").max(500, "Bio must be less than 500 characters"),
 });
 
 type HostDetailsFormValues = z.infer<typeof hostDetailsSchema>;
 
 export default function BecomeHost() {
-  const { toast } = useToast();
-  const [, setLocation] = useLocation();
-  const { user } = useAuth();
-
-  // Setup form with default values
+  const [, navigate] = useLocation();
+  const [step, setStep] = useState<"intro" | "form">("intro");
+  
   const form = useForm<HostDetailsFormValues>({
     resolver: zodResolver(hostDetailsSchema),
     defaultValues: {
-      fullName: user?.username || "",  // Use username instead as fullName is not in the User type
-      phoneNumber: user?.phoneNumber || "",
+      fullName: "",
+      phone: "",
       email: "",
-      address: "",
-      about: ""
+      drivingExperience: "",
+      bio: "",
     }
   });
-
+  
   const onSubmit = async (data: HostDetailsFormValues) => {
-    console.log("Form submitted:", data);
-    toast({
-      title: "Host details saved",
-      description: "Moving to the next step"
-    });
+    // Save host details
+    console.log("Host details:", data);
     
-    // Navigate to the next step (car details)
-    setLocation("/become-host/car-details");
+    // Navigate to car details step
+    navigate("/become-host/car-type");
   };
-
+  
+  if (step === "intro") {
+    return <ListingIntro />;
+  }
+  
+  // Animation variants
+  const fadeIn = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 300,
+        damping: 25
+      }
+    }
+  };
+  
   return (
-    <div className="container pb-10">
-      <Header title="Become a Host" showBack onBack={() => setLocation("/")} />
-      
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle>Step 1: Host Details</CardTitle>
-          <CardDescription>Tell us about yourself as a host</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="fullName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Your full name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="phoneNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone Number</FormLabel>
-                      <FormControl>
-                        <Input placeholder="+123456789" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="your.email@example.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Address</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Your address" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="md:col-span-2">
-                  <FormField
-                    control={form.control}
-                    name="about"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>About You</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Tell guests a bit about yourself as a host..." 
-                            className="min-h-24"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
+    <AppLayout hideNavigation>
+      <motion.div 
+        className="max-w-2xl mx-auto p-6 py-10"
+        initial="hidden"
+        animate="visible"
+        variants={fadeIn}
+      >
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-3">Tell us about yourself</h1>
+          <p className="text-muted-foreground">
+            Let guests know who'll be hosting them with the car
+          </p>
+        </div>
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="fullName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Your name as it appears on your ID" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="+1 (555) 123-4567" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
-              <div className="flex justify-end">
-                <Button 
-                  type="submit"
-                  className="w-full md:w-auto"
-                  disabled={form.formState.isSubmitting}
-                >
-                  {form.formState.isSubmitting ? "Saving..." : "Continue to Car Details"}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-      
-      <div className="mt-6 text-center text-sm text-gray-500">
-        <p>Hosting on VOOM means you'll be responsible for your car. Make sure you have the right insurance and permissions in place.</p>
-      </div>
-    </div>
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="your.email@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <FormField
+              control={form.control}
+              name="drivingExperience"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Driving Experience</FormLabel>
+                  <div className="grid grid-cols-3 gap-3">
+                    {["1-3 Years", "4-10 Years", "10+ Years"].map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => form.setValue("drivingExperience", option)}
+                        className={`border rounded-lg p-3 flex flex-col items-center justify-center h-20 transition-all ${
+                          field.value === option 
+                            ? "border-primary bg-primary/5" 
+                            : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        {field.value === option && (
+                          <Check className="h-4 w-4 text-primary mb-1" />
+                        )}
+                        <span className="text-sm font-medium">{option}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="bio"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Your Bio</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Tell guests a bit about yourself, your interest in cars, and your hosting style." 
+                      className="min-h-[120px]"
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    This helps guests feel comfortable with you as their host
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="pt-4">
+              <Button 
+                type="submit"
+                className="w-full py-6 text-lg"
+                size="lg"
+              >
+                Continue
+                <ChevronRight className="ml-2 h-5 w-5" />
+              </Button>
+              
+              <p className="text-center text-sm text-muted-foreground mt-4">
+                Your information is used for identification and contact purposes only. 
+                It will not be shared without your permission.
+              </p>
+            </div>
+          </form>
+        </Form>
+      </motion.div>
+    </AppLayout>
   );
 }

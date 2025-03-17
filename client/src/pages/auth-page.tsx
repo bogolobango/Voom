@@ -20,7 +20,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Loader2, Mail } from "lucide-react";
+import { SiGoogle } from "react-icons/si";
 
 // Login form schema
 const loginSchema = z.object({
@@ -154,6 +156,28 @@ export default function AuthPage() {
                   </Button>
                 </form>
               </Form>
+              
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 gap-3">
+                <Button variant="outline" className="h-11">
+                  <SiGoogle className="mr-2 h-4 w-4 text-red-500" />
+                  Continue with Google
+                </Button>
+                <Button variant="outline" className="h-11">
+                  <Mail className="mr-2 h-4 w-4" />
+                  Continue with Email
+                </Button>
+              </div>
             </TabsContent>
 
             {/* Register Form */}
@@ -246,6 +270,28 @@ export default function AuthPage() {
                   </Button>
                 </form>
               </Form>
+              
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or sign up with
+                  </span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 gap-3">
+                <Button variant="outline" className="h-11 bg-white hover:bg-gray-50 border border-gray-300">
+                  <SiGoogle className="mr-2 h-4 w-4 text-red-500" />
+                  Sign up with Google
+                </Button>
+                <Button variant="outline" className="h-11">
+                  <Mail className="mr-2 h-4 w-4" />
+                  Sign up with Email
+                </Button>
+              </div>
             </TabsContent>
           </Tabs>
         </div>

@@ -16,6 +16,7 @@ type AuthContextType = {
   loginMutation: UseMutationResult<User, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<User, Error, RegisterData>;
+  googleLoginMutation: UseMutationResult<void, Error, void>;
 };
 
 type LoginData = {
@@ -36,11 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   // Query to fetch current authenticated user
-  const {
-    data: user,
-    error,
-    isLoading,
-  } = useQuery<User | null, Error>({
+  const result = useQuery<User | null, Error>({
     queryKey: ["/api/auth/user"],
     queryFn: async () => {
       try {
@@ -58,6 +55,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
   });
+  
+  const user = result.data ?? null;
+  const { error, isLoading } = result;
 
   // Login mutation
   const loginMutation = useMutation<User, Error, LoginData>({
@@ -135,6 +135,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
   });
+  
+  // Google login mutation
+  const googleLoginMutation = useMutation<void, Error>({
+    mutationFn: async () => {
+      // Redirect to Google OAuth endpoint
+      window.location.href = "/api/auth/google";
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Google login failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   return (
     <AuthContext.Provider
@@ -145,6 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
+        googleLoginMutation,
       }}
     >
       {children}

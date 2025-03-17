@@ -395,55 +395,202 @@ export default function HostDashboard() {
 
           {/* Earnings Tab */}
           <TabsContent value="earnings">
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>Earnings Overview</CardTitle>
-                <CardDescription>Your earnings from car rentals</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-sm text-gray-500">Total Earnings</p>
-                        <p className="text-2xl font-bold">{formatCurrency(totalEarnings)}</p>
-                      </div>
-                      <div className="bg-red-100 p-3 rounded-full">
-                        <LineChart className="h-5 w-5 text-red-600" />
+            <div className="grid gap-6 md:grid-cols-2 mb-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Earnings Overview</CardTitle>
+                  <CardDescription>Your earnings from car rentals</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-sm text-gray-500">Total Earnings</p>
+                          <p className="text-2xl font-bold">{formatCurrency(totalEarnings)}</p>
+                        </div>
+                        <div className="bg-red-100 p-3 rounded-full">
+                          <LineChart className="h-5 w-5 text-red-600" />
+                        </div>
                       </div>
                     </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <p className="text-sm text-gray-500">Available for Payout</p>
+                        <p className="text-xl font-bold">{formatCurrency(totalEarnings * 0.8)}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <p className="text-sm text-gray-500">In Progress</p>
+                        <p className="text-xl font-bold">{formatCurrency(totalEarnings * 0.2)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Performance Metrics</CardTitle>
+                  <CardDescription>Key indicators for your hosting business</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="w-2 h-8 bg-red-600 rounded-full mr-3"></div>
+                        <div>
+                          <p className="text-sm text-gray-500">Booking Rate</p>
+                          <p className="font-semibold">78%</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-2 h-8 bg-blue-600 rounded-full mr-3"></div>
+                        <div>
+                          <p className="text-sm text-gray-500">Response Rate</p>
+                          <p className="font-semibold">92%</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4">
+                      <p className="text-sm font-medium mb-2">Occupancy Rate</p>
+                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div className="bg-red-600 h-2.5 rounded-full w-[65%]"></div>
+                      </div>
+                      <div className="flex justify-between mt-1">
+                        <p className="text-xs text-gray-500">65% Occupancy</p>
+                        <p className="text-xs text-gray-500">Target: 75%</p>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4">
+                      <p className="text-sm font-medium mb-2">Customer Satisfaction</p>
+                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div className="bg-green-600 h-2.5 rounded-full w-[92%]"></div>
+                      </div>
+                      <div className="flex justify-between mt-1">
+                        <p className="text-xs text-gray-500">4.8/5 Rating</p>
+                        <p className="text-xs text-gray-500">Top 10% of hosts</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <div className="grid gap-6 md:grid-cols-2 mb-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Monthly Earnings</CardTitle>
+                  <CardDescription>Last 6 months of earnings</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[200px] flex items-end justify-between mb-2">
+                    {[40, 65, 45, 80, 75, 90].map((height, index) => (
+                      <div key={index} className="relative flex flex-col items-center">
+                        <div 
+                          className="w-10 bg-red-600 rounded-t-sm" 
+                          style={{ height: `${height}%` }}
+                        ></div>
+                        <span className="text-xs mt-2">{
+                          new Date(Date.now() - (5-index) * 30 * 24 * 60 * 60 * 1000).toLocaleString('default', { month: 'short' })
+                        }</span>
+                      </div>
+                    ))}
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-500">Available for Payout</p>
-                      <p className="text-xl font-bold">{formatCurrency(totalEarnings * 0.8)}</p>
+                  <div className="flex justify-between items-center mt-4 pt-4 border-t">
+                    <div>
+                      <p className="text-sm text-gray-500">Best month</p>
+                      <p className="font-medium">March 2025</p>
                     </div>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-500">In Progress</p>
-                      <p className="text-xl font-bold">{formatCurrency(totalEarnings * 0.2)}</p>
+                    <p className="font-bold">{formatCurrency(450000)}</p>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Revenue Breakdown</CardTitle>
+                  <CardDescription>By car and service type</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm font-medium mb-2">By Car</p>
+                      <div className="space-y-2">
+                        {cars && cars.map((car, index) => {
+                          // Calculate a percentage based on car index (for demonstration)
+                          const percentage = 100 - (index * 15);
+                          return (
+                            <div key={car.id} className="space-y-1">
+                              <div className="flex justify-between text-sm">
+                                <span>{car.make} {car.model}</span>
+                                <span>{percentage}%</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className={`${index === 0 ? 'bg-red-600' : index === 1 ? 'bg-blue-600' : 'bg-green-600'} h-2 rounded-full`}
+                                  style={{ width: `${percentage}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    
+                    <div className="pt-2">
+                      <p className="text-sm font-medium mb-3">By Booking Length</p>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="bg-gray-50 p-2 rounded-lg">
+                          <p className="text-xs text-gray-500">1-3 days</p>
+                          <p className="font-medium">35%</p>
+                        </div>
+                        <div className="bg-gray-50 p-2 rounded-lg">
+                          <p className="text-xs text-gray-500">4-7 days</p>
+                          <p className="font-medium">45%</p>
+                        </div>
+                        <div className="bg-gray-50 p-2 rounded-lg">
+                          <p className="text-xs text-gray-500">8+ days</p>
+                          <p className="font-medium">20%</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
             
             <Card>
-              <CardHeader>
-                <CardTitle>Recent Transactions</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Recent Transactions</CardTitle>
+                  <CardDescription>Your latest earnings from rentals</CardDescription>
+                </div>
+                <Button variant="outline" size="sm">Export CSV</Button>
               </CardHeader>
               <CardContent>
                 {bookings && bookings.length > 0 ? (
                   <div className="space-y-4">
                     {bookings.slice(0, 5).map((booking) => (
                       <div key={booking.id} className="flex items-center justify-between border-b pb-4 last:border-0">
-                        <div>
-                          <p className="font-medium">{booking.car.make} {booking.car.model}</p>
-                          <p className="text-sm text-gray-500">
-                            {new Date(booking.endDate).toLocaleDateString()}
-                          </p>
+                        <div className="flex items-center">
+                          <div className="bg-gray-100 h-10 w-10 rounded-md flex items-center justify-center mr-3">
+                            <CarIcon className="h-5 w-5 text-gray-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{booking.car.make} {booking.car.model}</p>
+                            <p className="text-xs text-gray-500">
+                              {new Date(booking.startDate).toLocaleDateString()} - {new Date(booking.endDate).toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
-                        <p className="font-semibold">{formatCurrency(booking.totalAmount || 0)}</p>
+                        <div className="text-right">
+                          <p className="font-semibold text-green-600">{formatCurrency(booking.totalAmount || 0)}</p>
+                          <p className="text-xs text-gray-500">After fees: {formatCurrency((booking.totalAmount || 0) * 0.85)}</p>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -452,6 +599,10 @@ export default function HostDashboard() {
                     <p className="text-gray-500">No transactions yet</p>
                   </div>
                 )}
+                
+                <Button variant="outline" className="w-full mt-4">
+                  View All Transactions
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>

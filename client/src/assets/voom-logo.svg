@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <g>
+    <!-- Red checkerboard pattern -->
+    <polygon fill="#FF3F3F" points="65,210 95,210 80,180"/>
+    <polygon fill="#FF3F3F" points="100,210 130,210 115,180"/>
+    <polygon fill="#FF3F3F" points="135,210 165,210 150,180"/>
+    
+    <!-- Text "OOM" -->
+    <circle fill="#FF3F3F" cx="200" cy="210" r="40"/>
+    <circle fill="#FF3F3F" cx="290" cy="210" r="40"/>
+    <path fill="#FF3F3F" d="M345 170h30v80h-30c-22.1 0-40-17.9-40-40s17.9-40 40-40z"/>
+    
+    <!-- Tagline -->
+    <text x="130" y="280" font-family="Arial, sans-serif" font-size="16" fill="#FF3F3F">
+      Your next rental is a click away.
+    </text>
+  </g>
+</svg>

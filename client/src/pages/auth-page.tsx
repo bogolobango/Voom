@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, Mail } from "lucide-react";
 import { SiGoogle } from "react-icons/si";
+import voomLogo from "@/assets/voom-logo.png";
 
 // Login form schema
 const loginSchema = z.object({
@@ -92,6 +93,9 @@ export default function AuthPage() {
       <div className="w-full lg:w-1/2 p-6 flex flex-col justify-center items-center">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
+            <div className="flex justify-center mb-4">
+              <img src={voomLogo} alt="Voom Logo" className="h-20 logo-fade-in" />
+            </div>
             <h2 className="text-3xl font-bold tracking-tight">Voom Car Sharing</h2>
             <p className="mt-2 text-sm text-muted-foreground">
               Sign in to your account or create a new one

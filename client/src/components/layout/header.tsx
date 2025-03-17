@@ -9,9 +9,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { getInitials } from "@/lib/utils";
+import voomLogo from "@/assets/voom-logo.png";
 
 interface HeaderProps {
   title?: string;
@@ -68,7 +69,13 @@ export function Header({ title, showBack, onBack }: HeaderProps) {
             </button>
           ) : (
             <Link href="/">
-              <div className="text-red-600 font-bold text-2xl">VOOM</div>
+              <div className="flex items-center">
+                <img 
+                  src={voomLogo} 
+                  alt="Voom Logo" 
+                  className="h-10 logo-fade-in"
+                />
+              </div>
             </Link>
           )}
           {title && (

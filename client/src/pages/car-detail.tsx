@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Rating } from "@/components/ui/rating";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LoadingScreen } from "@/components/ui/loader";
+import { CarLoadingScreen } from "@/components/ui/car-loader";
+import { CarDetailSkeleton } from "@/components/ui/car-skeleton";
 import { 
   formatCurrency, 
   formatDateAndTime, 
@@ -159,7 +160,10 @@ export default function CarDetail() {
       <>
         <Header showBack onBack={handleBack} />
         <main className="container mx-auto px-4 py-6 mb-6">
-          <LoadingScreen />
+          <div className="py-6">
+            <CarLoadingScreen message="Loading car details..." />
+            <CarDetailSkeleton />
+          </div>
         </main>
       </>
     );

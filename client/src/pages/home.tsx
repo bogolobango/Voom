@@ -8,11 +8,12 @@ import { CarCategories } from "@/components/car-categories";
 import { CarFilters, FilterOptions } from "@/components/car-filters";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { LoadingScreen } from "@/components/ui/loader";
 import { Car } from "@shared/schema";
 import { Search, MapPin, LogIn, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { CarLoadingScreen, CarLoader } from "@/components/ui/car-loader";
+import { CarGridSkeleton, CarDrivingAnimation } from "@/components/ui/car-skeleton";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -171,7 +172,10 @@ export default function Home() {
         />
 
         {isLoading ? (
-          <LoadingScreen />
+          <>
+            <CarDrivingAnimation />
+            <CarGridSkeleton count={6} />
+          </>
         ) : filteredCars && filteredCars.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCars.map((car) => (

@@ -14,7 +14,13 @@ import {
   Settings,
   HelpCircle,
   LogOut,
-  Plus
+  Plus,
+  Shield,
+  FileText,
+  Users,
+  MessageCircle,
+  GiftIcon,
+  UserPlus2
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -169,6 +175,72 @@ export default function Menu() {
           </div>
           <ChevronRight className="h-5 w-5 text-gray-400" />
         </button>
+
+        <button 
+          onClick={() => navigate("/safety")}
+          className="flex items-center justify-between w-full py-4"
+        >
+          <div className="flex items-center">
+            <Shield className="h-6 w-6 mr-4" />
+            <span className="text-base">Get help with a safety issue</span>
+          </div>
+          <ChevronRight className="h-5 w-5 text-gray-400" />
+        </button>
+
+        <button 
+          onClick={() => navigate("/hosting-resources")}
+          className="flex items-center justify-between w-full py-4"
+        >
+          <div className="flex items-center">
+            <FileText className="h-6 w-6 mr-4" />
+            <span className="text-base">Explore hosting resources</span>
+          </div>
+          <ChevronRight className="h-5 w-5 text-gray-400" />
+        </button>
+
+        <button 
+          onClick={() => navigate("/connect-hosts")}
+          className="flex items-center justify-between w-full py-4"
+        >
+          <div className="flex items-center">
+            <Users className="h-6 w-6 mr-4" />
+            <span className="text-base">Connect with Hosts near you</span>
+          </div>
+          <ChevronRight className="h-5 w-5 text-gray-400" />
+        </button>
+
+        <button 
+          onClick={() => navigate("/feedback")}
+          className="flex items-center justify-between w-full py-4"
+        >
+          <div className="flex items-center">
+            <MessageCircle className="h-6 w-6 mr-4" />
+            <span className="text-base">Give us feedback</span>
+          </div>
+          <ChevronRight className="h-5 w-5 text-gray-400" />
+        </button>
+
+        <button 
+          onClick={() => navigate("/gift-cards")}
+          className="flex items-center justify-between w-full py-4"
+        >
+          <div className="flex items-center">
+            <GiftIcon className="h-6 w-6 mr-4" />
+            <span className="text-base">Gift cards</span>
+          </div>
+          <ChevronRight className="h-5 w-5 text-gray-400" />
+        </button>
+
+        <button 
+          onClick={() => navigate("/refer-host")}
+          className="flex items-center justify-between w-full py-4"
+        >
+          <div className="flex items-center">
+            <UserPlus2 className="h-6 w-6 mr-4" />
+            <span className="text-base">Refer a Host</span>
+          </div>
+          <ChevronRight className="h-5 w-5 text-gray-400" />
+        </button>
       </div>
       
       <div className="fixed bottom-24 w-full px-6 z-10">
@@ -192,6 +264,14 @@ export default function Menu() {
           <LogOut className="h-4 w-4 mr-2" />
           Log out
         </Button>
+      </div>
+      
+      <div className="text-center text-xs text-gray-500 pb-5">
+        <div className="flex justify-center space-x-2">
+          <a href="/terms" className="hover:underline">Terms of Service</a>
+          <span>·</span>
+          <a href="/privacy" className="hover:underline">Privacy Policy</a>
+        </div>
       </div>
       
       <BottomNav />

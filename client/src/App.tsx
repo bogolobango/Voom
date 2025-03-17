@@ -30,6 +30,7 @@ import BookingConfirm from "@/pages/booking-confirm";
 import AddPhone from "@/pages/add-phone";
 import AddProfilePicture from "@/pages/add-profile-picture";
 import BookingSuccess from "@/pages/booking-success";
+import SubmissionSuccess from "@/pages/submission-success";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 import AnimationDemo from "@/pages/animation-demo";
@@ -94,6 +95,7 @@ function Router() {
       <ProtectedRoute path="/add-phone" component={AddPhone} />
       <ProtectedRoute path="/add-profile-picture" component={AddProfilePicture} />
       <ProtectedRoute path="/booking-success" component={BookingSuccess} />
+      <ProtectedRoute path="/submission-success" component={SubmissionSuccess} />
       
       {/* Car listing flow */}
       <ProtectedRoute path="/become-host" component={BecomeHost} />

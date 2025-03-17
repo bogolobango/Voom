@@ -22,7 +22,8 @@ export default function HostListings() {
   });
 
   const activeCars = cars?.filter(car => car.status === "active") || [];
-  const inactiveCars = cars?.filter(car => car.status !== "active") || [];
+  const pendingCars = cars?.filter(car => car.status === "pending_approval") || [];
+  const inactiveCars = cars?.filter(car => car.status !== "active" && car.status !== "pending_approval") || [];
   
   const handleAddListing = () => {
     navigate("/become-host/car-type");
@@ -32,69 +33,97 @@ export default function HostListings() {
     navigate(`/edit-car/${id}`);
   };
 
-  const renderCarCard = (car: CarType) => (
-    <Card key={car.id} className="overflow-hidden">
-      <div className="relative h-48">
-        <img 
-          src={car.images[0]} 
-          alt={car.make + ' ' + car.model}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute top-2 right-2">
-          <Badge variant={car.status === "active" ? "default" : "secondary"}>
-            {car.status === "active" ? "Active" : "Inactive"}
-          </Badge>
-        </div>
-      </div>
-      <CardHeader className="p-4 pb-2">
-        <div className="flex justify-between items-start">
-          <div>
-            <h3 className="font-semibold">{car.make} {car.model}</h3>
-            <p className="text-sm text-muted-foreground">{car.year}</p>
-          </div>
-          <div className="flex items-center">
-            <Star className="h-4 w-4 text-yellow-500 mr-1" />
-            <span className="text-sm">{car.rating || "New"}</span>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="p-4 pt-0">
-        <p className="text-sm mb-2">
-          <span className="font-medium">{formatCurrency(car.dailyRate)}</span> / day
-        </p>
-        <div className="flex flex-wrap gap-1">
-          {car.features.slice(0, 3).map((feature, i) => (
-            <Badge key={i} variant="outline" className="text-xs">
-              {feature}
+  const renderCarCard = (car: CarType) => {
+    // Determine if the car is pending approval
+    const isPending = car.status === "pending_approval";
+    
+    return (
+      <Card 
+        key={car.id} 
+        className={`overflow-hidden ${isPending ? 'opacity-70' : ''}`}
+      >
+        <div className="relative h-48">
+          <img 
+            src={car.images?.[0] || "https://source.unsplash.com/random/300x200/?car"} 
+            alt={car.make + ' ' + car.model}
+            className={`w-full h-full object-cover ${isPending ? 'grayscale' : ''}`}
+          />
+          <div className="absolute top-2 right-2">
+            <Badge 
+              variant={car.status === "active" ? "default" : 
+                      isPending ? "outline" : "secondary"}
+              className={isPending ? "bg-amber-100 text-amber-800 border-amber-300" : ""}
+            >
+              {car.status === "active" ? "Active" : 
+               isPending ? "Pending Review" : "Inactive"}
             </Badge>
-          ))}
-          {car.features.length > 3 && (
-            <Badge variant="outline" className="text-xs">
-              +{car.features.length - 3} more
-            </Badge>
+          </div>
+        </div>
+        <CardHeader className="p-4 pb-2">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="font-semibold">{car.make} {car.model}</h3>
+              <p className="text-sm text-muted-foreground">{car.year}</p>
+              {isPending && (
+                <p className="text-xs text-amber-600 mt-1">Awaiting approval from admins</p>
+              )}
+            </div>
+            <div className="flex items-center">
+              <Star className="h-4 w-4 text-yellow-500 mr-1" />
+              <span className="text-sm">{car.rating || "New"}</span>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 pt-0">
+          <p className="text-sm mb-2">
+            <span className="font-medium">{formatCurrency(car.dailyRate)}</span> / day
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {car.features?.slice(0, 3).map((feature, i) => (
+              <Badge key={i} variant="outline" className="text-xs">
+                {feature}
+              </Badge>
+            ))}
+            {car.features && car.features.length > 3 && (
+              <Badge variant="outline" className="text-xs">
+                +{car.features.length - 3} more
+              </Badge>
+            )}
+          </div>
+        </CardContent>
+        <CardFooter className="p-4 pt-0 flex justify-between">
+          <Button 
+            size="sm" 
+            variant="outline"
+            onClick={() => handleEditListing(car.id)}
+            className="flex items-center gap-1"
+            disabled={isPending}
+          >
+            <Edit className="h-3 w-3" />
+            Edit
+          </Button>
+          {!isPending ? (
+            <Button 
+              size="sm"
+              variant="default"
+              onClick={() => navigate(`/car-analytics/${car.id}`)}
+            >
+              View Stats
+            </Button>
+          ) : (
+            <Button 
+              size="sm"
+              variant="secondary"
+              disabled
+              className="text-muted-foreground"
+            >
+              Under Review
+            </Button>
           )}
-        </div>
-      </CardContent>
-      <CardFooter className="p-4 pt-0 flex justify-between">
-        <Button 
-          size="sm" 
-          variant="outline"
-          onClick={() => handleEditListing(car.id)}
-          className="flex items-center gap-1"
-        >
-          <Edit className="h-3 w-3" />
-          Edit
-        </Button>
-        <Button 
-          size="sm"
-          variant="default"
-          onClick={() => navigate(`/car-analytics/${car.id}`)}
-        >
-          View Stats
-        </Button>
-      </CardFooter>
-    </Card>
-  );
+        </CardFooter>
+      </Card>
+    );
+  };
 
   return (
     <AppLayout title="Your Listings">
@@ -111,12 +140,20 @@ export default function HostListings() {
         </div>
 
         <Tabs defaultValue="active" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="active">
               Active
               {activeCars.length > 0 && (
                 <Badge className="ml-2" variant="secondary">
                   {activeCars.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="pending">
+              Pending
+              {pendingCars.length > 0 && (
+                <Badge className="ml-2" variant="secondary">
+                  {pendingCars.length}
                 </Badge>
               )}
             </TabsTrigger>
@@ -153,6 +190,30 @@ export default function HostListings() {
                   <Plus className="h-4 w-4" />
                   Add Your First Car
                 </Button>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="pending">
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[1, 2].map(i => (
+                  <CarCardSkeleton key={i} />
+                ))}
+              </div>
+            ) : pendingCars.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {pendingCars.map(renderCarCard)}
+              </div>
+            ) : (
+              <div className="text-center p-10 bg-muted/50 rounded-lg border border-dashed border-amber-200">
+                <div className="w-12 h-12 mx-auto mb-4 flex items-center justify-center rounded-full bg-amber-50">
+                  <Car className="h-6 w-6 text-amber-500" />
+                </div>
+                <h3 className="text-lg font-medium mb-2">No pending listings</h3>
+                <p className="text-muted-foreground mb-2">
+                  Cars waiting for approval will appear here
+                </p>
               </div>
             )}
           </TabsContent>

@@ -95,13 +95,10 @@ export function setupAuth(app: Express) {
       const user = await storage.createUser({
         username,
         password: await hashPassword(password),
-        fullName,
         phoneNumber,
         verificationStatus: "unverified",
         isVerified: false,
         isHost: false,
-        createdAt: new Date(),
-        lastLogin: new Date(),
       });
 
       // Log the user in
@@ -125,12 +122,7 @@ export function setupAuth(app: Express) {
       req.login(user, async (err) => {
         if (err) return next(err);
         
-        // Update last login time
-        try {
-          await storage.updateUser(user.id, { lastLogin: new Date() });
-        } catch (error) {
-          console.error("Failed to update last login time:", error);
-        }
+        // No need to update last login time if not in schema
         
         return res.json(user);
       });

@@ -101,13 +101,25 @@ export function Header({ title, showBack, onBack }: HeaderProps) {
 }
 
 function NavLinks({ mobile = false }: { mobile?: boolean }) {
-  const links = [
+  const { user, logoutMutation } = useAuth();
+  
+  const authenticatedLinks = [
     { name: "Home", path: "/" },
     { name: "Favorites", path: "/favorites" },
     { name: "Bookings", path: "/bookings" },
     { name: "Messages", path: "/messages" },
     { name: "Account", path: "/account" },
   ];
+  
+  const unauthenticatedLinks = [
+    { name: "Home", path: "/" },
+  ];
+  
+  const links = user ? authenticatedLinks : unauthenticatedLinks;
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
 
   if (mobile) {
     return (
@@ -119,6 +131,36 @@ function NavLinks({ mobile = false }: { mobile?: boolean }) {
             </Link>
           </DropdownMenuItem>
         ))}
+        
+        {user ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Logout</span>
+            </DropdownMenuItem>
+          </>
+        ) : (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/auth">
+                <div className="w-full cursor-pointer flex items-center">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  <span>Login</span>
+                </div>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/auth">
+                <div className="w-full cursor-pointer flex items-center">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  <span>Register</span>
+                </div>
+              </Link>
+            </DropdownMenuItem>
+          </>
+        )}
       </>
     );
   }
@@ -132,6 +174,54 @@ function NavLinks({ mobile = false }: { mobile?: boolean }) {
           </div>
         </Link>
       ))}
+      
+      {user ? (
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={user.profilePicture || undefined} alt={user.username} />
+                  <AvatarFallback>{getInitials(user.username)}</AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <div className="flex items-center justify-start gap-2 p-2">
+                <div className="flex flex-col space-y-1 leading-none">
+                  <p className="font-medium">{user.username}</p>
+                </div>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/account">
+                  <div className="w-full cursor-pointer">
+                    Account
+                  </div>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <Link href="/auth">
+            <Button variant="ghost" size="sm">
+              <LogIn className="mr-2 h-4 w-4" />
+              Login
+            </Button>
+          </Link>
+          <Link href="/auth">
+            <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white">
+              <UserPlus className="mr-2 h-4 w-4" />
+              Register
+            </Button>
+          </Link>
+        </div>
+      )}
     </>
   );
 }

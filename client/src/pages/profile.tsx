@@ -19,7 +19,11 @@ import {
   Star,
   Coffee,
   ChevronLeft,
-  CheckCircle2
+  CheckCircle2,
+  Check,
+  Building2,
+  Utensils,
+  Tv
 } from "lucide-react";
 
 export default function Profile() {
@@ -81,8 +85,32 @@ export default function Profile() {
         </div>
       </div>
 
+      {/* Confirmed information */}
+      <div className="px-4 py-4 border-b border-gray-200">
+        <h2 className="text-xl font-bold mb-4">{user?.username}'s confirmed information</h2>
+        
+        <div className="mb-2 flex items-center">
+          <Check className="h-5 w-5 mr-3" /> 
+          <span className="text-base">Identity</span>
+        </div>
+        
+        <div className="mb-2 flex items-center">
+          <Check className="h-5 w-5 mr-3" /> 
+          <span className="text-base">Email address</span>
+        </div>
+        
+        <div className="mb-3 flex items-center">
+          <Check className="h-5 w-5 mr-3" /> 
+          <span className="text-base">Phone number</span>
+        </div>
+        
+        <button className="text-black font-medium underline">
+          Learn about identity verification
+        </button>
+      </div>
+      
       {/* Bio information */}
-      <div className="px-4 py-5">
+      <div className="px-4 py-5 border-b border-gray-200">
         <div className="flex items-start mb-4">
           <Briefcase className="h-5 w-5 mr-4 flex-shrink-0 mt-0.5" />
           <div>
@@ -149,6 +177,44 @@ export default function Profile() {
         <p className="text-base mb-4 border-b border-black inline-block">
           {userBio.bio}
         </p>
+      </div>
+      
+      {/* Ask about section */}
+      <div className="px-4 py-4 border-b border-gray-200">
+        <h2 className="text-xl font-bold mb-4">Ask {user?.username} about</h2>
+        
+        <div className="flex flex-wrap gap-3">
+          <div className="flex items-center px-4 py-2 rounded-full border border-gray-300">
+            <Building2 className="h-4 w-4 mr-2" />
+            <span>Architecture</span>
+          </div>
+          
+          <div className="flex items-center px-4 py-2 rounded-full border border-gray-300">
+            <Utensils className="h-4 w-4 mr-2" />
+            <span>Food</span>
+          </div>
+          
+          <div className="flex items-center px-4 py-2 rounded-full border border-gray-300">
+            <Tv className="h-4 w-4 mr-2" />
+            <span>Live sports</span>
+          </div>
+        </div>
+      </div>
+      
+      {/* Where user has been */}
+      <div className="px-4 py-4 border-b border-gray-200">
+        <h2 className="text-xl font-bold mb-4">Where {user?.username} has been</h2>
+        
+        <div className="mb-4">
+          <div className="border border-blue-400 rounded-lg p-2 inline-block text-center">
+            <div className="text-blue-500 mb-2">
+              <Building2 className="h-16 w-16 mx-auto" />
+              <div className="text-xs text-gray-500 uppercase">US</div>
+            </div>
+            <h3 className="font-semibold">Boston</h3>
+            <p className="text-sm text-gray-500">Massachusetts</p>
+          </div>
+        </div>
       </div>
 
       <BottomNav />

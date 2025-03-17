@@ -69,6 +69,24 @@ export default function CategoryPage() {
       return false;
     }
 
+    // New filter for transmission type - using optional chaining and safe type casting
+    if (filters.transmission && car.transmission && 
+        (car.transmission as string).toLowerCase() !== filters.transmission.toLowerCase()) {
+      return false;
+    }
+
+    // New filter for fuel type - using optional chaining and safe type casting
+    if (filters.fuelType && car.fuelType && 
+        (car.fuelType as string).toLowerCase() !== filters.fuelType.toLowerCase()) {
+      return false;
+    }
+
+    // New filter for number of seats - using optional chaining and safe type casting
+    if (filters.seats && car.seats && 
+        (car.seats as number) !== filters.seats) {
+      return false;
+    }
+
     if (filters.features.length > 0) {
       // Skip this check if car has no features
       if (!car.features) return false;
@@ -164,28 +182,36 @@ export default function CategoryPage() {
 
         {/* Results */}
         <div className="container mx-auto px-4 pt-6 pb-20">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h2 className="text-xl font-medium mb-1">
-                {isLoading ? "Loading..." : `${sortedCars.length} cars available`}
-              </h2>
-              <p className="text-muted-foreground text-sm">
-                {categoryId !== "all" 
-                  ? `Showing all ${getCategoryName(categoryId).toLowerCase()} in your area`
-                  : "Showing all available cars in your area"
-                }
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex items-center gap-1 md:hidden"
-                onClick={() => setShowFilters(!showFilters)}
-              >
-                <Sliders className="h-4 w-4" />
-                {showFilters ? "Hide filters" : "Show filters"}
-              </Button>
+          <div className="flex flex-col mb-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-medium mb-1">
+                  {isLoading ? "Loading..." : `${sortedCars.length} cars available`}
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  {categoryId !== "all" 
+                    ? `Showing all ${getCategoryName(categoryId).toLowerCase()} in your area`
+                    : "Showing all available cars in your area"
+                  }
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex items-center gap-1 md:hidden"
+                  onClick={() => setShowFilters(!showFilters)}
+                >
+                  <Sliders className="h-4 w-4" />
+                  {showFilters ? "Hide filters" : "Show filters"}
+                </Button>
+                <CarFilters 
+                  onFilterChange={setFilters} 
+                  currentFilters={filters}
+                  isInline={true}
+                  showSelectedFilters={true}
+                />
+              </div>
             </div>
           </div>
 

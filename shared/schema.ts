@@ -63,6 +63,9 @@ export const cars = pgTable("cars", {
   /* Latitude and longitude will be added later */
   features: text("features").array(),
   status: text("status").default("active"), // active, inactive, maintenance, pending_approval
+  transmission: text("transmission"), // automatic, manual
+  fuelType: text("fuel_type"), // petrol, diesel, electric, hybrid
+  seats: integer("seats"), // number of seats
 });
 
 export const insertCarSchema = createInsertSchema(cars).omit({

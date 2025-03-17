@@ -23,7 +23,7 @@ import { motion, AnimatePresence, stagger } from "framer-motion";
 export default function Home() {
   const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedLocation, setSelectedLocation] = useState("Accra, Ghana");
+  const [selectedLocation, setSelectedLocation] = useState("Kotoka International Airport, Accra");
   const [checkInDate, setCheckInDate] = useState<Date | undefined>(undefined);
   const [checkOutDate, setCheckOutDate] = useState<Date | undefined>(undefined);
   const [adults, setAdults] = useState(2);
@@ -166,13 +166,23 @@ export default function Home() {
                 >
                   <label className="text-sm font-medium">LOCATION</label>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                    <Input
-                      className="pl-10"
-                      placeholder="Where are you going?"
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 z-10" size={18} />
+                    <Select
                       value={selectedLocation}
-                      onChange={(e) => setSelectedLocation(e.target.value)}
-                    />
+                      onValueChange={(value) => setSelectedLocation(value)}
+                    >
+                      <SelectTrigger className="pl-10">
+                        <SelectValue placeholder="Select an airport" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Kotoka International Airport, Accra">Kotoka International Airport, Accra</SelectItem>
+                        <SelectItem value="Tamale Airport, Tamale">Tamale Airport, Tamale</SelectItem>
+                        <SelectItem value="Kumasi Airport, Kumasi">Kumasi Airport, Kumasi</SelectItem>
+                        <SelectItem value="Takoradi Airport, Sekondi-Takoradi">Takoradi Airport, Sekondi-Takoradi</SelectItem>
+                        <SelectItem value="Ho Airport, Ho">Ho Airport, Ho</SelectItem>
+                        <SelectItem value="Wa Airport, Wa">Wa Airport, Wa</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </motion.div>
 

@@ -1,247 +1,221 @@
-import { useState, useEffect, useRef } from "react";
-import { useLocation } from "wouter";
-import { motion } from "framer-motion";
-import { ChevronLeft, HelpCircle, Save, MapPin } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { useForm } from "react-hook-form";
-import { Input } from "@/components/ui/input";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
-import { MapComponent } from "@/components/map/map-component";
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useNavigate } from 'wouter';
+import { Map, MapPin } from 'lucide-react';
+import { useGoogleMaps } from '@/hooks/use-google-maps';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { ghanaAirports, ghanaCities } from '@/lib/ghana-locations';
+import { CarProgress } from '@/components/ui/car-progress';
 
 const formSchema = z.object({
-  address: z.string().min(5, "Address is required"),
-  city: z.string().min(1, "City is required"),
-  state: z.string().min(1, "State is required"),
-  postalCode: z.string().min(1, "Postal code is required"),
-  pickupInstructions: z.string().optional(),
+  address: z.string().min(1, 'Address is required'),
+  latitude: z.number(),
+  longitude: z.number(),
+  nearestAirport: z.string().min(1, 'Please select the nearest airport'),
+  city: z.string().min(1, 'Please select a city'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
+const steps = [
+  { id: 'car-type', title: 'Car Type' },
+  { id: 'car-details', title: 'Car Details' },
+  { id: 'car-location', title: 'Location' },
+  { id: 'car-rates', title: 'Rates' },
+  { id: 'car-summary', title: 'Summary' },
+];
+
 export default function CarLocationPage() {
-  const [, navigate] = useLocation();
-  const [coordinates, setCoordinates] = useState<[number, number]>([6.1377, 1.2123]); // Lomé, Togo as default
-  const [address, setAddress] = useState("");
-  
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const {
+    mapRef,
+    searchBoxRef,
+    selectedLocation,
+    panTo
+  } = useGoogleMaps({
+    zoom: 12,
+    onPlaceSelect: (place) => {
+      if (place.geometry?.location) {
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        form.setValue('latitude', lat);
+        form.setValue('longitude', lng);
+        if (place.formatted_address) {
+          form.setValue('address', place.formatted_address);
+        }
+      }
+    }
+  });
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      address: "",
-      city: "",
-      state: "",
-      postalCode: "",
-      pickupInstructions: "",
+      address: '',
+      latitude: 5.6037,
+      longitude: -0.1870,
+      nearestAirport: '',
+      city: ''
     }
   });
-  
+
   const handleNext = (values: FormValues) => {
-    // In a real app, we would store the form values in a context or state management
-    console.log("Car location:", { ...values, coordinates });
-    navigate("/become-host/car-rates");
+    // Save to local storage
+    localStorage.setItem('carLocation', JSON.stringify(values));
+    // Navigate to next step
+    navigate('/become-host/car-rates');
   };
-  
-  const handleSaveAndExit = () => {
-    navigate("/host-dashboard");
-  };
-  
-  const handleLocationSelect = (lat: number, lng: number, address: string) => {
-    setCoordinates([lat, lng]);
-    setAddress(address);
-    form.setValue("address", address);
-  };
-  
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { 
-      opacity: 1,
-      transition: { 
-        staggerChildren: 0.1
-      } 
-    }
-  };
-  
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
-      y: 0,
-      transition: {
-        type: "spring",
-        stiffness: 300,
-        damping: 20
-      }
-    }
-  };
-  
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Fixed top header */}
-      <header className="fixed top-0 left-0 right-0 bg-background z-10 border-b">
-        <div className="flex justify-between items-center px-4 py-3">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => navigate("/become-host/car-details")}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          
-          <Progress value={50} className="w-1/4 h-1" />
-          
-          <div className="flex space-x-2">
-            <Button variant="ghost" size="sm" onClick={handleSaveAndExit}>
-              <Save className="h-4 w-4 mr-1" />
-              Save & exit
-            </Button>
-            <Button variant="ghost" size="icon">
-              <HelpCircle className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-      </header>
+    <div className="container max-w-5xl py-10">
+      <CarProgress steps={steps} currentStep="car-location" />
       
-      <main className="pt-16 pb-24 px-4 max-w-2xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8 mt-6"
-        >
-          <h1 className="text-3xl font-bold mb-3">Where is your car located?</h1>
-          <p className="text-muted-foreground">
-            Pin the exact location where guests can pick up your car.
-          </p>
-        </motion.div>
-        
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <motion.div variants={itemVariants} className="mb-8">
-            <div className="h-72 rounded-lg overflow-hidden border mb-2">
-              <MapComponent 
-                draggableMarker={true}
-                onLocationSelect={handleLocationSelect}
-                initialCoordinates={coordinates}
-                height="100%"
-                zoom={13}
-              />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Drag the pin to mark your car's exact pickup location
-            </p>
-          </motion.div>
-          
+      <div className="mt-8">
+        <h1 className="text-4xl font-bold">Where's your car located?</h1>
+        <p className="mt-2 text-muted-foreground">
+          Add your car's location to help guests find it easily
+        </p>
+      </div>
+
+      <div className="mt-8 grid gap-6 md:grid-cols-2">
+        <div>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleNext)} className="space-y-6">
-              <motion.div variants={itemVariants}>
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address</FormLabel>
+                    <FormControl>
+                      <Input
+                        ref={searchBoxRef}
+                        placeholder="Enter address or landmark"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid gap-4 md:grid-cols-2">
                 <FormField
                   control={form.control}
-                  name="address"
+                  name="city"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Street Address</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || address} />
-                      </FormControl>
+                      <FormLabel>City</FormLabel>
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          const city = ghanaCities.find(c => c.name === value);
+                          if (city) {
+                            panTo(city.coordinates[0], city.coordinates[1]);
+                          }
+                        }}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a city" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {ghanaCities.map((city) => (
+                            <SelectItem key={city.name} value={city.name}>
+                              {city.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </motion.div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <motion.div variants={itemVariants}>
-                  <FormField
-                    control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>City</FormLabel>
+
+                <FormField
+                  control={form.control}
+                  name="nearestAirport"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nearest Airport</FormLabel>
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          const airport = ghanaAirports.find(a => a.code === value);
+                          if (airport) {
+                            panTo(airport.coordinates[0], airport.coordinates[1]);
+                          }
+                        }}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
-                          <Input {...field} />
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select airport" />
+                          </SelectTrigger>
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </motion.div>
-                
-                <motion.div variants={itemVariants}>
-                  <FormField
-                    control={form.control}
-                    name="state"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>State/Province</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </motion.div>
+                        <SelectContent>
+                          {ghanaAirports.map((airport) => (
+                            <SelectItem key={airport.code} value={airport.code}>
+                              {airport.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
-              
-              <motion.div variants={itemVariants}>
-                <FormField
-                  control={form.control}
-                  name="postalCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Postal Code</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </motion.div>
-              
-              <motion.div variants={itemVariants}>
-                <FormField
-                  control={form.control}
-                  name="pickupInstructions"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Pickup Instructions (Optional)</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Provide details on where to meet, parking instructions, or any special directions." 
-                          className="min-h-[100px]"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </motion.div>
-              
-              {/* Fixed bottom button */}
-              <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t">
-                <div className="max-w-2xl mx-auto">
-                  <Button 
-                    type="submit"
-                    className="w-full"
-                    size="lg"
-                  >
-                    Next
-                  </Button>
-                </div>
+
+              <input type="hidden" {...form.register('latitude', { valueAsNumber: true })} />
+              <input type="hidden" {...form.register('longitude', { valueAsNumber: true })} />
+
+              <div className="flex justify-end space-x-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate('/become-host/car-details')}
+                >
+                  Back
+                </Button>
+                <Button type="submit">
+                  Continue
+                  <MapPin className="ml-2 h-4 w-4" />
+                </Button>
               </div>
             </form>
           </Form>
-        </motion.div>
-      </main>
+        </div>
+
+        <Card className="overflow-hidden">
+          <div
+            ref={mapRef}
+            className="h-[400px] w-full"
+          />
+        </Card>
+      </div>
     </div>
   );
 }

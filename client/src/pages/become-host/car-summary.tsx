@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { ChevronLeft, HelpCircle, Save, Calendar, Clock, Check, Car, MapPin, DollarSign, CircleCheck, CircleAlert, AlertCircle, Edit, ShieldCheck } from "lucide-react";
+import { ChevronLeft, HelpCircle, Save, Calendar, Clock, Check, Car, MapPin, DollarSign, CircleCheck, CircleAlert, AlertCircle, Edit, ShieldCheck, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
@@ -95,7 +95,7 @@ export default function CarSummaryPage() {
       latitude: sampleCarData.location.coordinates[0],
       longitude: sampleCarData.location.coordinates[1],
       images: sampleCarData.images.join(","),
-      features: "Air Conditioning,Bluetooth,Backup Camera",
+      features: ["Air Conditioning", "Bluetooth", "Backup Camera"],
       instantBook: sampleCarData.rates.instantBook,
       minRentalDays: sampleCarData.rates.minDays,
       maxRentalDays: sampleCarData.rates.maxDays,

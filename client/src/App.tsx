@@ -31,12 +31,18 @@ import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 import AnimationDemo from "@/pages/animation-demo";
 
+// Import loading screen
+import { LoadingScreen } from "@/components/ui/loading-screen";
+
 // Car listing flow pages
 import BecomeHost from "@/pages/become-host";
-import BecomeHostCarDetails from "@/pages/become-host-car-details";
-import BecomeHostLocation from "@/pages/become-host-location";
-import BecomeHostRates from "@/pages/become-host-rates";
-import BecomeHostSummary from "@/pages/become-host-summary";
+
+// New Airbnb-style listing flow
+const CarTypePage = React.lazy(() => import("@/pages/become-host/car-type"));
+const CarDetailsPage = React.lazy(() => import("@/pages/become-host/car-details"));
+const CarLocationPage = React.lazy(() => import("@/pages/become-host/car-location"));
+const CarRatesPage = React.lazy(() => import("@/pages/become-host/car-rates"));
+const CarSummaryPage = React.lazy(() => import("@/pages/become-host/car-summary"));
 
 // Host dashboard
 import HostDashboard from "@/pages/host-dashboard";
@@ -78,17 +84,55 @@ function Router() {
       
       {/* Car listing flow */}
       <ProtectedRoute path="/become-host" component={BecomeHost} />
-      <ProtectedRoute path="/become-host/car-details" component={BecomeHostCarDetails} />
-      <ProtectedRoute path="/become-host/location" component={BecomeHostLocation} />
-      <ProtectedRoute path="/become-host/rates" component={BecomeHostRates} />
-      <ProtectedRoute path="/become-host/summary" component={BecomeHostSummary} />
+      
+      {/* New Airbnb-style listing flow */}
+      <ProtectedRoute 
+        path="/become-host/car-type" 
+        component={() => (
+          <Suspense fallback={<LoadingScreen message="Loading car types..." />}>
+            <CarTypePage />
+          </Suspense>
+        )} 
+      />
+      <ProtectedRoute 
+        path="/become-host/car-details" 
+        component={() => (
+          <Suspense fallback={<LoadingScreen message="Loading form..." />}>
+            <CarDetailsPage />
+          </Suspense>
+        )} 
+      />
+      <ProtectedRoute 
+        path="/become-host/car-location" 
+        component={() => (
+          <Suspense fallback={<LoadingScreen message="Preparing map..." />}>
+            <CarLocationPage />
+          </Suspense>
+        )} 
+      />
+      <ProtectedRoute 
+        path="/become-host/car-rates" 
+        component={() => (
+          <Suspense fallback={<LoadingScreen message="Loading pricing options..." />}>
+            <CarRatesPage />
+          </Suspense>
+        )} 
+      />
+      <ProtectedRoute 
+        path="/become-host/car-summary" 
+        component={() => (
+          <Suspense fallback={<LoadingScreen message="Preparing summary..." />}>
+            <CarSummaryPage />
+          </Suspense>
+        )} 
+      />
       
       {/* Host dashboard and related pages */}
       <ProtectedRoute path="/host-dashboard" component={HostDashboard} />
       <ProtectedRoute 
         path="/host-calendar" 
         component={() => (
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={<LoadingScreen message="Loading calendar..." />}>
             <HostCalendar />
           </Suspense>
         )} 
@@ -96,7 +140,7 @@ function Router() {
       <ProtectedRoute 
         path="/host-listings" 
         component={() => (
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={<LoadingScreen message="Loading your listings..." />}>
             <HostListings />
           </Suspense>
         )} 
@@ -104,7 +148,7 @@ function Router() {
       <ProtectedRoute 
         path="/host-messages" 
         component={() => (
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={<LoadingScreen message="Loading messages..." />}>
             <HostMessages />
           </Suspense>
         )} 
@@ -112,7 +156,7 @@ function Router() {
       <ProtectedRoute 
         path="/host-menu" 
         component={() => (
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={<LoadingScreen message="Loading menu..." />}>
             <HostMenu />
           </Suspense>
         )} 

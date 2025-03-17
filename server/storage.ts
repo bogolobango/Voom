@@ -24,9 +24,20 @@ import {
   type PayoutTransaction,
   type InsertPayoutTransaction
 } from "@shared/schema";
+import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
+import memorystore from "memorystore";
+import { Pool } from "pg";
+import { eq, and, desc, sql, asc } from "drizzle-orm";
+import { db } from "./db";
+
+const MemoryStore = memorystore(session);
+const PostgresSessionStore = connectPgSimple(session);
 
 // Interface for storage operations
 export interface IStorage {
+  // Session store for authentication
+  sessionStore: session.Store;
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -90,6 +101,11 @@ export interface IStorage {
 
 // In-memory storage implementation
 export class MemStorage implements IStorage {
+  private payoutMethods: Map<number, PayoutMethod>;
+  private payoutTransactions: Map<number, PayoutTransaction>;
+  private payoutMethodId: number;
+  private payoutTransactionId: number;
+  sessionStore: session.Store;
   private users: Map<number, User>;
   private cars: Map<number, Car>;
   private bookings: Map<number, Booking>;
@@ -106,12 +122,17 @@ export class MemStorage implements IStorage {
   private verificationDocumentId: number;
 
   constructor() {
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000, // prune expired entries every 24h
+    });
     this.users = new Map();
     this.cars = new Map();
     this.bookings = new Map();
     this.favorites = new Map();
     this.messages = new Map();
     this.verificationDocuments = new Map();
+    this.payoutMethods = new Map();
+    this.payoutTransactions = new Map();
     
     this.userId = 1;
     this.carId = 1;
@@ -119,6 +140,8 @@ export class MemStorage implements IStorage {
     this.favoriteId = 1;
     this.messageId = 1;
     this.verificationDocumentId = 1;
+    this.payoutMethodId = 1;
+    this.payoutTransactionId = 1;
     
     // Add some seed data
     this.seedData();
@@ -556,6 +579,126 @@ export class MemStorage implements IStorage {
     const userFavorites = await this.getFavoritesByUser(userId);
     return userFavorites.map(favorite => favorite.carId);
   }
+  
+
+  
+  // Payout methods operations
+  async getPayoutMethods(userId: number): Promise<PayoutMethod[]> {
+    return Array.from(this.payoutMethods.values()).filter(
+      method => method.userId === userId
+    );
+  }
+  
+  async getPayoutMethod(id: number): Promise<PayoutMethod | undefined> {
+    return this.payoutMethods.get(id);
+  }
+  
+  async createPayoutMethod(method: InsertPayoutMethod): Promise<PayoutMethod> {
+    const id = this.payoutMethodId++;
+    const payoutMethod: PayoutMethod = {
+      ...method,
+      id,
+      createdAt: new Date().toISOString()
+    };
+    
+    this.payoutMethods.set(id, payoutMethod);
+    
+    // If this is the first payout method for the user, set it as default
+    const userMethods = await this.getPayoutMethods(method.userId);
+    if (userMethods.length === 1) {
+      await this.setDefaultPayoutMethod(method.userId, id);
+    }
+    
+    return payoutMethod;
+  }
+  
+  async updatePayoutMethod(id: number, data: Partial<PayoutMethod>): Promise<PayoutMethod | undefined> {
+    const method = this.payoutMethods.get(id);
+    if (!method) return undefined;
+    
+    const updatedMethod = { ...method, ...data };
+    this.payoutMethods.set(id, updatedMethod);
+    return updatedMethod;
+  }
+  
+  async deletePayoutMethod(id: number): Promise<void> {
+    const method = this.payoutMethods.get(id);
+    if (!method) return;
+    
+    // If this was the default method, try to set another one as default
+    if (method.isDefault) {
+      const userMethods = await this.getPayoutMethods(method.userId);
+      const otherMethod = userMethods.find(m => m.id !== id);
+      if (otherMethod) {
+        await this.setDefaultPayoutMethod(method.userId, otherMethod.id);
+      }
+    }
+    
+    this.payoutMethods.delete(id);
+  }
+  
+  async setDefaultPayoutMethod(userId: number, methodId: number): Promise<void> {
+    // Set all methods for this user to non-default
+    const userMethods = await this.getPayoutMethods(userId);
+    userMethods.forEach(method => {
+      const updatedMethod = { ...method, isDefault: false };
+      this.payoutMethods.set(method.id, updatedMethod);
+    });
+    
+    // Set the specified method as default
+    const method = this.payoutMethods.get(methodId);
+    if (method) {
+      const updatedMethod = { ...method, isDefault: true };
+      this.payoutMethods.set(methodId, updatedMethod);
+    }
+  }
+  
+  // Payout transactions operations
+  async getPayoutTransactions(userId: number): Promise<PayoutTransaction[]> {
+    return Array.from(this.payoutTransactions.values()).filter(
+      transaction => transaction.userId === userId
+    );
+  }
+  
+  async getPayoutTransaction(id: number): Promise<PayoutTransaction | undefined> {
+    return this.payoutTransactions.get(id);
+  }
+  
+  async createPayoutTransaction(transaction: InsertPayoutTransaction): Promise<PayoutTransaction> {
+    const id = this.payoutTransactionId++;
+    const reference = `TX-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    
+    const payoutTransaction: PayoutTransaction = {
+      ...transaction,
+      id,
+      reference,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+      failureReason: null,
+      processedAt: null
+    };
+    
+    this.payoutTransactions.set(id, payoutTransaction);
+    return payoutTransaction;
+  }
+  
+  async updatePayoutTransactionStatus(id: number, status: string, failureReason?: string): Promise<PayoutTransaction | undefined> {
+    const transaction = this.payoutTransactions.get(id);
+    if (!transaction) return undefined;
+    
+    const updatedTransaction = { 
+      ...transaction, 
+      status,
+      failureReason: failureReason || transaction.failureReason
+    };
+    
+    if (status === "completed" || status === "failed") {
+      updatedTransaction.processedAt = new Date().toISOString();
+    }
+    
+    this.payoutTransactions.set(id, updatedTransaction);
+    return updatedTransaction;
+  }
 
   // Message operations
   async getMessage(id: number): Promise<Message | undefined> {
@@ -634,7 +777,7 @@ export class MemStorage implements IStorage {
       ...insertMessage, 
       id, 
       read: false,
-      createdAt: new Date().toISOString() 
+      createdAt: new Date()
     };
     this.messages.set(id, message);
     return message;
@@ -672,8 +815,8 @@ export class MemStorage implements IStorage {
       ...document,
       id,
       verificationStatus: "pending",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
     this.verificationDocuments.set(id, verificationDocument);
     
@@ -734,4 +877,534 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Database storage implementation
+
+export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
+
+  constructor() {
+    this.sessionStore = new PostgresSessionStore({ 
+      conObject: {
+        connectionString: process.env.DATABASE_URL,
+        ssl: true
+      },
+      createTableIfMissing: true 
+    });
+  }
+
+  // User operations
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const [createdUser] = await db.insert(users).values(user).returning();
+    return createdUser;
+  }
+
+  async updateUser(id: number, data: Partial<User>): Promise<User | undefined> {
+    const [updatedUser] = await db
+      .update(users)
+      .set(data)
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser;
+  }
+
+  // Car operations
+  async getCar(id: number): Promise<Car | undefined> {
+    const [car] = await db.select().from(cars).where(eq(cars.id, id));
+    return car;
+  }
+
+  async getCars(): Promise<Car[]> {
+    return db.select().from(cars);
+  }
+
+  async getCarsByHost(hostId: number): Promise<Car[]> {
+    return db.select().from(cars).where(eq(cars.hostId, hostId));
+  }
+
+  async createCar(car: InsertCar): Promise<Car> {
+    const [createdCar] = await db.insert(cars).values(car).returning();
+    return createdCar;
+  }
+
+  async updateCar(id: number, data: Partial<Car>): Promise<Car | undefined> {
+    const [updatedCar] = await db
+      .update(cars)
+      .set(data)
+      .where(eq(cars.id, id))
+      .returning();
+    return updatedCar;
+  }
+
+  // Booking operations
+  async getBooking(id: number): Promise<Booking | undefined> {
+    const [booking] = await db.select().from(bookings).where(eq(bookings.id, id));
+    return booking;
+  }
+
+  async getBookingsByUser(userId: number): Promise<Booking[]> {
+    return db.select().from(bookings).where(eq(bookings.userId, userId));
+  }
+
+  async getBookingsByCar(carId: number): Promise<Booking[]> {
+    return db.select().from(bookings).where(eq(bookings.carId, carId));
+  }
+
+  async getBookingsWithCars(userId: number): Promise<(Booking & { car: Car })[]> {
+    const userBookings = await db.select().from(bookings).where(eq(bookings.userId, userId));
+    
+    const bookingsWithCars = await Promise.all(
+      userBookings.map(async (booking) => {
+        const [car] = await db.select().from(cars).where(eq(cars.id, booking.carId));
+        return {
+          ...booking,
+          car
+        };
+      })
+    );
+    
+    return bookingsWithCars as (Booking & { car: Car })[];
+  }
+
+  async createBooking(booking: InsertBooking): Promise<Booking> {
+    const [createdBooking] = await db.insert(bookings).values(booking).returning();
+    return createdBooking;
+  }
+
+  async updateBooking(id: number, data: Partial<Booking>): Promise<Booking | undefined> {
+    const [updatedBooking] = await db
+      .update(bookings)
+      .set(data)
+      .where(eq(bookings.id, id))
+      .returning();
+    return updatedBooking;
+  }
+
+  async getLastBookedCar(userId: number): Promise<number | undefined> {
+    const [lastBooking] = await db
+      .select({ carId: bookings.carId })
+      .from(bookings)
+      .where(eq(bookings.userId, userId))
+      .orderBy(desc(bookings.createdAt))
+      .limit(1);
+      
+    return lastBooking?.carId;
+  }
+
+  // Favorite operations
+  async getFavorite(id: number): Promise<Favorite | undefined> {
+    const [favorite] = await db.select().from(favorites).where(eq(favorites.id, id));
+    return favorite;
+  }
+
+  async getFavoritesByUser(userId: number): Promise<Favorite[]> {
+    return db.select().from(favorites).where(eq(favorites.userId, userId));
+  }
+
+  async getFavoriteCarsByUser(userId: number): Promise<Car[]> {
+    const userFavorites = await this.getFavoritesByUser(userId);
+    
+    if (userFavorites.length === 0) {
+      return [];
+    }
+    
+    const carIds = userFavorites.map(favorite => favorite.carId);
+    
+    const favoriteCars = await Promise.all(
+      carIds.map(async (carId) => {
+        const car = await this.getCar(carId);
+        return car;
+      })
+    );
+    
+    // Filter out undefined cars and cast to Car[]
+    return favoriteCars.filter(car => car !== undefined) as Car[];
+  }
+
+  async isFavoriteCar(userId: number, carId: number): Promise<boolean> {
+    const [favorite] = await db
+      .select()
+      .from(favorites)
+      .where(
+        and(
+          eq(favorites.userId, userId),
+          eq(favorites.carId, carId)
+        )
+      );
+    return !!favorite;
+  }
+
+  async createFavorite(favorite: InsertFavorite): Promise<Favorite> {
+    const [createdFavorite] = await db.insert(favorites).values(favorite).returning();
+    return createdFavorite;
+  }
+
+  async deleteFavorite(userId: number, carId: number): Promise<void> {
+    await db
+      .delete(favorites)
+      .where(
+        and(
+          eq(favorites.userId, userId),
+          eq(favorites.carId, carId)
+        )
+      );
+  }
+
+  async getFavoriteIds(userId: number): Promise<number[]> {
+    const results = await db
+      .select({ carId: favorites.carId })
+      .from(favorites)
+      .where(eq(favorites.userId, userId));
+    
+    return results.map(result => result.carId);
+  }
+
+  // Message operations
+  async getMessage(id: number): Promise<Message | undefined> {
+    const [message] = await db.select().from(messages).where(eq(messages.id, id));
+    return message;
+  }
+
+  async getMessagesByUser(userId: number): Promise<Message[]> {
+    return db
+      .select()
+      .from(messages)
+      .where(
+        sql`${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId}`
+      );
+  }
+
+  async getConversations(userId: number): Promise<{ id: number, username: string, profilePicture?: string, unreadCount: number }[]> {
+    // Get all messages for this user
+    const userMessages = await this.getMessagesByUser(userId);
+    
+    if (userMessages.length === 0) {
+      return [];
+    }
+    
+    // Get unique user IDs that the current user has conversations with
+    const conversationUserIds = new Set<number>();
+    userMessages.forEach(message => {
+      if (message.senderId === userId) {
+        conversationUserIds.add(message.receiverId);
+      } else {
+        conversationUserIds.add(message.senderId);
+      }
+    });
+    
+    // Get conversation details for each user
+    const conversations = await Promise.all(
+      Array.from(conversationUserIds).map(async (otherUserId) => {
+        const [otherUser] = await db.select().from(users).where(eq(users.id, otherUserId));
+        
+        if (!otherUser) {
+          return null;
+        }
+        
+        // Count unread messages
+        const unreadCount = userMessages.filter(
+          message => message.receiverId === userId && message.senderId === otherUserId && !message.read
+        ).length;
+        
+        return {
+          id: otherUserId,
+          username: otherUser.username,
+          profilePicture: otherUser.profilePicture || undefined,
+          unreadCount
+        };
+      })
+    );
+    
+    return conversations.filter(conv => conv !== null) as { id: number, username: string, profilePicture?: string, unreadCount: number }[];
+  }
+
+  async getConversationMessages(userId: number, otherUserId: number): Promise<(Message & { sender: User })[]> {
+    // Get messages between the two users
+    const conversationMessages = await db
+      .select()
+      .from(messages)
+      .where(
+        sql`(${messages.senderId} = ${userId} AND ${messages.receiverId} = ${otherUserId}) OR 
+            (${messages.senderId} = ${otherUserId} AND ${messages.receiverId} = ${userId})`
+      )
+      .orderBy(asc(messages.createdAt));
+    
+    // Add sender info to each message
+    const messagesWithSender = await Promise.all(
+      conversationMessages.map(async (message) => {
+        const sender = await this.getUser(message.senderId);
+        return {
+          ...message,
+          sender: sender as User
+        };
+      })
+    );
+    
+    return messagesWithSender as (Message & { sender: User })[];
+  }
+
+  async createMessage(message: InsertMessage): Promise<Message> {
+    const [createdMessage] = await db.insert(messages).values(message).returning();
+    return createdMessage;
+  }
+
+  async markConversationAsRead(userId: number, otherUserId: number): Promise<void> {
+    await db
+      .update(messages)
+      .set({ read: true })
+      .where(
+        and(
+          eq(messages.senderId, otherUserId),
+          eq(messages.receiverId, userId),
+          sql`${messages.read} = false`
+        )
+      );
+  }
+
+  // Verification operations
+  async getVerificationDocuments(userId: number): Promise<VerificationDocument[]> {
+    return db
+      .select()
+      .from(verificationDocuments)
+      .where(eq(verificationDocuments.userId, userId));
+  }
+
+  async getVerificationDocument(id: number): Promise<VerificationDocument | undefined> {
+    const [document] = await db
+      .select()
+      .from(verificationDocuments)
+      .where(eq(verificationDocuments.id, id));
+    return document;
+  }
+
+  async createVerificationDocument(document: InsertVerificationDocument): Promise<VerificationDocument> {
+    const [createdDocument] = await db
+      .insert(verificationDocuments)
+      .values(document)
+      .returning();
+    return createdDocument;
+  }
+
+  async updateVerificationDocument(id: number, data: Partial<VerificationDocument>): Promise<VerificationDocument | undefined> {
+    // Add updatedAt timestamp
+    const updateData = {
+      ...data,
+      updatedAt: new Date()
+    };
+    
+    const [updatedDocument] = await db
+      .update(verificationDocuments)
+      .set(updateData)
+      .where(eq(verificationDocuments.id, id))
+      .returning();
+    
+    // If document is being approved/rejected, update user verification status
+    if (updatedDocument && data.verificationStatus && 
+        updatedDocument.verificationStatus !== data.verificationStatus) {
+      
+      const userDocs = await this.getVerificationDocuments(updatedDocument.userId);
+      
+      // Check if all required documents are submitted and approved
+      const hasApprovedIdFront = userDocs.some(d => d.documentType === "id_front" && d.verificationStatus === "approved");
+      const hasApprovedIdBack = userDocs.some(d => d.documentType === "id_back" && d.verificationStatus === "approved");
+      const hasApprovedSelfie = userDocs.some(d => d.documentType === "selfie" && d.verificationStatus === "approved");
+      
+      if (hasApprovedIdFront && hasApprovedIdBack && hasApprovedSelfie) {
+        await this.updateUserVerificationStatus(updatedDocument.userId, "approved");
+      } else if (data.verificationStatus === "rejected") {
+        // If any document is rejected, user verification is rejected
+        await this.updateUserVerificationStatus(updatedDocument.userId, "rejected");
+      }
+    }
+    
+    return updatedDocument;
+  }
+
+  async updateUserVerificationStatus(userId: number, status: string): Promise<User | undefined> {
+    const isVerified = status === "approved";
+    
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        verificationStatus: status,
+        isVerified
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    return updatedUser;
+  }
+
+  // Payout methods operations
+  async getPayoutMethods(userId: number): Promise<PayoutMethod[]> {
+    return db
+      .select()
+      .from(payoutMethods)
+      .where(eq(payoutMethods.userId, userId));
+  }
+
+  async getPayoutMethod(id: number): Promise<PayoutMethod | undefined> {
+    const [method] = await db
+      .select()
+      .from(payoutMethods)
+      .where(eq(payoutMethods.id, id));
+    return method;
+  }
+
+  async createPayoutMethod(method: InsertPayoutMethod): Promise<PayoutMethod> {
+    // If this is marked as default, remove default status from other methods
+    if (method.isDefault) {
+      await db
+        .update(payoutMethods)
+        .set({ isDefault: false })
+        .where(eq(payoutMethods.userId, method.userId));
+    }
+    
+    const [createdMethod] = await db
+      .insert(payoutMethods)
+      .values(method)
+      .returning();
+    return createdMethod;
+  }
+
+  async updatePayoutMethod(id: number, data: Partial<PayoutMethod>): Promise<PayoutMethod | undefined> {
+    const [method] = await db
+      .select()
+      .from(payoutMethods)
+      .where(eq(payoutMethods.id, id));
+    
+    if (!method) return undefined;
+    
+    // If updating to default, remove default status from other methods
+    if (data.isDefault) {
+      await db
+        .update(payoutMethods)
+        .set({ isDefault: false })
+        .where(
+          and(
+            eq(payoutMethods.userId, method.userId),
+            sql`${payoutMethods.id} != ${id}`
+          )
+        );
+    }
+    
+    const [updatedMethod] = await db
+      .update(payoutMethods)
+      .set(data)
+      .where(eq(payoutMethods.id, id))
+      .returning();
+    return updatedMethod;
+  }
+
+  async deletePayoutMethod(id: number): Promise<void> {
+    // Check if this was the default method
+    const [method] = await db
+      .select()
+      .from(payoutMethods)
+      .where(eq(payoutMethods.id, id));
+    
+    if (method && method.isDefault) {
+      // Find another method to set as default
+      const [alternativeMethod] = await db
+        .select()
+        .from(payoutMethods)
+        .where(
+          and(
+            eq(payoutMethods.userId, method.userId),
+            sql`${payoutMethods.id} != ${id}`
+          )
+        )
+        .limit(1);
+      
+      if (alternativeMethod) {
+        await db
+          .update(payoutMethods)
+          .set({ isDefault: true })
+          .where(eq(payoutMethods.id, alternativeMethod.id));
+      }
+    }
+    
+    await db
+      .delete(payoutMethods)
+      .where(eq(payoutMethods.id, id));
+  }
+
+  async setDefaultPayoutMethod(userId: number, methodId: number): Promise<void> {
+    // Reset all methods for this user
+    await db
+      .update(payoutMethods)
+      .set({ isDefault: false })
+      .where(eq(payoutMethods.userId, userId));
+    
+    // Set the specified method as default
+    await db
+      .update(payoutMethods)
+      .set({ isDefault: true })
+      .where(
+        and(
+          eq(payoutMethods.id, methodId),
+          eq(payoutMethods.userId, userId)
+        )
+      );
+  }
+
+  // Payout transaction operations
+  async getPayoutTransactions(userId: number): Promise<PayoutTransaction[]> {
+    return db
+      .select()
+      .from(payoutTransactions)
+      .where(eq(payoutTransactions.userId, userId))
+      .orderBy(desc(payoutTransactions.createdAt));
+  }
+
+  async getPayoutTransaction(id: number): Promise<PayoutTransaction | undefined> {
+    const [transaction] = await db
+      .select()
+      .from(payoutTransactions)
+      .where(eq(payoutTransactions.id, id));
+    return transaction;
+  }
+
+  async createPayoutTransaction(transaction: InsertPayoutTransaction): Promise<PayoutTransaction> {
+    const [createdTransaction] = await db
+      .insert(payoutTransactions)
+      .values(transaction)
+      .returning();
+    return createdTransaction;
+  }
+
+  async updatePayoutTransactionStatus(id: number, status: string, failureReason?: string): Promise<PayoutTransaction | undefined> {
+    const updateData: Partial<PayoutTransaction> = { 
+      status,
+      updatedAt: new Date()
+    };
+    
+    if (failureReason) {
+      updateData.failureReason = failureReason;
+    }
+    
+    // If the transaction is successful, mark the completion date
+    if (status === 'completed') {
+      updateData.completedAt = new Date();
+    }
+    
+    const [updatedTransaction] = await db
+      .update(payoutTransactions)
+      .set(updateData)
+      .where(eq(payoutTransactions.id, id))
+      .returning();
+    return updatedTransaction;
+  }
+}
+
+// Export an instance of the database storage
+export const storage = new DatabaseStorage();

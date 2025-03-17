@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Menu, User, LogIn, LogOut, UserPlus } from "lucide-react";
+import { Menu, User, LogIn, LogOut, UserPlus, DollarSign } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +13,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { getInitials } from "@/lib/utils";
 import voomLogo from "@/assets/voom-logo.png";
+import { CurrencySelector } from "@/components/currency-selector";
 
 interface HeaderProps {
   title?: string;
@@ -138,6 +139,12 @@ function NavLinks({ mobile = false }: { mobile?: boolean }) {
             </Link>
           </DropdownMenuItem>
         ))}
+        
+        <DropdownMenuSeparator />
+        <div className="px-2 py-1.5">
+          <div className="text-sm font-medium mb-1">Currency</div>
+          <CurrencySelector variant="minimal" />
+        </div>
         
         {user ? (
           <>

@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/use-auth";
 import { HostModeProvider } from "@/hooks/use-host-mode";
+import { CurrencyProvider } from "@/hooks/use-currency";
 import { ProtectedRoute } from "@/components/protected-route";
 import React, { Suspense } from "react";
 
@@ -184,10 +185,12 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <HostModeProvider>
-          <TooltipProvider>
-            <Router />
-            <Toaster />
-          </TooltipProvider>
+          <CurrencyProvider>
+            <TooltipProvider>
+              <Router />
+              <Toaster />
+            </TooltipProvider>
+          </CurrencyProvider>
         </HostModeProvider>
       </AuthProvider>
     </QueryClientProvider>

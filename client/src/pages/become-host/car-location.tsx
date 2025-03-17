@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 import { Map, MapPin } from 'lucide-react';
 import { useGoogleMaps } from '@/hooks/use-google-maps';
 import { Button } from '@/components/ui/button';
@@ -45,7 +45,7 @@ const steps = [
 ];
 
 export default function CarLocationPage() {
-  const navigate = useNavigate();
+  const [_, navigate] = useLocation();
   const { toast } = useToast();
 
   const {
@@ -109,9 +109,14 @@ export default function CarLocationPage() {
                     <FormLabel>Address</FormLabel>
                     <FormControl>
                       <Input
-                        ref={searchBoxRef}
                         placeholder="Enter address or landmark"
                         {...field}
+                        ref={(e) => {
+                          if (e) {
+                            searchBoxRef.current = e;
+                            field.ref(e);
+                          }
+                        }}
                       />
                     </FormControl>
                     <FormMessage />

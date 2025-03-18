@@ -14,7 +14,7 @@ import {
   calculateTotalAmount,
   getInitials 
 } from "@/lib/utils";
-import { Car } from "@shared/schema";
+import { Car, User } from "@shared/schema";
 import { 
   Heart, 
   MapPin, 
@@ -55,6 +55,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { BookingDetails } from "@/components/booking-details";
+import { BookingCalendar } from "@/components/booking-calendar-new";
+import { BookingProcess } from "@/components/booking-process";
 import { VerificationSystem } from "@/components/verification-system";
 
 export default function CarDetail() {

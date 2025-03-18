@@ -9,33 +9,33 @@ export function HostBottomNav() {
   
   const navItems = [
     {
-      name: "TODAY",
+      name: "Today",
       icon: Activity,
       path: "/host-dashboard",
       notifications: 2,
     },
     {
-      name: "CALENDAR",
+      name: "Calendar",
       icon: Calendar,
       path: "/host-calendar",
       notifications: 0,
     },
     {
-      name: "LISTINGS",
+      name: "Listings",
       icon: Car,
       path: "/host-listings",
       notifications: 0,
     },
     {
-      name: "MESSAGES",
+      name: "Messages",
       icon: MessageSquare,
       path: "/host-messages",
       notifications: 3,
     },
     {
-      name: "MENU",
+      name: "Menu",
       icon: Menu,
-      path: "/host-menu",
+      path: "/menu",
       notifications: 0,
     },
   ];
@@ -73,15 +73,7 @@ export function HostBottomNav() {
         ))}
       </div>
       
-      {/* Switch Back to Guest Mode Button */}
-      <div className="absolute right-4 top-0 transform -translate-y-full">
-        <button
-          onClick={toggleHostMode}
-          className="bg-background text-primary px-3 py-1 rounded-t-md text-xs font-medium"
-        >
-          Switch to Guest Mode
-        </button>
-      </div>
+      {/* Mode switcher moved to unified bottom navigation component */}
     </div>
   );
 }

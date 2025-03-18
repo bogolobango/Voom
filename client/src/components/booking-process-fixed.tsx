@@ -184,8 +184,8 @@ export function BookingProcess({ car, user, onComplete, onBack }: BookingProcess
     const bookingData: InsertBooking = {
       carId: car.id,
       userId: user.id,
-      startDate: selectedStartDate.toISOString(),
-      endDate: selectedEndDate.toISOString(),
+      startDate: selectedStartDate,
+      endDate: selectedEndDate,
       pickupLocation: pickupLocation || car.location,
       dropoffLocation: isPickupSameAsDropoff ? (pickupLocation || car.location) : dropoffLocation,
       totalAmount: grandTotal,
@@ -207,8 +207,8 @@ export function BookingProcess({ car, user, onComplete, onBack }: BookingProcess
 
   // Create booking object for display purposes
   const booking: Partial<Booking> = {
-    startDate: selectedStartDate.toISOString(),
-    endDate: selectedEndDate.toISOString(),
+    startDate: selectedStartDate,
+    endDate: selectedEndDate,
     pickupLocation: pickupLocation || car.location,
     dropoffLocation: isPickupSameAsDropoff ? (pickupLocation || car.location) : dropoffLocation,
     totalAmount: grandTotal,

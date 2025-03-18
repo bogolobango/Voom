@@ -243,17 +243,7 @@ export default function Menu() {
         </button>
       </div>
       
-      <div className="fixed bottom-24 w-full px-6 z-10">
-        <div className="bg-black bg-opacity-90 rounded-full py-3 px-4 flex justify-center">
-          <button 
-            onClick={toggleHostMode}
-            className="text-white font-medium text-sm flex items-center"
-          >
-            <Home className="h-4 w-4 mr-2" />
-            {isHostMode ? "Switch to traveling" : "Switch to hosting"}
-          </button>
-        </div>
-      </div>
+      {/* Mode switcher moved to bottom navigation */}
       
       <div className="px-4 py-4">
         <Button

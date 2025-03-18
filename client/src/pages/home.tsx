@@ -151,7 +151,7 @@ export default function Home() {
               transition={{ duration: 0.7, ease: "easeOut" }}
             >
               <motion.h1 
-                className="text-3xl font-bold mb-2"
+                className="text-3xl font-bold mb-2 text-gray-900"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.5 }}
@@ -159,7 +159,7 @@ export default function Home() {
                 Find cars and homes in Accra
               </motion.h1>
               <motion.p 
-                className="text-gray-600 mb-6"
+                className="text-gray-700 mb-6"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5, duration: 0.5 }}
@@ -298,18 +298,7 @@ export default function Home() {
               </form>
             </motion.div>
           </div>
-          <motion.div 
-            className="hidden md:block absolute top-0 right-0 w-1/2 h-full"
-            initial={{ opacity: 0, scale: 1.1 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1.2, ease: "easeOut" }}
-          >
-            <img 
-              src="https://source.unsplash.com/random/1200x800/?luxury-car" 
-              alt="Luxury car" 
-              className="w-full h-full object-cover"
-            />
-          </motion.div>
+          {/* Desktop image removed as we now have a full-width background image */}
         </div>
 
         {/* Category Selection SECOND */}

@@ -113,10 +113,11 @@ function NavLinks({ mobile = false }: { mobile?: boolean }) {
   
   const authenticatedLinks = [
     { name: "Home", path: "/" },
+    { name: "Explore", path: "/all-cars" },
     { name: "Favorites", path: "/favorites" },
     { name: "Bookings", path: "/bookings" },
     { name: "Messages", path: "/messages" },
-    { name: "Account", path: "/account" },
+    { name: "Account", path: "/profile" },
   ];
   
   const unauthenticatedLinks = [
@@ -212,9 +213,16 @@ function NavLinks({ mobile = false }: { mobile?: boolean }) {
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/account">
+                <Link href="/profile">
                   <div className="w-full cursor-pointer">
-                    Account
+                    Profile
+                  </div>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/account-preferences">
+                  <div className="w-full cursor-pointer">
+                    Settings
                   </div>
                 </Link>
               </DropdownMenuItem>

@@ -107,7 +107,7 @@ export default function Menu() {
             </button>
             
             <button 
-              onClick={() => {}}
+              onClick={() => navigate("/find-cohost")}
               className="flex items-center justify-between w-full py-4"
             >
               <div className="flex items-center">
@@ -123,7 +123,7 @@ export default function Menu() {
             >
               <div className="flex items-center">
                 <MessageSquare className="h-6 w-6 mr-4" />
-                <span className="text-base">Host an Experience</span>
+                <span className="text-base">Messages</span>
               </div>
               <ChevronRight className="h-5 w-5 text-gray-400" />
             </button>

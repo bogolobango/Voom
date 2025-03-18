@@ -56,7 +56,7 @@ import {
 } from "@/components/ui/dialog";
 import { BookingDetails } from "@/components/booking-details";
 import { BookingCalendar } from "@/components/booking-calendar-new";
-import { BookingProcess } from "@/components/booking-process";
+import { BookingProcess } from "@/components/booking-process-fixed";
 import { VerificationSystem } from "@/components/verification-system";
 
 export default function CarDetail() {
@@ -122,19 +122,38 @@ export default function CarDetail() {
 
   const handleReserve = () => {
     if (car) {
-      // For demonstration purposes, show verification dialog based on a random condition
-      // In a real app, this would check the user's verification status from the server
-      const isUserVerified = false; // Set to false to always show verification
+      if (!user) {
+        toast({
+          title: "Login required", 
+          description: "Please log in to book this car",
+          variant: "destructive",
+        });
+        navigate("/auth");
+        return;
+      }
+      
+      // For demo - checking verification status
+      const isUserVerified = user.isVerified;
       
       if (!isUserVerified) {
         setShowVerificationDialog(true);
       } else {
-        navigate(`/booking-confirm/${car.id}`);
+        // Show the new booking process
+        setShowBookingProcess(true);
       }
     }
   };
   
+  const handleBookingComplete = (bookingId: number) => {
+    setShowBookingProcess(false);
+    navigate(`/booking-success?id=${bookingId}`);
+  };
+  
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
+  const [showBookingProcess, setShowBookingProcess] = useState(false);
+  const { data: user } = useQuery<User>({
+    queryKey: ["/api/auth/user"],
+  });
 
   // Set favorite status from server data
   useEffect(() => {

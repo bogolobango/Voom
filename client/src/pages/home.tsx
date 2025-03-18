@@ -132,10 +132,20 @@ export default function Home() {
         )}
         
         {/* Hero Section with Check-in Form FIRST */}
-        <div className="relative bg-gray-100">
-          <div className="container mx-auto px-4 md:px-8 py-10 md:py-20">
+        <div className="relative bg-gray-100 overflow-hidden">
+          {/* Background Image with Overlay */}
+          <div className="absolute inset-0">
+            <img 
+              src="/images/IMG_0096.jpeg" 
+              alt="Luxury car background" 
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/30 backdrop-blur-[2px]"></div>
+          </div>
+          
+          <div className="container mx-auto px-4 md:px-8 py-10 md:py-20 relative z-10">
             <motion.div 
-              className="max-w-lg bg-white p-6 rounded-xl shadow-sm"
+              className="max-w-lg bg-white/95 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-white/10"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, ease: "easeOut" }}

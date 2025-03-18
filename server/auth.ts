@@ -62,14 +62,15 @@ export function setupAuth(app: Express) {
   );
 
   // Google OAuth2 strategy
-  passport.use(
-    new GoogleStrategy(
-      {
-        clientID: process.env.GOOGLE_CLIENT_ID!,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-        callbackURL: "/api/auth/google/callback",
-        scope: ["email", "profile"],
-      },
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    passport.use(
+      new GoogleStrategy(
+        {
+          clientID: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          callbackURL: "/api/auth/google/callback",
+          scope: ["email", "profile"],
+        },
       async (accessToken, refreshToken, profile, done) => {
         try {
           // Check if user exists by email
@@ -100,6 +101,7 @@ export function setupAuth(app: Express) {
       }
     )
   );
+  }
 
   passport.serializeUser((user, done) => {
     done(null, user.id);

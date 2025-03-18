@@ -66,6 +66,8 @@ export default function CarDetail() {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedStartDate, setSelectedStartDate] = useState<Date | null>(null);
   const [selectedEndDate, setSelectedEndDate] = useState<Date | null>(null);
+  const [showVerificationDialog, setShowVerificationDialog] = useState(false);
+  const [showBookingProcess, setShowBookingProcess] = useState(false);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -82,6 +84,10 @@ export default function CarDetail() {
     enabled: !!carId,
   });
 
+  const { data: user } = useQuery<User>({
+    queryKey: ["/api/auth/user"],
+  });
+
   // Initialize demo dates
   useEffect(() => {
     const tomorrow = new Date();
@@ -93,6 +99,13 @@ export default function CarDetail() {
     setSelectedStartDate(tomorrow);
     setSelectedEndDate(endDate);
   }, []);
+
+  // Set favorite status from server data
+  useEffect(() => {
+    if (isFavoriteData !== undefined) {
+      setIsFavorite(isFavoriteData);
+    }
+  }, [isFavoriteData]);
 
   const toggleFavoriteMutation = useMutation({
     mutationFn: async () => {
@@ -148,31 +161,16 @@ export default function CarDetail() {
     setShowBookingProcess(false);
     navigate(`/booking-success?id=${bookingId}`);
   };
-  
-  const [showVerificationDialog, setShowVerificationDialog] = useState(false);
-  const [showBookingProcess, setShowBookingProcess] = useState(false);
-  const { data: user } = useQuery<User>({
-    queryKey: ["/api/auth/user"],
-  });
-
-  // Set favorite status from server data
-  useEffect(() => {
-    if (isFavoriteData !== undefined) {
-      setIsFavorite(isFavoriteData);
-    }
-  }, [isFavoriteData]);
 
   const handleToggleFavorite = () => {
     toggleFavoriteMutation.mutate();
   };
 
   const handleBack = () => {
-    // Convert number to string for wouter navigation
     navigate("/");
   };
 
   const handleShare = () => {
-    // Implement share functionality
     toast({
       title: "Share feature",
       description: "This feature is coming soon.",
@@ -311,369 +309,294 @@ export default function CarDetail() {
           </Badge>
         </div>
 
-        <Tabs defaultValue="details" className="mb-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="details">Details</TabsTrigger>
-            <TabsTrigger value="features">Features</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="details" className="pt-4">
-            <p className="text-gray-700 mb-4">
-              {car.description || `Experience the powerful and stylish ${car.year} ${car.make} ${car.model}. Perfect for both city driving and longer journeys.`}
-            </p>
-            
-            <h3 className="font-semibold mb-3">Vehicle Specifications</h3>
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="flex items-center">
-                <CarIcon className="h-5 w-5 text-gray-500 mr-2" />
-                <span className="text-gray-700">Model year: {car.year}</span>
-              </div>
-              <div className="flex items-center">
-                <Info className="h-5 w-5 text-gray-500 mr-2" />
-                <span className="text-gray-700">Type: {car.type}</span>
-              </div>
-              <div className="flex items-center">
-                <Settings className="h-5 w-5 text-gray-500 mr-2" />
-                <span className="text-gray-700">Automatic transmission</span>
-              </div>
-              <div className="flex items-center">
-                <Users className="h-5 w-5 text-gray-500 mr-2" />
-                <span className="text-gray-700">5 passengers</span>
-              </div>
-              <div className="flex items-center">
-                <Fuel className="h-5 w-5 text-gray-500 mr-2" />
-                <span className="text-gray-700">Fuel type: Diesel</span>
-              </div>
-              <div className="flex items-center">
-                <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200">
-                  A/C
-                </Badge>
-                <Badge className="ml-2 bg-gray-100 text-gray-700 hover:bg-gray-200">
-                  GPS
-                </Badge>
-                <Badge className="ml-2 bg-gray-100 text-gray-700 hover:bg-gray-200">
-                  Bluetooth
-                </Badge>
-              </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="features" className="pt-4">
-            <h3 className="font-semibold mb-3">Car Features</h3>
-            {car.features && car.features.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3">
-                {car.features.map((feature, index) => (
-                  <div key={index} className="flex items-start">
-                    <div className="mt-0.5 mr-2 h-5 w-5 text-green-500">
-                      <BadgeCheck className="h-5 w-5" />
-                    </div>
-                    <span className="text-gray-700">{feature}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500">No specific features listed.</p>
-            )}
-            
-            <Separator className="my-4" />
-            
-            <h3 className="font-semibold mb-3">Rental Includes</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-start">
-                <div className="mt-0.5 mr-2 h-5 w-5 text-green-500">
-                  <Shield className="h-5 w-5" />
-                </div>
-                <span className="text-gray-700">Insurance included</span>
-              </div>
-              <div className="flex items-start">
-                <div className="mt-0.5 mr-2 h-5 w-5 text-green-500">
-                  <ScrollText className="h-5 w-5" />
-                </div>
-                <span className="text-gray-700">Free 200km/day</span>
-              </div>
-              <div className="flex items-start">
-                <div className="mt-0.5 mr-2 h-5 w-5 text-green-500">
-                  <CircleDollarSign className="h-5 w-5" />
-                </div>
-                <span className="text-gray-700">Deposit required</span>
-              </div>
-              <div className="flex items-start">
-                <div className="mt-0.5 mr-2 h-5 w-5 text-green-500">
-                  <Clock className="h-5 w-5" />
-                </div>
-                <span className="text-gray-700">24/7 roadside assistance</span>
-              </div>
-            </div>
-            
-            <Separator className="my-4" />
-            
-            <h3 className="font-semibold mb-3">Cancellation Policy</h3>
-            <div className="flex items-start">
-              <div className="mt-0.5 mr-2 h-5 w-5 text-blue-500">
-                <Calendar className="h-5 w-5" />
-              </div>
-              <div>
-                <span className="text-gray-700">Free cancellation up to 24 hours before pickup</span>
-                <p className="text-sm text-gray-500">
-                  After that, a cancellation fee equal to one day's rental may apply.
+        {/* Show Booking Process if active */}
+        {showBookingProcess && user ? (
+          <div className="mb-20">
+            <BookingProcess 
+              car={car}
+              user={user}
+              onComplete={handleBookingComplete}
+              onBack={() => setShowBookingProcess(false)}
+            />
+          </div>
+        ) : (
+          <>
+            <Tabs defaultValue="details" className="mb-6">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="features">Features</TabsTrigger>
+                <TabsTrigger value="reviews">Reviews</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="details" className="pt-4">
+                <p className="text-gray-700 mb-4">
+                  {car.description || `Experience the powerful and stylish ${car.year} ${car.make} ${car.model}. Perfect for both city driving and longer journeys.`}
                 </p>
-              </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="reviews" className="pt-4">
-            {car.ratingCount && car.ratingCount > 0 ? (
-              <div className="space-y-4">
-                <div className="flex items-center mb-4">
-                  <Star className="h-8 w-8 text-yellow-500 fill-current mr-2" />
+                
+                <h3 className="font-semibold mb-3">Vehicle Specifications</h3>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="flex items-center">
+                    <CarIcon className="h-5 w-5 text-gray-500 mr-2" />
+                    <span className="text-gray-700">Model year: {car.year}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Info className="h-5 w-5 text-gray-500 mr-2" />
+                    <span className="text-gray-700">Type: {car.type}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Settings className="h-5 w-5 text-gray-500 mr-2" />
+                    <span className="text-gray-700">Automatic transmission</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Users className="h-5 w-5 text-gray-500 mr-2" />
+                    <span className="text-gray-700">5 passengers</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Fuel className="h-5 w-5 text-gray-500 mr-2" />
+                    <span className="text-gray-700">Fuel type: Diesel</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200">
+                      A/C
+                    </Badge>
+                    <Badge className="ml-2 bg-gray-100 text-gray-700 hover:bg-gray-200">
+                      GPS
+                    </Badge>
+                    <Badge className="ml-2 bg-gray-100 text-gray-700 hover:bg-gray-200">
+                      Bluetooth
+                    </Badge>
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="features" className="pt-4">
+                <h3 className="font-semibold mb-3">Car Features</h3>
+                {car.features && car.features.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    {car.features.map((feature, index) => (
+                      <div key={index} className="flex items-start">
+                        <div className="mt-0.5 mr-2 h-5 w-5 text-green-500">
+                          <BadgeCheck className="h-5 w-5" />
+                        </div>
+                        <span className="text-gray-700">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500">No specific features listed.</p>
+                )}
+                
+                <Separator className="my-4" />
+                
+                <h3 className="font-semibold mb-3">Rental Includes</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-start">
+                    <div className="mt-0.5 mr-2 h-5 w-5 text-green-500">
+                      <Shield className="h-5 w-5" />
+                    </div>
+                    <span className="text-gray-700">Insurance included</span>
+                  </div>
+                  <div className="flex items-start">
+                    <div className="mt-0.5 mr-2 h-5 w-5 text-green-500">
+                      <ScrollText className="h-5 w-5" />
+                    </div>
+                    <span className="text-gray-700">Free 200km/day</span>
+                  </div>
+                  <div className="flex items-start">
+                    <div className="mt-0.5 mr-2 h-5 w-5 text-green-500">
+                      <CircleDollarSign className="h-5 w-5" />
+                    </div>
+                    <span className="text-gray-700">Deposit required</span>
+                  </div>
+                  <div className="flex items-start">
+                    <div className="mt-0.5 mr-2 h-5 w-5 text-green-500">
+                      <Clock className="h-5 w-5" />
+                    </div>
+                    <span className="text-gray-700">24/7 roadside assistance</span>
+                  </div>
+                </div>
+                
+                <Separator className="my-4" />
+                
+                <h3 className="font-semibold mb-3">Cancellation Policy</h3>
+                <div className="flex items-start">
+                  <div className="mt-0.5 mr-2 h-5 w-5 text-blue-500">
+                    <Calendar className="h-5 w-5" />
+                  </div>
                   <div>
-                    <p className="text-xl font-bold">{car.rating?.toFixed(1)}</p>
-                    <p className="text-sm text-gray-500">{car.ratingCount} reviews</p>
+                    <span className="text-gray-700">Free cancellation up to 24 hours before pickup</span>
+                    <p className="text-sm text-gray-500">
+                      After that, a cancellation fee equal to one day's rental may apply.
+                    </p>
                   </div>
                 </div>
-                
-                <div className="mb-4 grid grid-cols-2 gap-3">
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-sm text-gray-500">Cleanliness</p>
-                    <div className="flex items-center justify-between">
-                      <Rating value={4.8} size="sm" />
-                      <span className="text-sm font-medium">4.8</span>
-                    </div>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-sm text-gray-500">Condition</p>
-                    <div className="flex items-center justify-between">
-                      <Rating value={4.7} size="sm" />
-                      <span className="text-sm font-medium">4.7</span>
-                    </div>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-sm text-gray-500">Communication</p>
-                    <div className="flex items-center justify-between">
-                      <Rating value={4.9} size="sm" />
-                      <span className="text-sm font-medium">4.9</span>
-                    </div>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-sm text-gray-500">Pickup/Return</p>
-                    <div className="flex items-center justify-between">
-                      <Rating value={4.6} size="sm" />
-                      <span className="text-sm font-medium">4.6</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <Card className="mb-4">
-                  <CardContent className="pt-6">
-                    <div className="flex items-start mb-2">
-                      <div className="mr-3">
-                        <div className="bg-blue-100 rounded-full h-10 w-10 flex items-center justify-center">
-                          <span className="text-blue-600 font-medium">JD</span>
-                        </div>
-                      </div>
+              </TabsContent>
+              
+              <TabsContent value="reviews" className="pt-4">
+                {car.ratingCount && car.ratingCount > 0 ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center mb-4">
+                      <Star className="h-8 w-8 text-yellow-500 fill-current mr-2" />
                       <div>
-                        <p className="font-medium">John Doe</p>
-                        <p className="text-sm text-gray-500">April 2024</p>
-                        <div className="flex items-center mt-1 mb-2">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star 
-                              key={star}
-                              className={`h-4 w-4 ${star <= 5 ? "text-yellow-500 fill-current" : "text-gray-300"}`} 
-                            />
-                          ))}
+                        <p className="text-xl font-bold">{car.rating?.toFixed(1)}</p>
+                        <p className="text-sm text-gray-500">{car.ratingCount} reviews</p>
+                      </div>
+                    </div>
+                    
+                    <div className="mb-4 grid grid-cols-2 gap-3">
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <p className="text-sm text-gray-500">Cleanliness</p>
+                        <div className="flex items-center justify-between">
+                          <Rating value={4.8} size="sm" />
+                          <span className="text-sm font-medium">4.8</span>
                         </div>
-                        <p className="text-gray-700 mb-2">
-                          Great car, very clean and drove well. Host was punctual and friendly. Would definitely rent again.
-                        </p>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          <span>5-day rental</span>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <p className="text-sm text-gray-500">Condition</p>
+                        <div className="flex items-center justify-between">
+                          <Rating value={4.7} size="sm" />
+                          <span className="text-sm font-medium">4.7</span>
+                        </div>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <p className="text-sm text-gray-500">Communication</p>
+                        <div className="flex items-center justify-between">
+                          <Rating value={4.9} size="sm" />
+                          <span className="text-sm font-medium">4.9</span>
+                        </div>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <p className="text-sm text-gray-500">Pickup/Return</p>
+                        <div className="flex items-center justify-between">
+                          <Rating value={4.6} size="sm" />
+                          <span className="text-sm font-medium">4.6</span>
                         </div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="mb-4">
-                  <CardContent className="pt-6">
-                    <div className="flex items-start mb-2">
-                      <div className="mr-3">
-                        <div className="bg-green-100 rounded-full h-10 w-10 flex items-center justify-center">
-                          <span className="text-green-600 font-medium">SA</span>
+                    
+                    <Card className="mb-4">
+                      <CardContent className="pt-6">
+                        <div className="flex items-start mb-2">
+                          <div className="mr-3">
+                            <div className="bg-blue-100 rounded-full h-10 w-10 flex items-center justify-center">
+                              <span className="text-blue-600 font-medium">JD</span>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="font-medium">John Doe</p>
+                            <p className="text-sm text-gray-500">April 2024</p>
+                            <div className="flex items-center mt-1 mb-2">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star 
+                                  key={star}
+                                  className={`h-4 w-4 ${star <= 5 ? "text-yellow-500 fill-current" : "text-gray-300"}`} 
+                                />
+                              ))}
+                            </div>
+                            <p className="text-gray-700 mb-2">
+                              Great car, very clean and drove well. Host was punctual and friendly. Would definitely rent again.
+                            </p>
+                            <div className="flex items-center text-sm text-gray-500">
+                              <Calendar className="h-4 w-4 mr-1" />
+                              <span>5-day rental</span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div>
-                        <p className="font-medium">Sarah A.</p>
-                        <p className="text-sm text-gray-500">March 2024</p>
-                        <div className="flex items-center mt-1 mb-2">
-                          <Rating value={4} size="sm" />
+                      </CardContent>
+                    </Card>
+                    
+                    <Card className="mb-4">
+                      <CardContent className="pt-6">
+                        <div className="flex items-start mb-2">
+                          <div className="mr-3">
+                            <div className="bg-green-100 rounded-full h-10 w-10 flex items-center justify-center">
+                              <span className="text-green-600 font-medium">SA</span>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="font-medium">Sarah A.</p>
+                            <p className="text-sm text-gray-500">March 2024</p>
+                            <div className="flex items-center mt-1 mb-2">
+                              <Rating value={4} size="sm" />
+                            </div>
+                            <p className="text-gray-700 mb-2">
+                              The vehicle was perfect for our weekend trip. It was comfortable and fuel-efficient.
+                            </p>
+                            <div className="flex items-center text-sm text-gray-500">
+                              <Calendar className="h-4 w-4 mr-1" />
+                              <span>2-day rental</span>
+                            </div>
+                          </div>
                         </div>
-                        <p className="text-gray-700 mb-2">
-                          The vehicle was perfect for our weekend trip. It was comfortable and fuel-efficient.
-                        </p>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          <span>Weekend rental</span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Button variant="outline" className="w-full">
-                  View all {car.ratingCount} reviews
-                </Button>
-              </div>
-            ) : (
-              <div className="text-center py-6">
-                <Star className="h-12 w-12 mx-auto text-gray-300 mb-2" />
-                <p className="text-lg font-medium text-gray-700">No reviews yet</p>
-                <p className="text-gray-500 mb-4">This car doesn't have any reviews yet.</p>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Star className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-lg font-medium text-gray-700">No reviews yet</p>
+                    <p className="text-gray-500">
+                      This car doesn't have any reviews yet. Be the first to leave a review after your trip.
+                    </p>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
 
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <h2 className="text-lg font-semibold mb-4">About the host</h2>
-            <div className="flex items-center">
-              <div className="mr-4">
-                <div className="bg-gray-200 rounded-full h-12 w-12 flex items-center justify-center">
-                  <span className="text-gray-700 font-medium">VH</span>
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center">
-                  <p className="font-medium">VOOM Host</p>
-                  <Badge className="ml-2 bg-green-100 text-green-700 border-none">
-                    <BadgeCheck className="h-3 w-3 mr-1" />
-                    Verified
-                  </Badge>
-                </div>
-                <div className="flex items-center text-sm text-gray-500">
-                  <Clock className="h-3 w-3 mr-1" />
-                  <span>Responds within an hour</span>
-                </div>
-              </div>
+            {selectedStartDate && selectedEndDate && (
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="ml-auto"
-                  >
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Contact
-                  </Button>
+                  <Card className="mb-4 cursor-pointer hover:bg-gray-50">
+                    <CardContent className="p-4">
+                      <h3 className="font-medium mb-2">Trip dates</h3>
+                      <div className="flex justify-between items-center mb-2">
+                        <span>{formatDateAndTime(selectedStartDate)}</span>
+                        <ArrowRight className="h-4 w-4 text-gray-500" />
+                        <span>{formatDateAndTime(selectedEndDate)}</span>
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        Total: {formatCurrency(calculateTotalAmount(car.dailyRate, selectedStartDate, selectedEndDate))}
+                      </p>
+                    </CardContent>
+                  </Card>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Contact Host</DialogTitle>
+                    <DialogTitle>Price Breakdown</DialogTitle>
                     <DialogDescription>
-                      Send a message to the host about this car.
+                      Rental period: {formatDateAndTime(selectedStartDate)} - {formatDateAndTime(selectedEndDate)}
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="flex items-center space-x-2">
-                      <div className="bg-gray-200 rounded-full h-10 w-10 flex items-center justify-center">
-                        <span className="text-gray-700 font-medium">VH</span>
-                      </div>
-                      <div>
-                        <p className="font-medium">VOOM Host</p>
-                        <p className="text-xs text-gray-500">Typically responds within an hour</p>
-                      </div>
-                    </div>
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                      <p className="text-sm text-gray-700">
-                        Hi, I'm interested in renting your {car.make} {car.model}. Is it available for...
-                      </p>
-                    </div>
-                    <Button 
-                      className="bg-red-600 hover:bg-red-700 w-full"
-                      onClick={() => {
-                        toast({
-                          title: "Message sent",
-                          description: "Your message has been sent to the host.",
-                          duration: 3000,
-                        });
-                        navigate("/messages");
-                      }}
-                    >
-                      Continue to Messages
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </div>
+                  <BookingDetails 
+                    car={car} 
+                    booking={{
+                      startDate: selectedStartDate,
+                      endDate: selectedEndDate,
+                      totalAmount: calculateTotalAmount(car.dailyRate, selectedStartDate, selectedEndDate)
+                    }}
+                  />
                 </DialogContent>
               </Dialog>
-            </div>
-          </CardContent>
-        </Card>
+            )}
 
-        {selectedStartDate && selectedEndDate && (
-          <Dialog>
-            <DialogTrigger asChild>
-              <Card className="mb-6 cursor-pointer hover:border-red-200 transition-colors">
-                <CardContent className="pt-6">
-                  <h2 className="text-lg font-semibold mb-4">Rental Estimate</h2>
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <p className="text-sm text-gray-500">Pickup</p>
-                      <p className="font-medium">{formatDateAndTime(selectedStartDate)}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Return</p>
-                      <p className="font-medium">{formatDateAndTime(selectedEndDate)}</p>
-                    </div>
-                  </div>
-                  <Separator className="my-3" />
-                  <div className="flex justify-between items-center">
-                    <p className="font-medium">Total estimate</p>
-                    <p className="text-xl font-bold">
-                      {formatCurrency(calculateTotalAmount(car.dailyRate, selectedStartDate, selectedEndDate))}
-                    </p>
-                  </div>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Click to view detailed price breakdown
-                  </p>
-                </CardContent>
-              </Card>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Price Breakdown</DialogTitle>
-                <DialogDescription>
-                  Rental period: {formatDateAndTime(selectedStartDate)} - {formatDateAndTime(selectedEndDate)}
-                </DialogDescription>
-              </DialogHeader>
-              <BookingDetails 
-                car={car} 
-                booking={{
-                  startDate: selectedStartDate,
-                  endDate: selectedEndDate,
-                  totalAmount: calculateTotalAmount(car.dailyRate, selectedStartDate, selectedEndDate)
-                }}
-              />
-            </DialogContent>
-          </Dialog>
+            {/* Reserve Button (fixed at bottom) */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white p-4 border-t shadow-md z-10">
+              <div className="container mx-auto flex justify-between items-center">
+                <div>
+                  <p className="font-bold text-xl">{formatCurrency(car.dailyRate)}</p>
+                  <p className="text-sm text-gray-500">per day</p>
+                </div>
+                <Button 
+                  className="bg-red-600 hover:bg-red-700 px-8"
+                  onClick={handleReserve}
+                  disabled={!car.available}
+                >
+                  {car.available ? 'Reserve Now' : 'Not Available'}
+                </Button>
+              </div>
+            </div>
+          </>
         )}
-
-        <div className="fixed bottom-0 left-0 right-0 bg-white p-4 border-t shadow-md z-10">
-          <div className="container mx-auto flex justify-between items-center">
-            <div>
-              <p className="font-bold text-xl">{formatCurrency(car.dailyRate)}</p>
-              <p className="text-sm text-gray-500">per day</p>
-            </div>
-            <Button 
-              className="bg-red-600 hover:bg-red-700 px-8"
-              onClick={handleReserve}
-              disabled={!car.available}
-            >
-              {car.available ? 'Reserve Now' : 'Not Available'}
-            </Button>
-          </div>
-        </div>
 
         {/* Verification Dialog */}
         <Dialog open={showVerificationDialog} onOpenChange={setShowVerificationDialog}>
@@ -685,10 +608,9 @@ export default function CarDetail() {
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
-              {/* Import and use the VerificationSystem component */}
-              <div className="my-4">
+              {user && (
                 <VerificationSystem 
-                  userId={1} 
+                  userId={user.id} 
                   onComplete={() => {
                     setShowVerificationDialog(false);
                     toast({
@@ -697,7 +619,7 @@ export default function CarDetail() {
                     });
                   }}
                 />
-              </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>

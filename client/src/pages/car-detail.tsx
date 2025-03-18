@@ -180,7 +180,7 @@ export default function CarDetail() {
 
   // Demo images for carousel with transformed URLs
   const carImages = car ? [
-    `${car.imageUrl}&q=80&w=1000&h=600&fit=crop&crop=entropy`,
+    car.imageUrl ? `${car.imageUrl}&q=80&w=1000&h=600&fit=crop&crop=entropy` : `https://placehold.co/800x600/e2e8f0/64748b?text=${car.make}+${car.model}`,
     `https://images.unsplash.com/photo-1494976388531-d1058494cdd8?q=80&w=1000&h=600&fit=crop&crop=entropy`,
     `https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1000&h=600&fit=crop&crop=entropy`,
     `https://images.unsplash.com/photo-1511919884226-fd3cad34687c?q=80&w=1000&h=600&fit=crop&crop=entropy`,

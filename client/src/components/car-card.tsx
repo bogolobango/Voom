@@ -71,7 +71,7 @@ export function CarCard({ car, isFavorite = false }: CarCardProps) {
       <Link href={`/cars/${car.id}`}>
         <div className="block cursor-pointer">
           <img
-            src={`${car.imageUrl}&q=80&w=800&h=600&fit=crop&crop=entropy`}
+            src={car.imageUrl ? `${car.imageUrl}&q=80&w=800&h=600&fit=crop&crop=entropy` : `https://placehold.co/800x600/e2e8f0/64748b?text=${car.make}+${car.model}`}
             alt={`${car.make} ${car.model}`}
             className="w-full h-48 object-cover"
             onError={(e) => {
@@ -84,8 +84,8 @@ export function CarCard({ car, isFavorite = false }: CarCardProps) {
               <div>
                 <h2 className="text-lg font-semibold">{car.make} {car.model}</h2>
                 <Rating 
-                  value={car.rating || 0} 
-                  count={car.ratingCount} 
+                  value={car.rating ?? 0} 
+                  count={car.ratingCount ?? 0} 
                   className="mt-1" 
                 />
                 <p className="text-sm mt-1 text-gray-500">

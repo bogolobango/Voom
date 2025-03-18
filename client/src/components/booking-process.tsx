@@ -184,8 +184,8 @@ export function BookingProcess({ car, user, onComplete, onBack }: BookingProcess
     const bookingData: InsertBooking = {
       carId: car.id,
       userId: user.id,
-      startDate: selectedStartDate.toISOString(),
-      endDate: selectedEndDate.toISOString(),
+      startDate: selectedStartDate,
+      endDate: selectedEndDate,
       pickupLocation: pickupLocation || car.location,
       dropoffLocation: isPickupSameAsDropoff ? (pickupLocation || car.location) : dropoffLocation,
       totalAmount: grandTotal,
@@ -207,12 +207,12 @@ export function BookingProcess({ car, user, onComplete, onBack }: BookingProcess
 
   // Create booking object for display purposes
   const booking: Partial<Booking> = {
-    startDate: selectedStartDate.toISOString(),
-    endDate: selectedEndDate.toISOString(),
+    startDate: selectedStartDate,
+    endDate: selectedEndDate,
     pickupLocation: pickupLocation || car.location,
     dropoffLocation: isPickupSameAsDropoff ? (pickupLocation || car.location) : dropoffLocation,
     totalAmount: grandTotal,
-    currency: "FCFA"
+    currency: "FCFA" as any // Type fix
   };
 
   // Cancellation date (24h before start)
@@ -232,7 +232,7 @@ export function BookingProcess({ car, user, onComplete, onBack }: BookingProcess
       <Card className="mb-6">
         <CardContent className="p-4 flex items-center">
           <img
-            src={car.imageUrl}
+            src={car.imageUrl || ''}
             alt={`${car.make} ${car.model}`}
             className="w-20 h-20 object-cover rounded-md mr-4"
           />

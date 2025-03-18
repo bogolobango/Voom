@@ -232,7 +232,7 @@ export function BookingProcess({ car, user, onComplete, onBack }: BookingProcess
       <Card className="mb-6">
         <CardContent className="p-4 flex items-center">
           <img
-            src={car.imageUrl}
+            src={car.imageUrl || ''}
             alt={`${car.make} ${car.model}`}
             className="w-20 h-20 object-cover rounded-md mr-4"
           />

@@ -2,8 +2,8 @@ import { cn } from "@/lib/utils";
 import { Star } from "lucide-react";
 
 interface RatingProps {
-  value: number;
-  count?: number;
+  value: number | null | undefined;
+  count?: number | null | undefined;
   showCount?: boolean;
   className?: string;
   size?: "sm" | "md";
@@ -26,14 +26,20 @@ export function Rating({
     md: "text-sm",
   };
 
+  // Ensure value is a number
+  const ratingValue = typeof value === 'number' ? value : 0;
+  
+  // Ensure count is a number or undefined
+  const ratingCount = count != null ? count : undefined;
+
   return (
     <div className={cn("flex items-center", className)}>
       <Star 
         className={cn("text-yellow-500 fill-current", sizeClass[size])} 
       />
       <span className={cn("ml-1 font-medium", textSize[size])}>
-        {value.toFixed(1)}
-        {showCount && count !== undefined && ` (${count} ${count === 1 ? 'voyage' : 'voyages'})`}
+        {ratingValue.toFixed(1)}
+        {showCount && ratingCount !== undefined && ` (${ratingCount} ${ratingCount === 1 ? 'voyage' : 'voyages'})`}
       </span>
     </div>
   );

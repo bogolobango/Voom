@@ -8,8 +8,8 @@ import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, Save, Shield, ArrowRight, CreditCard, Car } from "lucide-react";
 import { VerificationSystem } from "@/components/verification-system";
 import { IDVerificationStep } from "@/components/id-verification-step";
+import { VerificationStep } from "@/components/verification-step"; 
 import { apiRequest } from "@/lib/queryClient";
-import { VerificationStep } from "@/components/verification-system"; // Reusing the component
 
 // Define the steps of the car listing process
 const steps = [

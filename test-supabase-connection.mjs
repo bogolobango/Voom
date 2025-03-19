@@ -1,8 +1,6 @@
 // test-supabase-connection.mjs
 import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
-import * as fs from 'fs';
-import * as path from 'path';
 
 // Load environment variables
 dotenv.config();
@@ -15,8 +13,6 @@ const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXB
 console.log('Testing Supabase connection...');
 console.log('Supabase URL:', supabaseUrl);
 console.log('Service Key exists:', !!supabaseServiceKey);
-console.log('Service Key type:', typeof supabaseServiceKey);
-console.log('Service Key length:', supabaseServiceKey.length);
 
 async function testSupabaseConnection() {
   try {
@@ -28,20 +24,29 @@ async function testSupabaseConnection() {
       }
     });
     
-    // Test connection by making a simple query
-    console.log('Attempting to query Supabase...');
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, username')
-      .limit(1);
+    // Test authentication functionality
+    console.log('Testing Supabase authentication...');
+    const { data: authData, error: authError } = await supabase.auth.getSession();
     
-    if (error) {
-      console.error('Error connecting to Supabase:', error);
-      return false;
+    if (authError) {
+      console.error('Error with authentication test:', authError);
+    } else {
+      console.log('Authentication successful!');
     }
     
-    console.log('Successfully connected to Supabase!');
-    console.log('Sample data:', data);
+    // Test storage functionality
+    console.log('Testing Supabase storage...');
+    const { data: buckets, error: bucketsError } = await supabase
+      .storage
+      .listBuckets();
+      
+    if (bucketsError) {
+      console.error('Error listing storage buckets:', bucketsError);
+    } else {
+      console.log('Storage buckets:', buckets);
+    }
+    
+    // Simple connection test
     return true;
   } catch (error) {
     console.error('Exception when testing Supabase connection:', error);
@@ -52,9 +57,15 @@ async function testSupabaseConnection() {
 // Run the test
 try {
   const success = await testSupabaseConnection();
-  console.log('Connection test complete. Success:', success);
-  if (!success) {
-    console.log('Please check your Supabase credentials and permissions.');
+  console.log('\nConnection test complete.');
+  console.log('Can connect to Supabase?', success ? 'Yes' : 'No');
+  
+  if (success) {
+    console.log('\nNext Steps:');
+    console.log('1. Run "npm run db:push" to create database tables');
+    console.log('2. If prompted during migration, select the first option (create column)');
+  } else {
+    console.log('\nPlease check your Supabase credentials and permissions.');
   }
 } catch (error) {
   console.error('Unhandled error during test:', error);

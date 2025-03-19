@@ -39,9 +39,9 @@ export function BottomNav() {
       path: "/bookings",
     },
     {
-      name: "Profile",
-      icon: MenuIcon,
-      path: "/menu",
+      name: "Messages",
+      icon: MessageSquare,
+      path: "/messages",
     },
   ];
 

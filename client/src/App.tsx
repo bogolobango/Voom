@@ -4,6 +4,7 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/use-auth";
+import { SupabaseAuthProvider } from "@/hooks/use-supabase-auth";
 import { HostModeProvider } from "@/hooks/use-host-mode";
 import { CurrencyProvider } from "@/hooks/use-currency";
 import { ProtectedRoute } from "@/components/protected-route";
@@ -189,16 +190,18 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <HostModeProvider>
-          <CurrencyProvider>
-            <TooltipProvider>
-              <Router />
-              <Toaster />
-            </TooltipProvider>
-          </CurrencyProvider>
-        </HostModeProvider>
-      </AuthProvider>
+      <SupabaseAuthProvider>
+        <AuthProvider>
+          <HostModeProvider>
+            <CurrencyProvider>
+              <TooltipProvider>
+                <Router />
+                <Toaster />
+              </TooltipProvider>
+            </CurrencyProvider>
+          </HostModeProvider>
+        </AuthProvider>
+      </SupabaseAuthProvider>
     </QueryClientProvider>
   );
 }

@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, Mail, Home, Menu, Search, User, Heart } from "lucide-react";
 import { SiGoogle } from "react-icons/si";
+import { Logo } from "@/components/ui/logo";
 import rangeRoverImg from "@/assets/range-rover.webp";
 
 // Login form schema
@@ -100,9 +101,7 @@ export default function AuthPage() {
       <header className="w-full bg-white/90 backdrop-blur-sm shadow-sm z-10">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center">
-            <Link href="/" className="flex items-center font-bold text-xl text-red-600">
-              VOOM
-            </Link>
+            <Logo size="md" />
           </div>
           
           <nav className="hidden md:flex space-x-6 mx-4">

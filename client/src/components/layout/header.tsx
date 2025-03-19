@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { getInitials } from "@/lib/utils";
-import voomLogo from "@/assets/voom-logo.png";
+import { Logo } from "@/components/ui/logo";
 import { CurrencySelector } from "@/components/currency-selector";
 
 interface HeaderProps {
@@ -69,15 +69,7 @@ export function Header({ title, showBack, onBack }: HeaderProps) {
               </svg>
             </button>
           ) : (
-            <Link href="/">
-              <div className="flex items-center">
-                <img 
-                  src={voomLogo} 
-                  alt="Voom Logo" 
-                  className="h-10 logo-fade-in"
-                />
-              </div>
-            </Link>
+            <Logo size="md" className="logo-fade-in" />
           )}
           {title && (
             <h1 className="text-xl font-semibold ml-2">{title}</h1>

@@ -436,7 +436,21 @@ export class MemStorage implements IStorage {
   }
 
   async getCars(): Promise<Car[]> {
-    return Array.from(this.cars.values());
+    // Get all cars from memory
+    const allCars = Array.from(this.cars.values());
+    
+    // Find the Range Rover if it exists
+    const rangeRoverIndex = allCars.findIndex(car => 
+      car.make === "Land Rover" && car.model === "Range Rover" && car.year === 2023
+    );
+    
+    // If Range Rover exists, move it to the top of the list
+    if (rangeRoverIndex !== -1) {
+      const rangeRover = allCars.splice(rangeRoverIndex, 1)[0];
+      allCars.unshift(rangeRover);
+    }
+    
+    return allCars;
   }
   
   async getCarsByHost(hostId: number): Promise<Car[]> {
@@ -924,7 +938,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCars(): Promise<Car[]> {
-    return db.select().from(cars);
+    // Get all cars
+    const allCars = await db.select().from(cars);
+    
+    // Find the Range Rover if it exists
+    const rangeRoverIndex = allCars.findIndex(car => 
+      car.make === "Land Rover" && car.model === "Range Rover" && car.year === 2023
+    );
+    
+    // If Range Rover exists, move it to the top of the list
+    if (rangeRoverIndex !== -1) {
+      const rangeRover = allCars.splice(rangeRoverIndex, 1)[0];
+      allCars.unshift(rangeRover);
+    }
+    
+    return allCars;
   }
 
   async getCarsByHost(hostId: number): Promise<Car[]> {

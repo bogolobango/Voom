@@ -4,6 +4,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
+import { ListingProgressSteps } from "@/components/listing-progress-steps";
 import { useToast } from "@/hooks/use-toast";
 
 // Define the steps of the car listing process
@@ -56,34 +57,16 @@ export default function VerificationConfirmation() {
 
       {/* Steps progress indicator */}
       <div className="pt-16 px-4 md:px-8 lg:px-10 max-w-7xl mx-auto">
-        <div className="flex justify-between mb-8 overflow-x-auto pb-2">
-          {steps.map((step, index) => (
-            <div 
-              key={step.id} 
-              className="flex flex-col items-center min-w-[80px]"
-            >
-              <div 
-                className={`w-8 h-8 rounded-full flex items-center justify-center mb-1
-                  ${step.id === 'car-verification' 
-                    ? 'bg-red-600 text-white' 
-                    : index < 3 
-                      ? 'bg-gray-200 text-gray-700' 
-                      : 'bg-gray-100 text-gray-400'}`}
-              >
-                {index + 1}
-              </div>
-              <span 
-                className={`text-xs text-center whitespace-nowrap
-                  ${step.id === 'car-verification' 
-                    ? 'text-red-600 font-medium' 
-                    : index < 3 
-                      ? 'text-gray-700' 
-                      : 'text-gray-400'}`}
-              >
-                {step.title}
-              </span>
-            </div>
-          ))}
+        <div className="relative mb-8">
+          <ListingProgressSteps
+            steps={steps.map((step, index) => ({
+              id: step.id,
+              title: step.title,
+              completed: index <= 3 // First four steps are completed (including verification)
+            }))}
+            currentStepId="car-verification"
+            className="pb-2"
+          />
         </div>
 
         <div className="max-w-xl mx-auto mt-8">

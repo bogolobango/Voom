@@ -71,6 +71,7 @@ const steps = [
   { id: 'car-type', title: 'Car Type' },
   { id: 'car-details', title: 'Car Details' },
   { id: 'car-location', title: 'Location' },
+  { id: 'car-verification', title: 'Verification' },
   { id: 'car-rates', title: 'Rates' },
   { id: 'car-summary', title: 'Summary' },
 ];
@@ -191,8 +192,8 @@ export default function CarLocationPage() {
     // Save to local storage
     localStorage.setItem('carLocation', JSON.stringify(values));
     
-    // Navigate to next step
-    navigate('/become-host/car-rates');
+    // Navigate to verification step
+    navigate('/become-host/car-verification');
   };
 
   return (

@@ -19,7 +19,7 @@ export const cameroonAirports: AirportLocation[] = [
     code: "DLA",
     city: "Douala",
     region: "Littoral",
-    coordinates: [4.0060, 9.7191]
+    coordinates: [4.0061, 9.7194]
   },
   {
     name: "Yaoundé Nsimalen International Airport",
@@ -33,7 +33,7 @@ export const cameroonAirports: AirportLocation[] = [
     code: "GOU",
     city: "Garoua",
     region: "North",
-    coordinates: [9.3359, 13.3701]
+    coordinates: [9.3359, 13.3702]
   },
   {
     name: "Maroua Salak Airport",
@@ -47,7 +47,21 @@ export const cameroonAirports: AirportLocation[] = [
     code: "BFX",
     city: "Bafoussam",
     region: "West",
-    coordinates: [5.5370, 10.3546]
+    coordinates: [5.5369, 10.3542]
+  },
+  {
+    name: "Bamenda Airport",
+    code: "BPC",
+    city: "Bamenda",
+    region: "Northwest",
+    coordinates: [5.9592, 10.1513]
+  },
+  {
+    name: "Bertoua Airport",
+    code: "BTA",
+    city: "Bertoua",
+    region: "East",
+    coordinates: [4.5261, 13.7267]
   }
 ];
 
@@ -61,7 +75,27 @@ export const cameroonCities: CityLocation[] = [
   {
     name: "Yaoundé",
     region: "Centre",
-    coordinates: [3.8480, 11.5021]
+    coordinates: [3.8667, 11.5167]
+  },
+  {
+    name: "Bamenda",
+    region: "Northwest",
+    coordinates: [5.9597, 10.1456]
+  },
+  {
+    name: "Bafoussam",
+    region: "West",
+    coordinates: [5.4764, 10.4176]
+  },
+  {
+    name: "Ngaoundéré",
+    region: "Adamawa",
+    coordinates: [7.3239, 13.5842]
+  },
+  {
+    name: "Maroua",
+    region: "Far North",
+    coordinates: [10.5902, 14.3156]
   },
   {
     name: "Garoua",
@@ -69,43 +103,73 @@ export const cameroonCities: CityLocation[] = [
     coordinates: [9.3017, 13.3921]
   },
   {
-    name: "Bamenda",
-    region: "Northwest",
-    coordinates: [5.9613, 10.1591]
-  },
-  {
-    name: "Maroua",
-    region: "Far North",
-    coordinates: [10.5910, 14.3159]
-  },
-  {
-    name: "Bafoussam",
-    region: "West",
-    coordinates: [5.4768, 10.4214]
-  },
-  {
-    name: "Ngaoundéré",
-    region: "Adamawa",
-    coordinates: [7.3203, 13.5837]
-  },
-  {
-    name: "Bertoua",
-    region: "East",
-    coordinates: [4.5753, 13.6878]
+    name: "Limbe",
+    region: "Southwest",
+    coordinates: [4.0215, 9.2068]
   },
   {
     name: "Ebolowa",
     region: "South",
-    coordinates: [2.9162, 11.1512]
+    coordinates: [2.9151, 11.1503]
   },
   {
-    name: "Limbe",
+    name: "Kribi",
+    region: "South",
+    coordinates: [2.9404, 9.9095]
+  },
+  {
+    name: "Bertoua",
+    region: "East",
+    coordinates: [4.5762, 13.6868]
+  },
+  {
+    name: "Kumba",
     region: "Southwest",
-    coordinates: [4.0242, 9.1954]
+    coordinates: [4.6363, 9.4465]
+  },
+  {
+    name: "Buea",
+    region: "Southwest",
+    coordinates: [4.1566, 9.2435]
+  },
+  {
+    name: "Edéa",
+    region: "Littoral",
+    coordinates: [3.8011, 10.1314]
+  },
+  {
+    name: "Dschang",
+    region: "West",
+    coordinates: [5.4437, 10.0532]
+  },
+  {
+    name: "Foumban",
+    region: "West",
+    coordinates: [5.7273, 10.9013]
+  },
+  {
+    name: "Nkongsamba",
+    region: "Littoral",
+    coordinates: [4.9547, 9.9336]
+  },
+  {
+    name: "Mutengene",
+    region: "Southwest",
+    coordinates: [4.0917, 9.3146]
+  },
+  {
+    name: "Tiko",
+    region: "Southwest",
+    coordinates: [4.0750, 9.3600]
+  },
+  {
+    name: "Kousseri",
+    region: "Far North",
+    coordinates: [12.0769, 15.0306]
   }
 ];
 
-// Regional capitals
+// Regional capitals in Cameroon
 export const regionalCapitals: CityLocation[] = [
   {
     name: "Douala",
@@ -115,7 +179,27 @@ export const regionalCapitals: CityLocation[] = [
   {
     name: "Yaoundé",
     region: "Centre",
-    coordinates: [3.8480, 11.5021]
+    coordinates: [3.8667, 11.5167]
+  },
+  {
+    name: "Bamenda",
+    region: "Northwest",
+    coordinates: [5.9597, 10.1456]
+  },
+  {
+    name: "Bafoussam",
+    region: "West",
+    coordinates: [5.4764, 10.4176]
+  },
+  {
+    name: "Ngaoundéré",
+    region: "Adamawa",
+    coordinates: [7.3239, 13.5842]
+  },
+  {
+    name: "Maroua",
+    region: "Far North",
+    coordinates: [10.5902, 14.3156]
   },
   {
     name: "Garoua",
@@ -123,38 +207,18 @@ export const regionalCapitals: CityLocation[] = [
     coordinates: [9.3017, 13.3921]
   },
   {
-    name: "Bamenda",
-    region: "Northwest",
-    coordinates: [5.9613, 10.1591]
-  },
-  {
-    name: "Maroua",
-    region: "Far North",
-    coordinates: [10.5910, 14.3159]
-  },
-  {
-    name: "Bafoussam",
-    region: "West",
-    coordinates: [5.4768, 10.4214]
-  },
-  {
-    name: "Ngaoundéré",
-    region: "Adamawa",
-    coordinates: [7.3203, 13.5837]
-  },
-  {
-    name: "Bertoua",
-    region: "East",
-    coordinates: [4.5753, 13.6878]
+    name: "Buea",
+    region: "Southwest",
+    coordinates: [4.1566, 9.2435]
   },
   {
     name: "Ebolowa",
     region: "South",
-    coordinates: [2.9162, 11.1512]
+    coordinates: [2.9151, 11.1503]
   },
   {
-    name: "Buea",
-    region: "Southwest",
-    coordinates: [4.1527, 9.2322]
+    name: "Bertoua",
+    region: "East",
+    coordinates: [4.5762, 13.6868]
   }
 ];

@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, Mail } from "lucide-react";
 import { SiGoogle } from "react-icons/si";
-import voomLogo from "@/assets/voom-logo.png";
+import rangeRoverImg from "@/assets/range-rover.webp";
 
 // Login form schema
 const loginSchema = z.object({
@@ -88,19 +88,14 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-cover bg-center" style={{ 
+      backgroundImage: `linear-gradient(to right, rgba(255,255,255,0.9) 50%, rgba(0,0,0,0.3) 100%), url(${rangeRoverImg})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center'
+    }}>
       {/* Left side - Auth forms */}
-      <div className="w-full lg:w-1/2 p-6 flex flex-col justify-center items-center">
-        <div className="w-full max-w-md space-y-8">
-          <div className="text-center">
-            <div className="flex justify-center mb-4">
-              <img src={voomLogo} alt="Voom Logo" className="h-20 logo-fade-in" />
-            </div>
-            <h2 className="text-3xl font-bold tracking-tight">Voom Car Sharing</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Sign in to your account or create a new one
-            </p>
-          </div>
+      <div className="w-full lg:w-1/2 p-6 flex flex-col justify-center items-center backdrop-blur-sm">
+        <div className="w-full max-w-md space-y-8 bg-white/90 p-8 rounded-2xl shadow-lg backdrop-blur-sm">
 
           <Tabs 
             defaultValue={activeTab} 
@@ -329,36 +324,8 @@ export default function AuthPage() {
         </div>
       </div>
 
-      {/* Right side - Hero */}
-      <div className="hidden lg:block lg:w-1/2 bg-muted">
-        <div className="h-full flex flex-col justify-center items-center p-12 text-center">
-          <h1 className="text-4xl font-bold tracking-tight mb-6">
-            Find your perfect ride with Voom
-          </h1>
-          <p className="text-lg mb-8 max-w-md text-muted-foreground">
-            Experience hassle-free car sharing with locations across Africa.
-            Rent a car for a day, a week, or longer with our simple booking process.
-          </p>
-          <div className="grid grid-cols-2 gap-6 w-full max-w-md">
-            <div className="bg-background p-4 rounded-lg shadow-sm">
-              <div className="text-3xl font-bold mb-2">1000+</div>
-              <div className="text-sm text-muted-foreground">Available Cars</div>
-            </div>
-            <div className="bg-background p-4 rounded-lg shadow-sm">
-              <div className="text-3xl font-bold mb-2">20+</div>
-              <div className="text-sm text-muted-foreground">Cities</div>
-            </div>
-            <div className="bg-background p-4 rounded-lg shadow-sm">
-              <div className="text-3xl font-bold mb-2">4.8/5</div>
-              <div className="text-sm text-muted-foreground">User Rating</div>
-            </div>
-            <div className="bg-background p-4 rounded-lg shadow-sm">
-              <div className="text-3xl font-bold mb-2">24/7</div>
-              <div className="text-sm text-muted-foreground">Customer Support</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Right side with Range Rover background - intentionally blank */}
+      <div className="hidden lg:block lg:w-1/2"></div>
     </div>
   );
 }

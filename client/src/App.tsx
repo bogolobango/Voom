@@ -48,6 +48,8 @@ import BecomeHost from "@/pages/become-host";
 const CarTypePage = React.lazy(() => import("@/pages/become-host/car-type"));
 const CarDetailsPage = React.lazy(() => import("@/pages/become-host/car-details"));
 const CarLocationPage = React.lazy(() => import("@/pages/become-host/car-location"));
+const CarVerificationPage = React.lazy(() => import("@/pages/become-host/car-verification"));
+const VerificationConfirmationPage = React.lazy(() => import("@/pages/become-host/verification-confirmation"));
 const CarRatesPage = React.lazy(() => import("@/pages/become-host/car-rates"));
 const CarSummaryPage = React.lazy(() => import("@/pages/become-host/car-summary"));
 
@@ -127,6 +129,22 @@ function Router() {
         component={() => (
           <Suspense fallback={<LoadingScreen message="Preparing map..." />}>
             <CarLocationPage />
+          </Suspense>
+        )} 
+      />
+      <ProtectedRoute 
+        path="/become-host/car-verification" 
+        component={() => (
+          <Suspense fallback={<LoadingScreen message="Loading verification form..." />}>
+            <CarVerificationPage />
+          </Suspense>
+        )} 
+      />
+      <ProtectedRoute 
+        path="/become-host/verification-confirmation" 
+        component={() => (
+          <Suspense fallback={<LoadingScreen message="Processing your verification..." />}>
+            <VerificationConfirmationPage />
           </Suspense>
         )} 
       />

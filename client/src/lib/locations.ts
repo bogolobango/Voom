@@ -1,7 +1,21 @@
-import { AirportLocation, CityLocation, ghanaAirports, ghanaCities, regionalCapitals as ghanaRegionalCapitals } from './ghana-locations';
+// Import the location data but not the interfaces to avoid duplicate type exports
+import { ghanaAirports, ghanaCities, regionalCapitals as ghanaRegionalCapitals } from './ghana-locations';
 import { cameroonAirports, cameroonCities, regionalCapitals as cameroonRegionalCapitals } from './cameroon-locations';
 
-export { AirportLocation, CityLocation };
+// Define the interfaces here once to avoid conflicts with duplicate exports
+export interface AirportLocation {
+  name: string;
+  code: string;
+  city: string;
+  region: string;
+  coordinates: [number, number]; // [latitude, longitude]
+}
+
+export interface CityLocation {
+  name: string;
+  region: string;
+  coordinates: [number, number];
+}
 
 export interface Country {
   name: string;

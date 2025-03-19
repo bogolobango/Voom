@@ -241,7 +241,7 @@ export async function fetchConversations(userId: number) {
         profilePicture: otherUser.profilePicture ?? undefined,
         unreadCount: message.senderId !== userId && !message.read ? 1 : 0,
         lastMessage: message.content,
-        lastMessageTime: typeof message.createdAt === 'string' ? message.createdAt : message.createdAt.toISOString()
+        lastMessageTime: String(message.createdAt)
       };
     } else if (message.senderId !== userId && !message.read) {
       acc[otherUserId].unreadCount += 1;

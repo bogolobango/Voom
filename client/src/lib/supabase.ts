@@ -1,8 +1,9 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// These environment variables will need to be set in the .env file
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+// Fix for environment variables being swapped
+// Using the correct values directly
+const supabaseUrl = 'https://bdkslsvpnsiliqohdlkf.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJka3Nsc3ZwbnNpbGlxb2hkbGtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0MTI5MjYsImV4cCI6MjA1Nzk4ODkyNn0.FXcBS7mpw-tCYeVQ29tVzIK1KvMZbk0XFjZyvV1y5KY';
 
 console.log('Supabase URL:', supabaseUrl);
 
@@ -13,9 +14,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 let supabaseInstance: SupabaseClient;
 
 try {
-  // Verify URL is valid
-  new URL(supabaseUrl);
-  
   // Create a single supabase client for interacting with your database
   supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
@@ -24,7 +22,7 @@ try {
     }
   });
 } catch (error) {
-  console.error('Invalid Supabase URL:', error);
+  console.error('Error initializing Supabase client:', error);
   throw error;
 }
 

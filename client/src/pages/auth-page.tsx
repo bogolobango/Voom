@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect } from "wouter";
+import { Redirect, Link } from "wouter";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,7 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Mail } from "lucide-react";
+import { Loader2, Mail, Home, Menu, Search, User, Heart } from "lucide-react";
 import { SiGoogle } from "react-icons/si";
 import rangeRoverImg from "@/assets/range-rover.webp";
 
@@ -88,14 +88,58 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-cover bg-center" style={{ 
-      backgroundImage: `linear-gradient(to right, rgba(255,255,255,0.9) 50%, rgba(0,0,0,0.3) 100%), url(${rangeRoverImg})`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center'
-    }}>
-      {/* Left side - Auth forms */}
-      <div className="w-full lg:w-1/2 p-6 flex flex-col justify-center items-center backdrop-blur-sm">
-        <div className="w-full max-w-md space-y-8 bg-white/90 p-8 rounded-2xl shadow-lg backdrop-blur-sm">
+    <div 
+      className="flex flex-col min-h-screen bg-cover bg-center" 
+      style={{ 
+        backgroundImage: `linear-gradient(to right, rgba(255,255,255,0.9) 50%, rgba(0,0,0,0.3) 100%), url(${rangeRoverImg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }}
+    >
+      {/* Top navigation */}
+      <header className="w-full bg-white/90 backdrop-blur-sm shadow-sm z-10">
+        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+          <div className="flex items-center">
+            <Link href="/" className="flex items-center font-bold text-xl text-red-600">
+              VOOM
+            </Link>
+          </div>
+          
+          <nav className="hidden md:flex space-x-6 mx-4">
+            <Link href="/" className="flex items-center text-sm font-medium hover:text-red-600 transition-colors">
+              <Home className="w-4 h-4 mr-1" />
+              Home
+            </Link>
+            <Link href="/all-cars" className="flex items-center text-sm font-medium hover:text-red-600 transition-colors">
+              <Search className="w-4 h-4 mr-1" />
+              Search Cars
+            </Link>
+            <Link href="/favorites" className="flex items-center text-sm font-medium hover:text-red-600 transition-colors">
+              <Heart className="w-4 h-4 mr-1" />
+              Favorites
+            </Link>
+          </nav>
+          
+          <div className="flex items-center space-x-2">
+            <Button variant="outline" size="sm" className="hidden sm:flex">
+              List Your Car
+            </Button>
+            <Button variant="default" size="sm" className="hidden sm:flex bg-red-600 hover:bg-red-700">
+              <User className="w-4 h-4 mr-1" />
+              Sign In
+            </Button>
+            <Button variant="ghost" size="icon" className="md:hidden">
+              <Menu className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+      </header>
+      
+      {/* Main content */}
+      <div className="flex flex-1">
+        {/* Left side - Auth forms */}
+        <div className="w-full lg:w-1/2 p-6 flex flex-col justify-center items-center backdrop-blur-sm">
+          <div className="w-full max-w-md space-y-8 bg-white/90 p-8 rounded-2xl shadow-lg backdrop-blur-sm">
 
           <Tabs 
             defaultValue={activeTab} 
@@ -321,11 +365,12 @@ export default function AuthPage() {
               </div>
             </TabsContent>
           </Tabs>
+          </div>
         </div>
+        
+        {/* Right side with Range Rover background - intentionally blank */}
+        <div className="hidden lg:block lg:w-1/2"></div>
       </div>
-
-      {/* Right side with Range Rover background - intentionally blank */}
-      <div className="hidden lg:block lg:w-1/2"></div>
     </div>
   );
 }

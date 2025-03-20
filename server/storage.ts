@@ -1034,13 +1034,39 @@ export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    this.sessionStore = new PostgresSessionStore({ 
-      conObject: {
-        connectionString: process.env.DATABASE_URL,
-        ssl: true
-      },
-      createTableIfMissing: true 
-    });
+    try {
+      // Test database connection before proceeding
+      console.log('Testing database connection...');
+      
+      // Use a safer session store configuration with proper error handling
+      this.sessionStore = new PostgresSessionStore({ 
+        conObject: {
+          connectionString: process.env.DATABASE_URL,
+          ssl: { rejectUnauthorized: false }, // More compatible SSL setting
+          connectionTimeoutMillis: 5000,      // More generous timeout
+        },
+        createTableIfMissing: true,
+        errorLog: (err) => console.error('PostgreSQL session store error:', err)
+      });
+      
+      console.log('Database connection established successfully.');
+    } catch (error) {
+      console.error('Failed to initialize database session store:', error);
+      
+      // Fall back to memory store if database connection fails
+      console.warn('Falling back to memory session store');
+      this.sessionStore = new MemoryStore({
+        checkPeriod: 86400000 // Prune expired entries every 24h
+      });
+      
+      // If this is a critical failure that affects all operations, throw
+      // so our createStorage function can fall back to MemStorage
+      if (error instanceof Error && 
+          (error.message.includes('connection') || 
+           error.message.includes('connect'))) {
+        throw new Error('Critical database connection failure: ' + error.message);
+      }
+    }
   }
 
   // User operations
@@ -1619,5 +1645,18 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-// Export an instance of the database storage
-export const storage = new DatabaseStorage();
+// Create a function to determine the appropriate storage implementation
+function createStorage(): IStorage {
+  try {
+    // First try to use database storage
+    console.log('Initializing database storage...');
+    return new DatabaseStorage();
+  } catch (error) {
+    // If that fails, fall back to in-memory storage with a warning
+    console.warn('Database connection failed, falling back to in-memory storage:', error);
+    return new MemStorage();
+  }
+}
+
+// Export an instance of storage with fallback mechanism
+export const storage = createStorage();

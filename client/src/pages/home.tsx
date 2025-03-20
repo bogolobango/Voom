@@ -156,7 +156,7 @@ export default function Home() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.5 }}
               >
-                Find cars and homes in Accra
+                Premium cars available in Accra
               </motion.h1>
               <motion.p 
                 className="text-gray-700 mb-6"
@@ -164,7 +164,7 @@ export default function Home() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5, duration: 0.5 }}
               >
-                Whether it's a trip for business or a family getaway, your next journey begins on Voom.
+                Discover luxury and comfort for your next adventure with Voom's top-rated car rentals.
               </motion.p>
 
               <form onSubmit={handleSearchSubmit} className="space-y-4">

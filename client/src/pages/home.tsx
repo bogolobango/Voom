@@ -372,9 +372,13 @@ export default function Home() {
                 >
                   <div className="relative">
                     <img 
-                      src={`https://source.unsplash.com/random/300x200/?${car.make}-${car.model}`}
+                      src={car.imageUrl ? `${car.imageUrl}&q=80&w=800&h=600&fit=crop&crop=entropy` : `https://placehold.co/800x600/e2e8f0/64748b?text=${car.make}+${car.model}`}
                       alt={`${car.make} ${car.model}`}
                       className="w-full h-48 object-cover"
+                      onError={(e) => {
+                        // Fallback to a placeholder if image fails to load
+                        e.currentTarget.src = `https://placehold.co/800x600/e2e8f0/64748b?text=${car.make}+${car.model}`;
+                      }}
                     />
                     <Badge className="absolute top-2 left-2 bg-white text-black">Superhost</Badge>
                   </div>
@@ -571,9 +575,13 @@ export default function Home() {
                 >
                   <div className="relative">
                     <img 
-                      src={`https://source.unsplash.com/random/300x200/?${car.make}-${car.model}`}
+                      src={car.imageUrl ? `${car.imageUrl}&q=80&w=800&h=600&fit=crop&crop=entropy` : `https://placehold.co/800x600/e2e8f0/64748b?text=${car.make}+${car.model}`}
                       alt={`${car.make} ${car.model}`}
                       className="w-full h-48 object-cover"
+                      onError={(e) => {
+                        // Fallback to a placeholder if image fails to load
+                        e.currentTarget.src = `https://placehold.co/800x600/e2e8f0/64748b?text=${car.make}+${car.model}`;
+                      }}
                     />
                     <Badge className="absolute top-2 left-2 bg-white text-black">Guest favorite</Badge>
                   </div>

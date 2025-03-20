@@ -104,25 +104,14 @@ export default function AuthPage() {
             <Logo size="md" />
           </div>
           
-          <nav className="hidden md:flex space-x-6 mx-4">
-            <Link href="/" className="flex items-center text-sm font-medium hover:text-red-600 transition-colors">
-              <Home className="w-4 h-4 mr-1" />
-              Home
-            </Link>
-            <Link href="/all-cars" className="flex items-center text-sm font-medium hover:text-red-600 transition-colors">
-              <Search className="w-4 h-4 mr-1" />
-              Search Cars
-            </Link>
-            <Link href="/favorites" className="flex items-center text-sm font-medium hover:text-red-600 transition-colors">
-              <Heart className="w-4 h-4 mr-1" />
-              Favorites
-            </Link>
-          </nav>
+          {/* Navigation links removed */}
           
           <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" className="hidden sm:flex">
-              List Your Car
-            </Button>
+            <Link href="/become-host">
+              <Button variant="outline" size="sm" className="hidden sm:flex">
+                List Your Car
+              </Button>
+            </Link>
             <Button variant="default" size="sm" className="hidden sm:flex bg-red-600 hover:bg-red-700">
               <User className="w-4 h-4 mr-1" />
               Sign In

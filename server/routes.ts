@@ -272,10 +272,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== Car Routes ====================
   
-  // Get all cars
+  // Get all cars with advanced filtering
   apiRouter.get("/cars", async (req: Request, res: Response) => {
-    const cars = await storage.getCars();
-    return res.json(cars);
+    try {
+      const { 
+        minPrice, maxPrice, make, model, features, 
+        year, minRating, transmission, fuelType, seats, 
+        category, available, sort, limit, offset, searchQuery 
+      } = req.query;
+      
+      // Process query parameters
+      const filters: any = {};
+      
+      // Convert numeric parameters
+      if (minPrice) filters.minPrice = parseFloat(minPrice as string);
+      if (maxPrice) filters.maxPrice = parseFloat(maxPrice as string);
+      if (minRating) filters.minRating = parseFloat(minRating as string);
+      if (year) filters.year = parseInt(year as string, 10);
+      if (seats) filters.seats = parseInt(seats as string, 10);
+      
+      // Convert array parameters
+      if (make) filters.make = (Array.isArray(make) ? make : [make]) as string[];
+      if (model) filters.model = (Array.isArray(model) ? model : [model]) as string[];
+      if (features) filters.features = (Array.isArray(features) ? features : [features]) as string[];
+      
+      // Convert string parameters
+      if (transmission) filters.transmission = transmission as string;
+      if (fuelType) filters.fuelType = fuelType as string;
+      if (category) filters.category = category as string;
+      if (searchQuery) filters.searchQuery = searchQuery as string;
+      
+      // Convert boolean parameters
+      if (available) filters.available = available === 'true';
+      
+      // Pagination parameters
+      if (limit) filters.limit = parseInt(limit as string, 10);
+      if (offset) filters.offset = parseInt(offset as string, 10);
+      
+      // Sort parameter
+      if (sort) filters.sort = sort as string;
+      
+      // Use storage method with filters if filters exist, otherwise get all cars
+      const cars = Object.keys(filters).length > 0 
+        ? await storage.getCarsWithFilters(filters)
+        : await storage.getCars();
+        
+      return res.json(cars);
+    } catch (error) {
+      console.error('Error fetching cars:', error);
+      return res.status(500).json({ message: 'Error fetching cars' });
+    }
   });
   
   // Get car by ID

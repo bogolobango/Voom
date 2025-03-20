@@ -16,20 +16,56 @@ declare global {
 
 const scryptAsync = promisify(scrypt);
 
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
+/**
+ * Enhanced password hashing with configurable cost factor
+ * @param password The plaintext password to hash
+ * @param iterations Optional cost factor for hashing (higher is more secure but slower)
+ * @returns A string containing the hashed password and salt
+ */
+async function hashPassword(password: string, iterations = 64) {
+  // Use a larger salt for increased security
+  const salt = randomBytes(32).toString("hex");
+  // Add a pepper if configured in environment (not shown in the hash)
+  const pepper = process.env.PASSWORD_PEPPER || "";
+  const passwordWithPepper = password + pepper;
+  
+  // Hash with scrypt using configurable cost factor
+  const buf = (await scryptAsync(passwordWithPepper, salt, iterations)) as Buffer;
+  
+  // Return the hash with format: iterations.hash.salt
+  return `${iterations}.${buf.toString("hex")}.${salt}`;
 }
 
+/**
+ * Securely compare a supplied password against a stored hash
+ * @param supplied The plaintext password to verify
+ * @param stored The stored password hash
+ * @returns Boolean indicating if passwords match
+ */
 async function comparePasswords(supplied: string, stored: string) {
-  const [hashed, salt] = stored.split(".");
-  const hashedBuf = Buffer.from(hashed, "hex");
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
+  try {
+    // Parse the stored hash components
+    const [iterationsStr, hashed, salt] = stored.split(".");
+    const iterations = parseInt(iterationsStr, 10) || 64;
+    
+    // Add pepper if configured (same as in hashPassword)
+    const pepper = process.env.PASSWORD_PEPPER || "";
+    const passwordWithPepper = supplied + pepper;
+    
+    // Hash the supplied password with the same parameters
+    const hashedBuf = Buffer.from(hashed, "hex");
+    const suppliedBuf = (await scryptAsync(passwordWithPepper, salt, iterations)) as Buffer;
+    
+    // Use timing-safe comparison to prevent timing attacks
+    return timingSafeEqual(hashedBuf, suppliedBuf);
+  } catch (error) {
+    console.error("Password comparison error:", error);
+    return false;
+  }
 }
 
 export function setupAuth(app: Express) {
+  // Enhanced session security settings
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "voom-car-sharing-secret",
     resave: false,
@@ -37,8 +73,15 @@ export function setupAuth(app: Express) {
     store: storage.sessionStore,
     cookie: { 
       secure: process.env.NODE_ENV === "production",
+      httpOnly: true, // Prevents client-side JS from accessing the cookie
+      sameSite: 'lax', // Provides some CSRF protection
       maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
-    }
+    },
+    // Additional protections for production
+    ...(process.env.NODE_ENV === "production" && {
+      name: "__Host-session", // Makes cookie more secure in modern browsers
+      proxy: true, // Trust the reverse proxy when setting secure cookies
+    })
   };
 
   app.set("trust proxy", 1);

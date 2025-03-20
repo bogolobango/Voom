@@ -1,15 +1,19 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle, NeonDatabase } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
-import * as schema from "@shared/schema";
+/**
+ * Database connection and transaction management utilities
+ */
+import { Pool, PoolClient } from 'pg';
+import { drizzle, PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import { Logger } from 'drizzle-orm';
+import * as schema from '@shared/schema';
 
-neonConfig.webSocketConstructor = ws;
-
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
-}
+// Custom logger for query debugging
+const customLogger: Logger = {
+  logQuery: (query, params) => {
+    if (process.env.DEBUG_DB === 'true') {
+      console.log(`SQL Query: ${query} - with params: ${JSON.stringify(params)}`);
+    }
+  },
+};
 
 // Optimized pool configuration for production workloads
 const poolConfig = {
@@ -17,22 +21,14 @@ const poolConfig = {
   max: process.env.NODE_ENV === 'production' ? 20 : 10, // Maximum connections in pool
   idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed
   connectionTimeoutMillis: 2000, // How long to wait for a connection
-};
-
-// Custom logger for database operations
-const dbLogger = {
-  logQuery: (query: string, params: any) => {
-    if (process.env.DEBUG_DB === 'true') {
-      console.log(`SQL Query: ${query} - with params: ${JSON.stringify(params)}`);
-    }
-  },
+  allowExitOnIdle: false, // Don't allow the pool to exit while we're using it
 };
 
 // Create and export the connection pool
 export const pool = new Pool(poolConfig);
 
 // Create and export the drizzle database instance
-export const db = drizzle({ client: pool, schema, logger: dbLogger });
+export const db = drizzle(pool, { schema, logger: customLogger });
 
 // Handle pool errors to prevent crashes
 pool.on('error', (err) => {
@@ -42,6 +38,9 @@ pool.on('error', (err) => {
 
 /**
  * Execute a query with automatic retries for transient errors
+ * @param queryFn Function that executes the query
+ * @param maxRetries Maximum number of retry attempts
+ * @returns Query result
  */
 export async function executeWithRetry<T>(
   queryFn: () => Promise<T>,
@@ -76,15 +75,17 @@ export async function executeWithRetry<T>(
 
 /**
  * Execute a function within a database transaction
+ * @param fn Function to execute within transaction
+ * @returns Result of the function
  */
 export async function withTransaction<T>(
-  fn: (db: NeonDatabase<typeof schema>) => Promise<T>
+  fn: (db: PostgresJsDatabase<typeof schema>) => Promise<T>
 ): Promise<T> {
   const client = await pool.connect();
   
   try {
     await client.query('BEGIN');
-    const transactionDb = drizzle({ client, schema, logger: dbLogger });
+    const transactionDb = drizzle(client, { schema, logger: customLogger });
     
     const result = await fn(transactionDb);
     
@@ -100,6 +101,7 @@ export async function withTransaction<T>(
 
 // Graceful shutdown function
 export async function closeDatabase() {
+  console.log('Closing database connections...');
   try {
     await pool.end();
     console.log('All database connections closed');
@@ -108,7 +110,7 @@ export async function closeDatabase() {
   }
 }
 
-// Register shutdown handlers
+// Handle application termination
 process.on('SIGINT', async () => {
   await closeDatabase();
   process.exit(0);

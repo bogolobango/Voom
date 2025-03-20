@@ -103,10 +103,10 @@ export default function Messages() {
       const whatsappConfigStatus = whatsappService.getConfigStatus();
       if (whatsappConfigStatus.isConfigured && selectedConversation) {
         try {
-          // This would normally get the phone number from the user profile
-          // Using a placeholder since we don't have real phone numbers in ConversationUser yet
-          // In a production environment, we would fetch this from the user profile
-          const phoneNumber = "+1234567890"; // Hardcoded placeholder for demo purposes
+          // Attempt to get user's phone number
+          const user = selectedConversation;
+          // This is a placeholder - normally we would get the phone number from the user profile
+          const phoneNumber = user.phoneNumber || "+1234567890"; // Not a real number
           
           // Send message via WhatsApp
           await whatsappService.sendMessage({
@@ -114,6 +114,7 @@ export default function Messages() {
             messageText: content
           });
           
+          // Success notification could be added here
         } catch (whatsappError) {
           console.error("WhatsApp message sending failed:", whatsappError);
           // Only show a toast if the API message was sent successfully

@@ -13,19 +13,21 @@ export function Logo({
   showLink = true 
 }: LogoProps) {
   const sizeClasses = {
-    sm: "text-xl tracking-wider",
-    md: "text-2xl tracking-wider",
-    lg: "text-3xl tracking-wider"
+    sm: "h-6",
+    md: "h-8",
+    lg: "h-10"
   };
   
   const logoContent = (
-    <span className={cn(
-      "font-bold text-red-600", 
-      sizeClasses[size], 
-      className
-    )}>
-      VOOM
-    </span>
+    <img 
+      src="/images/voom-logo.png" 
+      alt="VOOM" 
+      className={cn(
+        sizeClasses[size], 
+        "w-auto", 
+        className
+      )} 
+    />
   );
   
   if (showLink) {

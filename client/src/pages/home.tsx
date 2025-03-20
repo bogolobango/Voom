@@ -95,41 +95,39 @@ export default function Home() {
 
       <main className="flex-grow">
         {/* List a New Car Banner - Prominently displayed at top */}
-        {user && (
-          <motion.div 
-            className="bg-gradient-to-r from-red-500 to-red-600 py-4"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center">
-              <motion.div 
-                className="text-white mb-3 md:mb-0"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
+        <motion.div 
+          className="bg-gradient-to-r from-red-500 to-red-600 py-4"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center">
+            <motion.div 
+              className="text-white mb-3 md:mb-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+            >
+              <h2 className="text-xl font-semibold mb-1">Have a car? Earn money by sharing it!</h2>
+              <p className="text-white/90">Join thousands of hosts making extra income on Voom</p>
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+            >
+              <Button 
+                onClick={() => navigate("/become-host")} 
+                className="bg-white text-red-600 hover:bg-gray-100 font-semibold"
+                size="lg"
               >
-                <h2 className="text-xl font-semibold mb-1">Have a car? Earn money by sharing it!</h2>
-                <p className="text-white/90">Join thousands of hosts making extra income on Voom</p>
-              </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4, duration: 0.5 }}
-              >
-                <Button 
-                  onClick={() => navigate("/become-host")} 
-                  className="bg-white text-red-600 hover:bg-gray-100 font-semibold"
-                  size="lg"
-                >
-                  List a New Car
-                </Button>
-              </motion.div>
-            </div>
-          </motion.div>
-        )}
+                List Your Car
+              </Button>
+            </motion.div>
+          </div>
+        </motion.div>
         
         {/* Hero Section with Check-in Form FIRST */}
         <div className="relative bg-gray-100 overflow-hidden">
@@ -617,6 +615,38 @@ export default function Home() {
             <Button variant="outline" onClick={() => navigate('/category/sedan')} className="w-full">
               Show all economy cars
             </Button>
+          </div>
+        </div>
+
+        {/* List Your Car Banner - Bottom of Page */}
+        <div className="bg-gradient-to-r from-red-500 to-red-600 py-6 mt-8">
+          <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center">
+            <motion.div 
+              className="text-white mb-4 md:mb-0 text-center md:text-left"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              viewport={{ once: true }}
+            >
+              <h2 className="text-2xl font-bold mb-2">Start earning with your car today!</h2>
+              <p className="text-white/90 text-lg">Share your vehicle and earn additional income with Voom's secure platform</p>
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              viewport={{ once: true }}
+            >
+              <Button 
+                onClick={() => navigate("/become-host")} 
+                className="bg-white text-red-600 hover:bg-gray-100 font-semibold"
+                size="lg"
+              >
+                List Your Car
+              </Button>
+            </motion.div>
           </div>
         </div>
       </main>

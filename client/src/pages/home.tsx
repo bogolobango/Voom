@@ -351,7 +351,7 @@ export default function Home() {
               {luxuryCars.map((car) => (
                 <motion.div 
                   key={car.id} 
-                  className="rounded-lg overflow-hidden border border-gray-200"
+                  className="rounded-lg overflow-hidden border border-gray-200 cursor-pointer"
                   variants={{
                     visible: { 
                       opacity: 1, 
@@ -368,6 +368,7 @@ export default function Home() {
                     boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
                     transition: { duration: 0.2 } 
                   }}
+                  onClick={() => navigate(`/cars/${car.id}`)}
                 >
                   <div className="relative">
                     <img 
@@ -549,7 +550,7 @@ export default function Home() {
               {economyCars.map((car) => (
                 <motion.div 
                   key={car.id} 
-                  className="rounded-lg overflow-hidden border border-gray-200"
+                  className="rounded-lg overflow-hidden border border-gray-200 cursor-pointer"
                   variants={{
                     visible: { 
                       opacity: 1, 
@@ -566,6 +567,7 @@ export default function Home() {
                     boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
                     transition: { duration: 0.2 } 
                   }}
+                  onClick={() => navigate(`/cars/${car.id}`)}
                 >
                   <div className="relative">
                     <img 

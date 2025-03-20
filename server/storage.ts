@@ -1038,14 +1038,20 @@ export class DatabaseStorage implements IStorage {
       // Test database connection before proceeding
       console.log('Testing database connection...');
       
-      // Use a safer session store configuration with proper error handling
+      // Use a more resilient session store configuration with better timeout handling
       this.sessionStore = new PostgresSessionStore({ 
         conObject: {
           connectionString: process.env.DATABASE_URL,
-          ssl: { rejectUnauthorized: false }, // More compatible SSL setting
-          connectionTimeoutMillis: 5000,      // More generous timeout
+          ssl: { rejectUnauthorized: false }, // Compatible SSL setting
+          connectionTimeoutMillis: 10000,     // More generous connection timeout
+          idleTimeoutMillis: 60000,           // Longer idle timeout
+          keepAlive: true,                    // Enable TCP keepalive
+          max: 10,                            // Maximum pool size
+          min: 2,                             // Minimum pool size (keep some connections ready)
         },
         createTableIfMissing: true,
+        tableName: 'session',
+        pruneSessionInterval: 60,             // Prune stale sessions every minute
         errorLog: (err) => console.error('PostgreSQL session store error:', err)
       });
       

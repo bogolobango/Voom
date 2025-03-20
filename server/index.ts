@@ -47,37 +47,10 @@ app.use((req, res, next) => {
     
     const server = await registerRoutes(app);
 
-    // Import and use our custom error handler middleware with module compatibility handling
-    let errorHandler;
-    try {
-      // First try with ESM dynamic import
-      const errorHandlerModule = await import('./utils/error-handler');
-      errorHandler = errorHandlerModule.errorMiddleware;
-    } catch (importErr) {
-      // If that fails, try to use our compatibility layer
-      const importError = importErr as Error;
-      console.warn('ESM import failed, trying compatibility layer:', importError.message);
-      
-      try {
-        // Import our format bridge to help with module compatibility
-        // Use a properly typed import
-        const formatBridgeModule = await import('./utils/format-bridge');
-        const formatBridge = formatBridgeModule.default;
-        
-        // Use the bridge to load the error handler
-        // @ts-ignore - dynamically typed module import
-        const errorHandlerModule = await formatBridge.importModule('./utils/error-handler');
-        
-        if (errorHandlerModule) {
-          errorHandler = errorHandlerModule.errorMiddleware;
-        }
-      } catch (bridgeErr) {
-        // Last resort: require directly (will only work in CJS mode)
-        const bridgeError = bridgeErr as Error;
-        console.warn('Bridge import failed, trying direct require:', bridgeError.message);
-        try {
-          // @ts-ignore - intentional fallback for CJS environments
-          const errorHandlerModule = require('./utils/error-handler');
+    // Import error handler using module compatibility layer
+    const { safeImport } = await import('./utils/module-compat');
+    const errorHandlerModule = await safeImport('./utils/error-handler');
+    const errorHandler = errorHandlerModule?.errorMiddleware;);
           errorHandler = errorHandlerModule.errorMiddleware;
         } catch (requireErr) {
           console.error('All module loading approaches failed:', requireErr);

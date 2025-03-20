@@ -47,14 +47,32 @@ app.use((req, res, next) => {
     
     const server = await registerRoutes(app);
 
-    // Import error handler using module compatibility layer
-    const { safeImport } = await import('./utils/module-compat');
-    const errorHandlerModule = await safeImport('./utils/error-handler');
-    const errorHandler = errorHandlerModule?.errorMiddleware;);
-          errorHandler = errorHandlerModule.errorMiddleware;
-        } catch (requireErr) {
-          console.error('All module loading approaches failed:', requireErr);
+    // Import error handler using multiple fallback methods
+    let errorHandler;
+    try {
+      // First try direct dynamic import (ESM)
+      const errorHandlerModule = await import('./utils/error-handler');
+      // Type assertion to handle TypeScript error
+      errorHandler = (errorHandlerModule as any).errorMiddleware;
+      console.log('Successfully loaded error handler using ESM import');
+    } catch (error) {
+      const importError = error as Error;
+      console.warn('ESM import failed, trying alternative methods:', importError.message);
+      
+      try {
+        // Try using our compatibility layer
+        const { safeImport } = await import('./utils/module-compat');
+        const errorHandlerModule = await safeImport<any>('./utils/error-handler');
+        errorHandler = errorHandlerModule?.errorMiddleware;
+        
+        if (errorHandler) {
+          console.log('Successfully loaded error handler using module-compat');
+        } else {
+          throw new Error('Error handler not found in module');
         }
+      } catch (error) {
+        const compatError = error as Error;
+        console.error('Failed to load error handler:', compatError.message);
       }
     }
     

@@ -5,6 +5,7 @@ import { SQL, sql } from 'drizzle-orm';
 import { cars } from '@shared/schema';
 import { ilike, and, or, eq, between, gte, lte, inArray } from 'drizzle-orm/expressions';
 
+// Export the interface for use in other files
 export interface CarFilterOptions {
   minPrice?: number;
   maxPrice?: number;
@@ -30,8 +31,8 @@ export interface CarFilterOptions {
  * @param filters Filter options for cars query
  * @returns SQL condition for WHERE clause
  */
-export function buildCarFilterConditions(filters: CarFilterOptions): SQL {
-  const conditions: SQL[] = [];
+export function buildCarFilterConditions(filters: CarFilterOptions): SQL<unknown> {
+  const conditions: SQL<unknown>[] = [];
   
   // Price range filtering
   if (filters.minPrice !== undefined) {
@@ -68,7 +69,7 @@ export function buildCarFilterConditions(filters: CarFilterOptions): SQL {
   // Features filtering - using array containment
   if (filters.features && filters.features.length > 0) {
     // For each feature we want, check if it's in the array
-    const featuresConditions = filters.features.map(feature => 
+    const featuresConditions: SQL<unknown>[] = filters.features.map(feature => 
       sql`${feature} = ANY(${cars.features})`
     );
     
@@ -107,16 +108,15 @@ export function buildCarFilterConditions(filters: CarFilterOptions): SQL {
   // Text search (fuzzy search on make, model, and description)
   if (filters.searchQuery) {
     const searchTerm = `%${filters.searchQuery}%`;
-    conditions.push(
-      or(
-        ilike(cars.make, searchTerm),
-        ilike(cars.model, searchTerm),
-        ilike(cars.description, searchTerm)
-      )
+    const searchCondition = or(
+      ilike(cars.make, searchTerm),
+      ilike(cars.model, searchTerm),
+      ilike(cars.description, searchTerm)
     );
+    conditions.push(searchCondition);
   }
   
-  // Combine all conditions with AND
+  // Combine all conditions with AND or return TRUE if no conditions
   return conditions.length ? and(...conditions) : sql`TRUE`;
 }
 
@@ -125,7 +125,7 @@ export function buildCarFilterConditions(filters: CarFilterOptions): SQL {
  * @param sort Sort option
  * @returns SQL for ORDER BY clause
  */
-export function buildCarSortClause(sort?: string): SQL {
+export function buildCarSortClause(sort?: string): SQL<unknown> {
   switch (sort) {
     case 'price_asc':
       return sql`${cars.dailyRate} ASC`;
@@ -147,7 +147,7 @@ export function buildCarSortClause(sort?: string): SQL {
  * @param offset Number of results to skip
  * @returns SQL for LIMIT and OFFSET
  */
-export function buildPaginationClause(limit = 50, offset = 0): SQL {
+export function buildPaginationClause(limit = 50, offset = 0): SQL<unknown> {
   // Cap the maximum limit to prevent performance issues
   const safeLimit = Math.min(limit || 50, 100);
   const safeOffset = offset || 0;

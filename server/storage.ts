@@ -47,6 +47,7 @@ export interface IStorage {
   // Car operations
   getCar(id: number): Promise<Car | undefined>;
   getCars(): Promise<Car[]>;
+  getCarsWithFilters(filters: any): Promise<Car[]>; // Add advanced filtering
   getCarsByHost(hostId: number): Promise<Car[]>;
   createCar(car: InsertCar): Promise<Car>;
   updateCar(id: number, data: Partial<Car>): Promise<Car | undefined>;
@@ -451,6 +452,142 @@ export class MemStorage implements IStorage {
     }
     
     return allCars;
+  }
+  
+  async getCarsWithFilters(filters: any): Promise<Car[]> {
+    // Get all cars
+    const allCars = Array.from(this.cars.values());
+    
+    // Apply filters
+    let filteredCars = allCars;
+    
+    // Price range filtering
+    if (filters.minPrice !== undefined) {
+      filteredCars = filteredCars.filter(car => car.dailyRate >= filters.minPrice);
+    }
+    
+    if (filters.maxPrice !== undefined) {
+      filteredCars = filteredCars.filter(car => car.dailyRate <= filters.maxPrice);
+    }
+    
+    // Make filtering
+    if (filters.make && filters.make.length > 0) {
+      filteredCars = filteredCars.filter(car => filters.make.includes(car.make));
+    }
+    
+    // Model filtering
+    if (filters.model && filters.model.length > 0) {
+      filteredCars = filteredCars.filter(car => filters.model.includes(car.model));
+    }
+    
+    // Year filtering
+    if (filters.year !== undefined) {
+      if (Array.isArray(filters.year)) {
+        filteredCars = filteredCars.filter(car => filters.year.includes(car.year));
+      } else {
+        filteredCars = filteredCars.filter(car => car.year === filters.year);
+      }
+    }
+    
+    // Available filtering
+    if (filters.available !== undefined) {
+      filteredCars = filteredCars.filter(car => car.available === filters.available);
+    }
+    
+    // Features filtering
+    if (filters.features && filters.features.length > 0) {
+      filteredCars = filteredCars.filter(car => {
+        if (!car.features) return false;
+        return filters.features.every((feature: string) => car.features?.includes(feature));
+      });
+    }
+    
+    // Host filtering
+    if (filters.hostId !== undefined) {
+      filteredCars = filteredCars.filter(car => car.hostId === filters.hostId);
+    }
+    
+    // Transmission filtering
+    if (filters.transmission) {
+      filteredCars = filteredCars.filter(car => car.transmission === filters.transmission);
+    }
+    
+    // Fuel type filtering
+    if (filters.fuelType) {
+      filteredCars = filteredCars.filter(car => car.fuelType === filters.fuelType);
+    }
+    
+    // Seats filtering
+    if (filters.seats) {
+      filteredCars = filteredCars.filter(car => car.seats && car.seats >= filters.seats);
+    }
+    
+    // Car type filtering
+    if (filters.type) {
+      filteredCars = filteredCars.filter(car => car.type === filters.type);
+    }
+    
+    // Rating filtering
+    if (filters.minRating !== undefined) {
+      filteredCars = filteredCars.filter(car => (car.rating || 0) >= filters.minRating);
+    }
+    
+    // Text search
+    if (filters.searchQuery) {
+      const searchTerm = filters.searchQuery.toLowerCase();
+      filteredCars = filteredCars.filter(car => 
+        car.make.toLowerCase().includes(searchTerm) ||
+        car.model.toLowerCase().includes(searchTerm) ||
+        (car.description && car.description.toLowerCase().includes(searchTerm))
+      );
+    }
+    
+    // Apply sorting
+    if (filters.sort) {
+      switch (filters.sort) {
+        case 'price_asc':
+          filteredCars.sort((a, b) => a.dailyRate - b.dailyRate);
+          break;
+        case 'price_desc':
+          filteredCars.sort((a, b) => b.dailyRate - a.dailyRate);
+          break;
+        case 'rating_desc':
+          filteredCars.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+          break;
+        case 'newest':
+          filteredCars.sort((a, b) => b.id - a.id);
+          break;
+        default:
+          // Default sort by rating desc, then price asc
+          filteredCars.sort((a, b) => {
+            const ratingDiff = (b.rating || 0) - (a.rating || 0);
+            if (ratingDiff !== 0) return ratingDiff;
+            return a.dailyRate - b.dailyRate;
+          });
+      }
+    }
+    
+    // Apply pagination
+    if (filters.limit || filters.offset) {
+      const offset = filters.offset || 0;
+      const limit = filters.limit || 50;
+      filteredCars = filteredCars.slice(offset, offset + limit);
+    }
+    
+    // Find the Range Rover if it exists and if applicable based on filters
+    if (filters.make?.includes("Land Rover") || !filters.make || filters.make.length === 0) {
+      const rangeRoverIndex = filteredCars.findIndex(car => 
+        car.make === "Land Rover" && car.model === "Range Rover" && car.year === 2023
+      );
+      
+      // If Range Rover exists, move it to the top of the list
+      if (rangeRoverIndex !== -1) {
+        const rangeRover = filteredCars.splice(rangeRoverIndex, 1)[0];
+        filteredCars.unshift(rangeRover);
+      }
+    }
+    
+    return filteredCars;
   }
   
   async getCarsByHost(hostId: number): Promise<Car[]> {
@@ -953,6 +1090,54 @@ export class DatabaseStorage implements IStorage {
     }
     
     return allCars;
+  }
+  
+  async getCarsWithFilters(filters: any): Promise<Car[]> {
+    try {
+      // Import query helper functions
+      const { 
+        buildCarFilterConditions, 
+        buildCarSortClause, 
+        buildPaginationClause,
+        CarFilterOptions 
+      } = await import('./utils/query-helpers');
+      
+      // Create a query builder that starts with selecting all cars
+      let query = db.select().from(cars);
+      
+      // Add filter conditions if there are any
+      const whereConditions = buildCarFilterConditions(filters);
+      query = query.where(whereConditions);
+      
+      // Add sort condition
+      query = query.orderBy(buildCarSortClause(filters.sort));
+      
+      // Add pagination
+      if (filters.limit || filters.offset) {
+        query = query.limit(filters.limit || 50).offset(filters.offset || 0);
+      }
+      
+      // Execute the query
+      const filteredCars = await query;
+      
+      // If "Land Rover Range Rover" should be prioritized regardless of filters
+      if (filters.make?.includes("Land Rover") || !filters.make || filters.make.length === 0) {
+        const rangeRoverIndex = filteredCars.findIndex(car => 
+          car.make === "Land Rover" && car.model === "Range Rover" && car.year === 2023
+        );
+        
+        if (rangeRoverIndex !== -1) {
+          const rangeRover = filteredCars.splice(rangeRoverIndex, 1)[0];
+          filteredCars.unshift(rangeRover);
+        }
+      }
+      
+      return filteredCars;
+    } catch (error) {
+      console.error("Error in getCarsWithFilters:", error);
+      // Fall back to regular getCars if there's an error
+      return this.getCars();
+    }
   }
 
   async getCarsByHost(hostId: number): Promise<Car[]> {

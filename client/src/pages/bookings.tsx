@@ -44,7 +44,7 @@ export default function Bookings() {
               <Card key={booking.id} className="overflow-hidden">
                 <div className="flex border-b">
                   <img
-                    src={booking.car.imageUrl}
+                    src={booking.car.imageUrl ?? undefined}
                     alt={`${booking.car.make} ${booking.car.model}`}
                     className="w-32 h-32 object-cover"
                   />

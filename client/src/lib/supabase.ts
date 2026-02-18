@@ -1,29 +1,23 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Fix for environment variables being swapped
-// Using the correct values directly
-const supabaseUrl = 'https://bdkslsvpnsiliqohdlkf.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJka3Nsc3ZwbnNpbGlxb2hkbGtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0MTI5MjYsImV4cCI6MjA1Nzk4ODkyNn0.FXcBS7mpw-tCYeVQ29tVzIK1KvMZbk0XFjZyvV1y5KY';
+// Use environment variables - never hardcode credentials
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-console.log('Supabase URL:', supabaseUrl);
+let supabaseInstance: SupabaseClient | null = null;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase credentials. Please check your environment variables.');
+if (supabaseUrl && supabaseAnonKey) {
+  try {
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      }
+    });
+  } catch (error) {
+    console.error('Error initializing Supabase client:', error);
+  }
 }
 
-let supabaseInstance: SupabaseClient;
-
-try {
-  // Create a single supabase client for interacting with your database
-  supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-    }
-  });
-} catch (error) {
-  console.error('Error initializing Supabase client:', error);
-  throw error;
-}
-
-export const supabase = supabaseInstance;
+// Export a potentially null client - consumers should check before using
+export const supabase = supabaseInstance as SupabaseClient;

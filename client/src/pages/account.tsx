@@ -113,7 +113,7 @@ export default function Account() {
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <Avatar className="h-16 w-16 mr-4">
-                  <AvatarImage src={user?.profilePicture} alt={user?.username} />
+                  <AvatarImage src={user?.profilePicture ?? undefined} alt={user?.username ?? undefined} />
                   <AvatarFallback>{user ? getInitials(user.username) : "U"}</AvatarFallback>
                 </Avatar>
                 <div>
@@ -165,9 +165,9 @@ export default function Account() {
                     <div className="flex flex-col items-center justify-center mb-4">
                       <div className="relative mb-4">
                         <Avatar className="h-24 w-24">
-                          <AvatarImage 
-                            src={previewUrl || user?.profilePicture} 
-                            alt={user?.username} 
+                          <AvatarImage
+                            src={(previewUrl || user?.profilePicture) ?? undefined}
+                            alt={user?.username ?? undefined}
                           />
                           <AvatarFallback className="bg-red-100 text-red-600">
                             {user ? getInitials(user.username) : "U"}

@@ -93,8 +93,9 @@ export default function BookingConfirm() {
     const bookingData: InsertBooking = {
       carId: car.id,
       userId: user.id,
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
+      hostId: 0, // Server will override with real hostId from the car
+      startDate: new Date(startDate.toISOString()),
+      endDate: new Date(endDate.toISOString()),
       pickupLocation: pickupLocation || car.location,
       dropoffLocation: isPickupSameAsDropoff ? (pickupLocation || car.location) : dropoffLocation,
       totalAmount,
@@ -107,7 +108,7 @@ export default function BookingConfirm() {
   };
 
   const handleBack = () => {
-    navigate(-1);
+    navigate((-1).toString());
   };
 
   const handleEditBooking = () => {
@@ -142,8 +143,8 @@ export default function BookingConfirm() {
 
   // Create booking object for display purposes
   const booking: Partial<Booking> = {
-    startDate: startDate.toISOString(),
-    endDate: endDate.toISOString(),
+    startDate: new Date(startDate.toISOString()),
+    endDate: new Date(endDate.toISOString()),
     pickupLocation: pickupLocation || car.location,
     dropoffLocation: isPickupSameAsDropoff ? (pickupLocation || car.location) : dropoffLocation,
     totalAmount,
@@ -158,7 +159,7 @@ export default function BookingConfirm() {
         <Card className="mb-6">
           <CardContent className="p-4 flex items-center">
             <img
-              src={car.imageUrl}
+              src={car.imageUrl ?? undefined}
               alt={`${car.make} ${car.model}`}
               className="w-20 h-20 object-cover rounded-md mr-4"
             />

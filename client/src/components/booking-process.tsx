@@ -184,6 +184,7 @@ export function BookingProcess({ car, user, onComplete, onBack }: BookingProcess
     const bookingData: InsertBooking = {
       carId: car.id,
       userId: user.id,
+      hostId: 0, // Server will override with real hostId from the car
       startDate: selectedStartDate,
       endDate: selectedEndDate,
       pickupLocation: pickupLocation || car.location,

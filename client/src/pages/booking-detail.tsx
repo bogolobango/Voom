@@ -24,27 +24,24 @@ export default function BookingDetailPage() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const queryClient = useQueryClient();
   
-  const bookingId = parseInt(id);
+  const bookingId = parseInt(id as string);
   
   // Fetch booking details
   const { data: booking, isLoading: bookingLoading } = useQuery({
     queryKey: ['/api/bookings', bookingId],
     enabled: !isNaN(bookingId),
-  });
-  
+  }) as { data: any; isLoading: boolean };
+
   // Fetch car details
   const { data: car, isLoading: carLoading } = useQuery({
     queryKey: ['/api/cars', booking?.carId],
     enabled: !!booking?.carId,
-  });
+  }) as { data: any; isLoading: boolean };
   
   // Handle booking cancellation
   const cancelMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest(`/api/bookings/${bookingId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ status: "cancelled" }),
-      });
+      return apiRequest("PATCH", `/api/bookings/${bookingId}`, { status: "cancelled" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });

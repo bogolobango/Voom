@@ -121,7 +121,7 @@ export default function HostDashboard() {
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <Avatar className="h-16 w-16 mr-4">
-                  <AvatarImage src={user?.profilePicture} alt={user?.username} />
+                  <AvatarImage src={user?.profilePicture ?? undefined} alt={user?.username ?? undefined} />
                   <AvatarFallback>{user ? getInitials(user.username) : "H"}</AvatarFallback>
                 </Avatar>
                 <div>

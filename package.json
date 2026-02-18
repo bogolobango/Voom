@@ -60,6 +60,8 @@
     "express": "^4.21.2",
     "express-session": "^1.18.1",
     "framer-motion": "^11.13.1",
+    "motion-dom": "^11.13.0",
+    "motion-utils": "^11.13.0",
     "input-otp": "^1.2.4",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.453.0",

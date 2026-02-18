@@ -47,15 +47,13 @@ app.use((req, res, next) => {
     
     const server = await registerRoutes(app);
 
-    // Import error handler using module compatibility layer
-    const { safeImport } = await import('./utils/module-compat');
-    const errorHandlerModule = await safeImport('./utils/error-handler');
-    const errorHandler = errorHandlerModule?.errorMiddleware;);
-          errorHandler = errorHandlerModule.errorMiddleware;
-        } catch (requireErr) {
-          console.error('All module loading approaches failed:', requireErr);
-        }
-      }
+    // Import error handler
+    let errorHandler: any;
+    try {
+      const errorHandlerModule = await import('./utils/error-handler');
+      errorHandler = errorHandlerModule?.errorMiddleware;
+    } catch (err) {
+      console.error('Failed to load error handler:', err);
     }
     
     // Apply error handler middleware

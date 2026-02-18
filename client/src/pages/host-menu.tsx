@@ -121,7 +121,7 @@ export default function HostMenu() {
           <CardHeader className="pb-2">
             <div className="flex items-center space-x-4">
               <Avatar className="h-16 w-16">
-                <AvatarImage src={user?.profilePicture} />
+                <AvatarImage src={user?.profilePicture ?? undefined} />
                 <AvatarFallback>
                   {user?.fullName ? getInitials(user.fullName) : "U"}
                 </AvatarFallback>

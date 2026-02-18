@@ -1,15 +1,63 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-// Import the deployment-adapter only in try/catch block when needed
-// This avoids the initial import error if the module has compatibility issues
-
-// Error handlers will be registered dynamically when needed
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
 
+// Body parsing with size limits
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: false, limit: "10mb" }));
+
+// Security headers
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  if (process.env.NODE_ENV === "production") {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
+  next();
+});
+
+// CORS for production
+if (process.env.NODE_ENV === "production" && process.env.FRONTEND_URL) {
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && origin === process.env.FRONTEND_URL) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+    }
+    if (req.method === "OPTIONS") return res.sendStatus(204);
+    next();
+  });
+}
+
+// Simple rate limiting for auth/payment endpoints
+const rateLimits = new Map<string, { count: number; resetAt: number }>();
+const rateLimit = (windowMs: number, maxRequests: number) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const key = `${req.ip}:${req.path}`;
+    const now = Date.now();
+    const entry = rateLimits.get(key);
+    if (!entry || now > entry.resetAt) {
+      rateLimits.set(key, { count: 1, resetAt: now + windowMs });
+      return next();
+    }
+    entry.count++;
+    if (entry.count > maxRequests) {
+      return res.status(429).json({ message: "Too many requests, please try again later" });
+    }
+    next();
+  };
+};
+app.use("/api/auth/login", rateLimit(15 * 60 * 1000, 10));
+app.use("/api/auth/register", rateLimit(15 * 60 * 1000, 5));
+app.use("/api/payments", rateLimit(60 * 1000, 10));
+
+// Request logging
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -42,39 +90,26 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    // Development-specific startup code
-    console.log('Starting car sharing platform application...');
-    
+    console.log('Starting VOOM car sharing platform...');
+
     const server = await registerRoutes(app);
 
-    // Import error handler
-    let errorHandler: any;
-    try {
-      const errorHandlerModule = await import('./utils/error-handler');
-      errorHandler = errorHandlerModule?.errorMiddleware;
-    } catch (err) {
-      console.error('Failed to load error handler:', err);
-    }
-    
-    // Apply error handler middleware
-    if (errorHandler) {
-      app.use(errorHandler);
-    } else {
-      console.error('Failed to load error handler middleware!');
-    }
+    // Global error handler
+    app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+      const status = (err as any).status || 500;
+      const message = process.env.NODE_ENV === "production"
+        ? "Internal server error"
+        : err.message;
+      console.error('Unhandled error:', err);
+      res.status(status).json({ message });
+    });
 
-    // importantly only setup vite in development and after
-    // setting up all the other routes so the catch-all route
-    // doesn't interfere with the other routes
     if (app.get("env") === "development") {
       await setupVite(app, server);
     } else {
       serveStatic(app);
     }
 
-    // ALWAYS serve the app on port 5000
-    // this serves both the API and the client.
-    // It is the only port that is not firewalled.
     const port = 5000;
     server.listen({
       port,
@@ -85,12 +120,5 @@ app.use((req, res, next) => {
     });
   } catch (error) {
     console.error('Failed to start server:', error);
-    // Provide detailed error for module format issues
-    if (error instanceof Error && 
-        (error.message.includes('import.meta') || 
-         error.message.includes('require is not defined') ||
-         error.message.includes('Cannot use import'))) {
-      console.error('Module format compatibility error detected. This could be due to ESM/CJS mismatches.');
-    }
   }
 })();

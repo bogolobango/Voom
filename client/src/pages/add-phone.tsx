@@ -131,7 +131,7 @@ export default function AddPhone() {
   };
 
   const handleBack = () => {
-    navigate(-1);
+    navigate((-1).toString());
   };
 
   const handleSkip = () => {
@@ -207,7 +207,7 @@ export default function AddPhone() {
             <Card className="mb-6">
               <CardContent className="p-4 flex items-center">
                 <img
-                  src={displayCar.imageUrl}
+                  src={displayCar.imageUrl ?? undefined}
                   alt={`${displayCar.make} ${displayCar.model}`}
                   className="w-20 h-20 object-cover rounded-md mr-4"
                 />

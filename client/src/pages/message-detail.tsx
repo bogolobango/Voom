@@ -271,7 +271,7 @@ export default function MessageDetail() {
     const groups: { [key: string]: MessageWithUser[] } = {};
     
     messages.forEach(message => {
-      const dateKey = new Date(message.createdAt).toDateString();
+      const dateKey = new Date(message.createdAt as any).toDateString();
       if (!groups[dateKey]) {
         groups[dateKey] = [];
       }
@@ -301,9 +301,9 @@ export default function MessageDetail() {
               <DialogTrigger asChild>
                 <div className="flex items-center cursor-pointer">
                   <Avatar className="h-8 w-8 mr-2">
-                    <AvatarImage 
-                      src={user?.profilePicture} 
-                      alt={user?.username} 
+                    <AvatarImage
+                      src={user?.profilePicture ?? undefined}
+                      alt={user?.username ?? undefined}
                     />
                     <AvatarFallback>{user ? getInitials(user.username) : "WW"}</AvatarFallback>
                   </Avatar>
@@ -322,9 +322,9 @@ export default function MessageDetail() {
                 </DialogHeader>
                 <div className="flex flex-col items-center py-4">
                   <Avatar className="h-20 w-20 mb-4">
-                    <AvatarImage 
-                      src={user?.profilePicture} 
-                      alt={user?.username} 
+                    <AvatarImage
+                      src={user?.profilePicture ?? undefined}
+                      alt={user?.username ?? undefined}
                     />
                     <AvatarFallback className="text-xl">{user ? getInitials(user.username) : "WW"}</AvatarFallback>
                   </Avatar>

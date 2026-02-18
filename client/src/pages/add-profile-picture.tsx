@@ -191,7 +191,7 @@ export default function AddProfilePicture() {
             <Card className="mb-6">
               <CardContent className="p-4 flex items-center">
                 <img
-                  src={car.imageUrl}
+                  src={car.imageUrl ?? undefined}
                   alt={`${car.make} ${car.model}`}
                   className="w-20 h-20 object-cover rounded-md mr-4"
                 />
@@ -237,9 +237,9 @@ export default function AddProfilePicture() {
             <div className="flex flex-col items-center justify-center">
               <div className="relative mb-6">
                 <Avatar className="w-32 h-32">
-                  <AvatarImage 
-                    src={previewUrl || user?.profilePicture} 
-                    alt={user?.username} 
+                  <AvatarImage
+                    src={(previewUrl || user?.profilePicture) ?? undefined}
+                    alt={user?.username ?? undefined}
                   />
                   <AvatarFallback className="text-2xl bg-red-100 text-red-600">
                     {user?.username ? getInitials(user.username) : "U"}

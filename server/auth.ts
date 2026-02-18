@@ -128,12 +128,15 @@ export function setupAuth(app: Express) {
             // Create new user if doesn't exist
             user = await storage.createUser({
               username: email,
-              password: await hashPassword(randomBytes(32).toString("hex")), // Random password for OAuth users
-              phoneNumber: "", // Phone number will be collected later
-              verificationStatus: "verified",
-              isVerified: true,
+              password: await hashPassword(randomBytes(32).toString("hex")),
+              fullName: profile.displayName || null,
+              phoneNumber: null,
+              googleId: profile.id,
+              role: "renter",
+              verificationStatus: "unverified",
+              isVerified: false,
               isHost: false,
-              profilePicture: profile.photos?.[0]?.value,
+              profilePicture: profile.photos?.[0]?.value || null,
             });
           }
 
@@ -182,16 +185,21 @@ export function setupAuth(app: Express) {
       const user = await storage.createUser({
         username,
         password: await hashPassword(password),
-        phoneNumber,
+        fullName: fullName || null,
+        phoneNumber: phoneNumber || null,
+        googleId: null,
+        role: "renter",
         verificationStatus: "unverified",
         isVerified: false,
         isHost: false,
+        profilePicture: null,
       });
 
       // Log the user in
       req.login(user, (err) => {
         if (err) return next(err);
-        return res.status(201).json(user);
+        const { password: _, ...safeUser } = user;
+        return res.status(201).json(safeUser);
       });
     } catch (error) {
       next(error);
@@ -208,10 +216,8 @@ export function setupAuth(app: Express) {
       
       req.login(user, async (err) => {
         if (err) return next(err);
-        
-        // No need to update last login time if not in schema
-        
-        return res.json(user);
+        const { password: _, ...safeUser } = user;
+        return res.json(safeUser);
       });
     })(req, res, next);
   });
@@ -229,7 +235,11 @@ export function setupAuth(app: Express) {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
     }
-    res.json(req.user);
+    if (req.user) {
+      const { password: _, ...safeUser } = req.user;
+      return res.json(safeUser);
+    }
+    return res.status(401).json({ message: "Not authenticated" });
   });
 
   // Google OAuth routes

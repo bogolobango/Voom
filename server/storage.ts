@@ -1,57 +1,59 @@
-import { 
-  users, 
-  cars, 
-  bookings, 
-  favorites, 
+import {
+  users,
+  cars,
+  bookings,
+  favorites,
   messages,
+  reviews,
+  payments,
   verificationDocuments,
   payoutMethods,
   payoutTransactions,
-  type User, 
-  type InsertUser, 
-  type Car, 
-  type InsertCar, 
-  type Booking, 
-  type InsertBooking, 
-  type Favorite, 
-  type InsertFavorite, 
-  type Message, 
+  type User,
+  type InsertUser,
+  type Car,
+  type InsertCar,
+  type Booking,
+  type InsertBooking,
+  type Favorite,
+  type InsertFavorite,
+  type Message,
   type InsertMessage,
+  type Review,
+  type InsertReview,
+  type Payment,
+  type InsertPayment,
   type VerificationDocument,
   type InsertVerificationDocument,
   type PayoutMethod,
   type InsertPayoutMethod,
   type PayoutTransaction,
-  type InsertPayoutTransaction
+  type InsertPayoutTransaction,
 } from "@shared/schema";
 import session from "express-session";
-import connectPgSimple from "connect-pg-simple";
 import memorystore from "memorystore";
-import { Pool } from "pg";
-import { eq, and, desc, sql, asc } from "drizzle-orm";
-import { db } from "./db";
+import { eq, and, desc, sql, asc, or, gte, lte } from "drizzle-orm";
 
 const MemoryStore = memorystore(session);
-const PostgresSessionStore = connectPgSimple(session);
 
-// Interface for storage operations
+// Storage interface
 export interface IStorage {
-  // Session store for authentication
   sessionStore: session.Store;
+
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, data: Partial<User>): Promise<User | undefined>;
-  
+
   // Car operations
   getCar(id: number): Promise<Car | undefined>;
   getCars(): Promise<Car[]>;
-  getCarsWithFilters(filters: any): Promise<Car[]>; // Add advanced filtering
+  getCarsWithFilters(filters: any): Promise<Car[]>;
   getCarsByHost(hostId: number): Promise<Car[]>;
   createCar(car: InsertCar): Promise<Car>;
   updateCar(id: number, data: Partial<Car>): Promise<Car | undefined>;
-  
+
   // Booking operations
   getBooking(id: number): Promise<Booking | undefined>;
   getBookingsByUser(userId: number): Promise<Booking[]>;
@@ -60,7 +62,8 @@ export interface IStorage {
   createBooking(booking: InsertBooking): Promise<Booking>;
   updateBooking(id: number, data: Partial<Booking>): Promise<Booking | undefined>;
   getLastBookedCar(userId: number): Promise<number | undefined>;
-  
+  hasBookingConflict(carId: number, startDate: Date, endDate: Date): Promise<boolean>;
+
   // Favorite operations
   getFavorite(id: number): Promise<Favorite | undefined>;
   getFavoritesByUser(userId: number): Promise<Favorite[]>;
@@ -69,22 +72,34 @@ export interface IStorage {
   createFavorite(favorite: InsertFavorite): Promise<Favorite>;
   deleteFavorite(userId: number, carId: number): Promise<void>;
   getFavoriteIds(userId: number): Promise<number[]>;
-  
+
   // Message operations
   getMessage(id: number): Promise<Message | undefined>;
   getMessagesByUser(userId: number): Promise<Message[]>;
-  getConversations(userId: number): Promise<{ id: number, username: string, profilePicture?: string, unreadCount: number }[]>;
+  getMessagesByBooking(bookingId: number): Promise<Message[]>;
+  getConversations(userId: number): Promise<{ id: number; username: string; profilePicture?: string; unreadCount: number }[]>;
   getConversationMessages(userId: number, otherUserId: number): Promise<(Message & { sender: User })[]>;
   createMessage(message: InsertMessage): Promise<Message>;
   markConversationAsRead(userId: number, otherUserId: number): Promise<void>;
-  
+
+  // Review operations
+  createReview(review: InsertReview): Promise<Review>;
+  getReviewsByCar(carId: number): Promise<(Review & { reviewer: Partial<User> })[]>;
+  getReviewsByUser(userId: number): Promise<Review[]>;
+  getReviewByBookingAndReviewer(bookingId: number, reviewerId: number): Promise<Review | undefined>;
+
+  // Payment operations
+  createPayment(payment: InsertPayment): Promise<Payment>;
+  getPaymentByIdempotencyKey(key: string): Promise<Payment | undefined>;
+  updatePaymentStatus(id: number, status: string, providerPaymentId?: string): Promise<Payment | undefined>;
+
   // Verification operations
   getVerificationDocuments(userId: number): Promise<VerificationDocument[]>;
   getVerificationDocument(id: number): Promise<VerificationDocument | undefined>;
   createVerificationDocument(document: InsertVerificationDocument): Promise<VerificationDocument>;
   updateVerificationDocument(id: number, data: Partial<VerificationDocument>): Promise<VerificationDocument | undefined>;
   updateUserVerificationStatus(userId: number, status: string): Promise<User | undefined>;
-  
+
   // Payout operations
   getPayoutMethods(userId: number): Promise<PayoutMethod[]>;
   getPayoutMethod(id: number): Promise<PayoutMethod | undefined>;
@@ -92,7 +107,7 @@ export interface IStorage {
   updatePayoutMethod(id: number, data: Partial<PayoutMethod>): Promise<PayoutMethod | undefined>;
   deletePayoutMethod(id: number): Promise<void>;
   setDefaultPayoutMethod(userId: number, methodId: number): Promise<void>;
-  
+
   // Payout transaction operations
   getPayoutTransactions(userId: number): Promise<PayoutTransaction[]>;
   getPayoutTransaction(id: number): Promise<PayoutTransaction | undefined>;
@@ -102,1567 +117,367 @@ export interface IStorage {
 
 // In-memory storage implementation
 export class MemStorage implements IStorage {
-  private payoutMethods: Map<number, PayoutMethod>;
-  private payoutTransactions: Map<number, PayoutTransaction>;
-  private payoutMethodId: number;
-  private payoutTransactionId: number;
   sessionStore: session.Store;
-  private users: Map<number, User>;
-  private cars: Map<number, Car>;
-  private bookings: Map<number, Booking>;
-  private favorites: Map<number, Favorite>;
-  private messages: Map<number, Message>;
-  private verificationDocuments: Map<number, VerificationDocument>;
-  
-  // Auto-increment IDs
-  private userId: number;
-  private carId: number;
-  private bookingId: number;
-  private favoriteId: number;
-  private messageId: number;
-  private verificationDocumentId: number;
+  private usersMap: Map<number, User>;
+  private carsMap: Map<number, Car>;
+  private bookingsMap: Map<number, Booking>;
+  private favoritesMap: Map<number, Favorite>;
+  private messagesMap: Map<number, Message>;
+  private reviewsMap: Map<number, Review>;
+  private paymentsMap: Map<number, Payment>;
+  private verificationDocumentsMap: Map<number, VerificationDocument>;
+  private payoutMethodsMap: Map<number, PayoutMethod>;
+  private payoutTransactionsMap: Map<number, PayoutTransaction>;
+
+  private userId = 1;
+  private carId = 1;
+  private bookingId = 1;
+  private favoriteId = 1;
+  private messageId = 1;
+  private reviewId = 1;
+  private paymentId = 1;
+  private verificationDocumentId = 1;
+  private payoutMethodId = 1;
+  private payoutTransactionId = 1;
 
   constructor() {
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000, // prune expired entries every 24h
-    });
-    this.users = new Map();
-    this.cars = new Map();
-    this.bookings = new Map();
-    this.favorites = new Map();
-    this.messages = new Map();
-    this.verificationDocuments = new Map();
-    this.payoutMethods = new Map();
-    this.payoutTransactions = new Map();
-    
-    this.userId = 1;
-    this.carId = 1;
-    this.bookingId = 1;
-    this.favoriteId = 1;
-    this.messageId = 1;
-    this.verificationDocumentId = 1;
-    this.payoutMethodId = 1;
-    this.payoutTransactionId = 1;
-    
-    // Add some seed data
+    this.sessionStore = new MemoryStore({ checkPeriod: 86400000 });
+    this.usersMap = new Map();
+    this.carsMap = new Map();
+    this.bookingsMap = new Map();
+    this.favoritesMap = new Map();
+    this.messagesMap = new Map();
+    this.reviewsMap = new Map();
+    this.paymentsMap = new Map();
+    this.verificationDocumentsMap = new Map();
+    this.payoutMethodsMap = new Map();
+    this.payoutTransactionsMap = new Map();
     this.seedData();
   }
 
-  // Seed the database with some initial data
   private seedData() {
-    // Create demo user
     const demoUser: User = {
       id: this.userId++,
       username: "demo_user",
-      password: "password123",
+      password: "64.a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2.d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
+      fullName: "Demo User",
       phoneNumber: "+123456789",
       profilePicture: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
-      createdAt: new Date().toISOString()
+      googleId: null,
+      role: "both",
+      isHost: true,
+      isVerified: true,
+      verificationStatus: "approved",
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
-    this.users.set(demoUser.id, demoUser);
-    
-    // Create host user
+    this.usersMap.set(demoUser.id, demoUser);
+
     const hostUser: User = {
       id: this.userId++,
       username: "car_host",
-      password: "host123",
+      password: "64.b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3.e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
+      fullName: "Car Host",
       phoneNumber: "+987654321",
       profilePicture: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
-      createdAt: new Date().toISOString()
+      googleId: null,
+      role: "host",
+      isHost: true,
+      isVerified: true,
+      verificationStatus: "approved",
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
-    this.users.set(hostUser.id, hostUser);
-    
-    // Create cars
-    const cars: InsertCar[] = [
-      {
-        hostId: hostUser.id,
-        make: "Mitsubishi",
-        model: "Pajero",
-        year: 2020,
-        type: "SUV",
-        dailyRate: 85000,
-        currency: "FCFA",
-        location: "ADL",
-        description: "Powerful and comfortable SUV perfect for both city driving and off-road adventures.",
-        imageUrl: "https://images.unsplash.com/photo-1565992441121-4367c2967103?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
-        rating: 4.8,
-        ratingCount: 12,
-        available: true,
-        features: ["4x4", "Bluetooth", "Air conditioning", "GPS", "Backup camera"]
-      },
-      {
-        hostId: hostUser.id,
-        make: "Mercedes",
-        model: "G-Wagon AMG",
-        year: 2022,
-        type: "Luxury",
-        dailyRate: 135000,
-        currency: "FCFA",
-        location: "ADL",
-        description: "Luxury SUV with powerful performance and distinctive styling.",
-        imageUrl: "https://images.unsplash.com/photo-1563720360478-5de823352d2e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
-        rating: 4.5,
-        ratingCount: 8,
-        available: true,
-        features: ["Leather seats", "Panoramic sunroof", "Premium audio", "Heated seats", "Adaptive cruise control"]
-      },
-      {
-        hostId: hostUser.id,
-        make: "Kia",
-        model: "K5 GT",
-        year: 2021,
-        type: "Sedan",
-        dailyRate: 65500,
-        currency: "FCFA",
-        location: "ADL",
-        description: "Sporty sedan with advanced features and comfortable interior.",
-        imageUrl: "https://images.unsplash.com/photo-1600259828526-77f8617ceec9?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
-        rating: 4.5,
-        ratingCount: 6,
-        available: true,
-        features: ["Bluetooth", "Air conditioning", "Heated seats", "Parking sensors"]
-      },
-      {
-        hostId: hostUser.id,
-        make: "Toyota",
-        model: "Hilux",
-        year: 2022,
-        type: "Truck",
-        dailyRate: 72000,
-        currency: "FCFA",
-        location: "GBN",
-        description: "Rugged pickup truck perfect for both work and adventure.",
-        imageUrl: "https://images.unsplash.com/photo-1559416523-140ddc3d238c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
-        rating: 4.7,
-        ratingCount: 9,
-        available: true,
-        features: ["4x4", "Towing package", "Heavy duty suspension", "Bluetooth", "Backup camera"]
-      },
-      {
-        hostId: hostUser.id,
-        make: "BMW",
-        model: "M4",
-        year: 2023,
-        type: "Sports",
-        dailyRate: 125000,
-        currency: "FCFA",
-        location: "FTN",
-        description: "High-performance sports car with aggressive styling and exhilarating driving experience.",
-        imageUrl: "https://images.unsplash.com/photo-1617814076668-8dfc6fe2d602?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
-        rating: 4.9,
-        ratingCount: 7,
-        available: true,
-        features: ["Sport mode", "Racing seats", "Carbon fiber trim", "Premium audio", "Launch control"]
-      },
-      {
-        hostId: hostUser.id,
-        make: "Honda",
-        model: "Civic",
-        year: 2021,
-        type: "Compact",
-        dailyRate: 45000,
-        currency: "FCFA",
-        location: "ADL",
-        description: "Fuel-efficient compact car with modern features and reliability.",
-        imageUrl: "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
-        rating: 4.3,
-        ratingCount: 15,
-        available: true,
-        features: ["Bluetooth", "Backup camera", "Fuel efficient", "USB ports", "Apple CarPlay"]
-      },
-      {
-        hostId: hostUser.id,
-        make: "Audi",
-        model: "A8 L",
-        year: 2022,
-        type: "Luxury",
-        dailyRate: 155000,
-        currency: "FCFA",
-        location: "FTN",
-        description: "Executive luxury sedan with premium amenities and comfortable ride.",
-        imageUrl: "https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
-        rating: 4.8,
-        ratingCount: 5,
-        available: false,
-        features: ["Massage seats", "Executive rear seating", "Premium audio", "Air suspension", "Night vision"]
-      }
+    this.usersMap.set(hostUser.id, hostUser);
+
+    const seedCars: Partial<Car>[] = [
+      { hostId: hostUser.id, make: "Mitsubishi", model: "Pajero", year: 2020, type: "SUV", dailyRate: 85000, currency: "FCFA", location: "ADL", city: "Douala", country: "Cameroon", description: "Powerful and comfortable SUV perfect for both city driving and off-road adventures.", imageUrl: "https://images.unsplash.com/photo-1565992441121-4367c2967103?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80", rating: 4, ratingCount: 12, available: true, features: ["4x4", "Bluetooth", "Air conditioning", "GPS", "Backup camera"], transmission: "automatic", fuelType: "diesel", seats: 7 },
+      { hostId: hostUser.id, make: "Mercedes", model: "G-Wagon AMG", year: 2022, type: "Luxury", dailyRate: 135000, currency: "FCFA", location: "ADL", city: "Douala", country: "Cameroon", description: "Luxury SUV with powerful performance and distinctive styling.", imageUrl: "https://images.unsplash.com/photo-1563720360478-5de823352d2e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80", rating: 4, ratingCount: 8, available: true, features: ["Leather seats", "Panoramic sunroof", "Premium audio", "Heated seats"], transmission: "automatic", fuelType: "petrol", seats: 5 },
+      { hostId: hostUser.id, make: "Kia", model: "K5 GT", year: 2021, type: "Sedan", dailyRate: 65500, currency: "FCFA", location: "ADL", city: "Douala", country: "Cameroon", description: "Sporty sedan with advanced features.", imageUrl: "https://images.unsplash.com/photo-1600259828526-77f8617ceec9?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80", rating: 4, ratingCount: 6, available: true, features: ["Bluetooth", "Air conditioning", "Heated seats", "Parking sensors"], transmission: "automatic", fuelType: "petrol", seats: 5 },
+      { hostId: hostUser.id, make: "Toyota", model: "Hilux", year: 2022, type: "Truck", dailyRate: 72000, currency: "FCFA", location: "GBN", city: "Accra", country: "Ghana", description: "Rugged pickup truck perfect for both work and adventure.", imageUrl: "https://images.unsplash.com/photo-1559416523-140ddc3d238c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80", rating: 4, ratingCount: 9, available: true, features: ["4x4", "Towing package", "Bluetooth", "Backup camera"], transmission: "manual", fuelType: "diesel", seats: 5 },
+      { hostId: hostUser.id, make: "BMW", model: "M4", year: 2023, type: "Sports", dailyRate: 125000, currency: "FCFA", location: "FTN", city: "Yaoundé", country: "Cameroon", description: "High-performance sports car.", imageUrl: "https://images.unsplash.com/photo-1617814076668-8dfc6fe2d602?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80", rating: 4, ratingCount: 7, available: true, features: ["Sport mode", "Racing seats", "Premium audio", "Launch control"], transmission: "automatic", fuelType: "petrol", seats: 4 },
+      { hostId: hostUser.id, make: "Honda", model: "Civic", year: 2021, type: "Compact", dailyRate: 45000, currency: "FCFA", location: "ADL", city: "Douala", country: "Cameroon", description: "Fuel-efficient compact car.", imageUrl: "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80", rating: 4, ratingCount: 15, available: true, features: ["Bluetooth", "Backup camera", "Fuel efficient", "USB ports"], transmission: "automatic", fuelType: "petrol", seats: 5 },
     ];
-    
-    cars.forEach(car => {
-      const newCar: Car = {
-        ...car,
-        id: this.carId++,
-        createdAt: new Date().toISOString()
-      };
-      this.cars.set(newCar.id, newCar);
+
+    seedCars.forEach((c) => {
+      const car: Car = { ...c, id: this.carId++, images: null, color: null, licensePlate: null, status: "active", createdAt: new Date() } as Car;
+      this.carsMap.set(car.id, car);
     });
-    
-    // Create favorites
-    const favorite: Favorite = {
-      id: this.favoriteId++,
-      userId: demoUser.id,
-      carId: 1, // Mitsubishi Pajero
-      createdAt: new Date().toISOString()
-    };
-    this.favorites.set(favorite.id, favorite);
-    
-    // Create a booking
+
+    // Seed booking
     const booking: Booking = {
       id: this.bookingId++,
-      carId: 1, // Mitsubishi Pajero
+      carId: 1,
       userId: demoUser.id,
-      startDate: new Date("2024-04-16T10:30:00").toISOString(),
-      endDate: new Date("2024-04-24T11:30:00").toISOString(),
+      hostId: hostUser.id,
+      startDate: new Date("2024-04-16T10:30:00"),
+      endDate: new Date("2024-04-24T11:30:00"),
       pickupLocation: "ADL",
       dropoffLocation: "ADL",
       totalAmount: 680000,
+      platformFee: 102000,
+      hostPayout: 578000,
       currency: "FCFA",
-      paymentMethod: "airtel",
+      paymentMethod: "momo",
+      paymentId: null,
       status: "confirmed",
-      createdAt: new Date().toISOString()
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
-    this.bookings.set(booking.id, booking);
-    
-    // Create messages - full conversation history
-    const messages: Partial<Message>[] = [
-      {
-        senderId: demoUser.id,
-        receiverId: hostUser.id,
-        content: "Hello, I'm interested in renting your Mitsubishi Pajero. Is it available next weekend?",
-        read: true,
-        createdAt: new Date(Date.now() - 3600000 * 48).toISOString() // 2 days ago
-      },
-      {
-        senderId: hostUser.id,
-        receiverId: demoUser.id,
-        content: "Yes, it's available. When exactly do you need it?",
-        read: true,
-        createdAt: new Date(Date.now() - 3600000 * 47).toISOString() // 47 hours ago
-      },
-      {
-        senderId: demoUser.id,
-        receiverId: hostUser.id,
-        content: "I need it from April 16 to April 24. I'm planning a trip to the mountains.",
-        read: true,
-        createdAt: new Date(Date.now() - 3600000 * 46).toISOString() // 46 hours ago
-      },
-      {
-        senderId: hostUser.id,
-        receiverId: demoUser.id,
-        content: "That works for me. The rate is 85,000 FCFA per day. Where would you like to pick it up?",
-        read: true,
-        createdAt: new Date(Date.now() - 3600000 * 45).toISOString() // 45 hours ago
-      },
-      {
-        senderId: demoUser.id,
-        receiverId: hostUser.id,
-        content: "The ADL pickup location is fine. What time can I get it on the 16th?",
-        read: true,
-        createdAt: new Date(Date.now() - 3600000 * 44).toISOString() // 44 hours ago
-      },
-      {
-        senderId: hostUser.id,
-        receiverId: demoUser.id,
-        content: "You can pick it up around 10:30 AM. I'll need your ID and driver's license for verification before confirming the booking.",
-        read: true,
-        createdAt: new Date(Date.now() - 3600000 * 36).toISOString() // 36 hours ago
-      },
-      {
-        senderId: demoUser.id,
-        receiverId: hostUser.id,
-        content: "Perfect. I've gone ahead and made the booking through the app. You should see it on your end.",
-        read: true,
-        createdAt: new Date(Date.now() - 3600000 * 24).toISOString() // 24 hours ago
-      },
-      {
-        senderId: hostUser.id,
-        receiverId: demoUser.id,
-        content: "I've approved your booking! I'll meet you at the pickup location at 10:30 AM on April 16th. The car will be fully fueled and cleaned.",
-        read: false, 
-        createdAt: new Date(Date.now() - 3600000 * 12).toISOString() // 12 hours ago
-      },
-      {
-        senderId: hostUser.id,
-        receiverId: demoUser.id,
-        content: "One more thing - the car has a full-size spare tire in the back, just in case you need it during your trip to the mountains.",
-        read: false,
-        createdAt: new Date(Date.now() - 3600000 * 2).toISOString() // 2 hours ago
-      }
+    this.bookingsMap.set(booking.id, booking);
+
+    // Seed favorite
+    const fav: Favorite = { id: this.favoriteId++, userId: demoUser.id, carId: 1, createdAt: new Date() };
+    this.favoritesMap.set(fav.id, fav);
+
+    // Seed messages
+    const msgs: Partial<Message>[] = [
+      { senderId: demoUser.id, receiverId: hostUser.id, content: "Hello, I'm interested in renting your Mitsubishi Pajero.", read: true, createdAt: new Date(Date.now() - 3600000 * 48) },
+      { senderId: hostUser.id, receiverId: demoUser.id, content: "Yes, it's available. When exactly do you need it?", read: true, createdAt: new Date(Date.now() - 3600000 * 47) },
+      { senderId: demoUser.id, receiverId: hostUser.id, content: "I need it from April 16 to April 24.", read: true, createdAt: new Date(Date.now() - 3600000 * 46) },
+      { senderId: hostUser.id, receiverId: demoUser.id, content: "That works! The rate is 85,000 FCFA per day.", read: true, createdAt: new Date(Date.now() - 3600000 * 45) },
+      { senderId: hostUser.id, receiverId: demoUser.id, content: "I've approved your booking!", read: false, createdAt: new Date(Date.now() - 3600000 * 12) },
     ];
-    
-    // Add all messages to storage
-    messages.forEach(msg => {
-      const message: Message = { 
-        ...msg as Omit<Message, 'id'>, 
-        id: this.messageId++ 
-      };
-      this.messages.set(message.id, message);
+    msgs.forEach((m) => {
+      const msg: Message = { ...m, id: this.messageId++, bookingId: null } as Message;
+      this.messagesMap.set(msg.id, msg);
     });
   }
 
-  // User operations
-  async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userId++;
-    const user: User = { 
-      ...insertUser, 
-      id, 
-      createdAt: new Date().toISOString() 
-    };
-    this.users.set(id, user);
+  // ---- User ----
+  async getUser(id: number) { return this.usersMap.get(id); }
+  async getUserByUsername(username: string) { return Array.from(this.usersMap.values()).find((u) => u.username === username); }
+  async createUser(u: InsertUser): Promise<User> {
+    const user: User = { ...u, id: this.userId++, createdAt: new Date(), updatedAt: new Date() } as User;
+    this.usersMap.set(user.id, user);
     return user;
   }
-  
-  async updateUser(id: number, data: Partial<User>): Promise<User | undefined> {
-    const user = this.users.get(id);
-    if (!user) return undefined;
-    
-    const updatedUser = { ...user, ...data };
-    this.users.set(id, updatedUser);
-    return updatedUser;
+  async updateUser(id: number, data: Partial<User>) {
+    const u = this.usersMap.get(id);
+    if (!u) return undefined;
+    const updated = { ...u, ...data, updatedAt: new Date() };
+    this.usersMap.set(id, updated);
+    return updated;
   }
 
-  // Car operations
-  async getCar(id: number): Promise<Car | undefined> {
-    return this.cars.get(id);
-  }
-
-  async getCars(): Promise<Car[]> {
-    // Get all cars from memory
-    const allCars = Array.from(this.cars.values());
-    
-    // Find the Range Rover if it exists
-    const rangeRoverIndex = allCars.findIndex(car => 
-      car.make === "Land Rover" && car.model === "Range Rover" && car.year === 2023
-    );
-    
-    // If Range Rover exists, move it to the top of the list
-    if (rangeRoverIndex !== -1) {
-      const rangeRover = allCars.splice(rangeRoverIndex, 1)[0];
-      allCars.unshift(rangeRover);
-    }
-    
-    return allCars;
-  }
-  
+  // ---- Car ----
+  async getCar(id: number) { return this.carsMap.get(id); }
+  async getCars(): Promise<Car[]> { return Array.from(this.carsMap.values()); }
   async getCarsWithFilters(filters: any): Promise<Car[]> {
-    // Get all cars
-    const allCars = Array.from(this.cars.values());
-    
-    // Apply filters
-    let filteredCars = allCars;
-    
-    // Price range filtering
-    if (filters.minPrice !== undefined) {
-      filteredCars = filteredCars.filter(car => car.dailyRate >= filters.minPrice);
-    }
-    
-    if (filters.maxPrice !== undefined) {
-      filteredCars = filteredCars.filter(car => car.dailyRate <= filters.maxPrice);
-    }
-    
-    // Make filtering
-    if (filters.make && filters.make.length > 0) {
-      filteredCars = filteredCars.filter(car => filters.make.includes(car.make));
-    }
-    
-    // Model filtering
-    if (filters.model && filters.model.length > 0) {
-      filteredCars = filteredCars.filter(car => filters.model.includes(car.model));
-    }
-    
-    // Year filtering
-    if (filters.year !== undefined) {
-      if (Array.isArray(filters.year)) {
-        filteredCars = filteredCars.filter(car => filters.year.includes(car.year));
-      } else {
-        filteredCars = filteredCars.filter(car => car.year === filters.year);
-      }
-    }
-    
-    // Available filtering
-    if (filters.available !== undefined) {
-      filteredCars = filteredCars.filter(car => car.available === filters.available);
-    }
-    
-    // Features filtering
-    if (filters.features && filters.features.length > 0) {
-      filteredCars = filteredCars.filter(car => {
-        if (!car.features) return false;
-        return filters.features.every((feature: string) => car.features?.includes(feature));
-      });
-    }
-    
-    // Host filtering
-    if (filters.hostId !== undefined) {
-      filteredCars = filteredCars.filter(car => car.hostId === filters.hostId);
-    }
-    
-    // Transmission filtering
-    if (filters.transmission) {
-      filteredCars = filteredCars.filter(car => car.transmission === filters.transmission);
-    }
-    
-    // Fuel type filtering
-    if (filters.fuelType) {
-      filteredCars = filteredCars.filter(car => car.fuelType === filters.fuelType);
-    }
-    
-    // Seats filtering
-    if (filters.seats) {
-      filteredCars = filteredCars.filter(car => car.seats && car.seats >= filters.seats);
-    }
-    
-    // Car type filtering
-    if (filters.type) {
-      filteredCars = filteredCars.filter(car => car.type === filters.type);
-    }
-    
-    // Rating filtering
-    if (filters.minRating !== undefined) {
-      filteredCars = filteredCars.filter(car => (car.rating || 0) >= filters.minRating);
-    }
-    
-    // Text search
+    let result = Array.from(this.carsMap.values());
+    if (filters.minPrice !== undefined) result = result.filter((c) => c.dailyRate >= filters.minPrice);
+    if (filters.maxPrice !== undefined) result = result.filter((c) => c.dailyRate <= filters.maxPrice);
+    if (filters.make?.length) result = result.filter((c) => filters.make.includes(c.make));
+    if (filters.transmission) result = result.filter((c) => c.transmission === filters.transmission);
+    if (filters.fuelType) result = result.filter((c) => c.fuelType === filters.fuelType);
+    if (filters.seats) result = result.filter((c) => (c.seats || 0) >= filters.seats);
+    if (filters.category) result = result.filter((c) => c.type === filters.category);
+    if (filters.available !== undefined) result = result.filter((c) => c.available === filters.available);
     if (filters.searchQuery) {
-      const searchTerm = filters.searchQuery.toLowerCase();
-      filteredCars = filteredCars.filter(car => 
-        car.make.toLowerCase().includes(searchTerm) ||
-        car.model.toLowerCase().includes(searchTerm) ||
-        (car.description && car.description.toLowerCase().includes(searchTerm))
-      );
+      const q = filters.searchQuery.toLowerCase();
+      result = result.filter((c) => c.make.toLowerCase().includes(q) || c.model.toLowerCase().includes(q) || (c.description || "").toLowerCase().includes(q));
     }
-    
-    // Apply sorting
-    if (filters.sort) {
-      switch (filters.sort) {
-        case 'price_asc':
-          filteredCars.sort((a, b) => a.dailyRate - b.dailyRate);
-          break;
-        case 'price_desc':
-          filteredCars.sort((a, b) => b.dailyRate - a.dailyRate);
-          break;
-        case 'rating_desc':
-          filteredCars.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-          break;
-        case 'newest':
-          filteredCars.sort((a, b) => b.id - a.id);
-          break;
-        default:
-          // Default sort by rating desc, then price asc
-          filteredCars.sort((a, b) => {
-            const ratingDiff = (b.rating || 0) - (a.rating || 0);
-            if (ratingDiff !== 0) return ratingDiff;
-            return a.dailyRate - b.dailyRate;
-          });
-      }
-    }
-    
-    // Apply pagination
-    if (filters.limit || filters.offset) {
-      const offset = filters.offset || 0;
-      const limit = filters.limit || 50;
-      filteredCars = filteredCars.slice(offset, offset + limit);
-    }
-    
-    // Find the Range Rover if it exists and if applicable based on filters
-    if (filters.make?.includes("Land Rover") || !filters.make || filters.make.length === 0) {
-      const rangeRoverIndex = filteredCars.findIndex(car => 
-        car.make === "Land Rover" && car.model === "Range Rover" && car.year === 2023
-      );
-      
-      // If Range Rover exists, move it to the top of the list
-      if (rangeRoverIndex !== -1) {
-        const rangeRover = filteredCars.splice(rangeRoverIndex, 1)[0];
-        filteredCars.unshift(rangeRover);
-      }
-    }
-    
-    return filteredCars;
+    if (filters.sort === "price_asc") result.sort((a, b) => a.dailyRate - b.dailyRate);
+    else if (filters.sort === "price_desc") result.sort((a, b) => b.dailyRate - a.dailyRate);
+    else if (filters.sort === "rating_desc") result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    if (filters.limit || filters.offset) result = result.slice(filters.offset || 0, (filters.offset || 0) + (filters.limit || 50));
+    return result;
   }
-  
-  async getCarsByHost(hostId: number): Promise<Car[]> {
-    return Array.from(this.cars.values()).filter(
-      (car) => car.hostId === hostId
-    );
-  }
-
-  async createCar(insertCar: InsertCar): Promise<Car> {
-    const id = this.carId++;
-    const car: Car = { 
-      ...insertCar, 
-      id, 
-      createdAt: new Date().toISOString() 
-    };
-    this.cars.set(id, car);
+  async getCarsByHost(hostId: number) { return Array.from(this.carsMap.values()).filter((c) => c.hostId === hostId); }
+  async createCar(c: InsertCar): Promise<Car> {
+    const car: Car = { ...c, id: this.carId++, createdAt: new Date() } as Car;
+    this.carsMap.set(car.id, car);
     return car;
   }
-  
-  async updateCar(id: number, data: Partial<Car>): Promise<Car | undefined> {
-    const car = this.cars.get(id);
-    if (!car) return undefined;
-    
-    const updatedCar = { ...car, ...data };
-    this.cars.set(id, updatedCar);
-    return updatedCar;
+  async updateCar(id: number, data: Partial<Car>) {
+    const c = this.carsMap.get(id);
+    if (!c) return undefined;
+    const updated = { ...c, ...data };
+    this.carsMap.set(id, updated);
+    return updated;
   }
 
-  // Booking operations
-  async getBooking(id: number): Promise<Booking | undefined> {
-    return this.bookings.get(id);
-  }
-
-  async getBookingsByUser(userId: number): Promise<Booking[]> {
-    return Array.from(this.bookings.values()).filter(
-      (booking) => booking.userId === userId
-    );
-  }
-  
-  async getBookingsByCar(carId: number): Promise<Booking[]> {
-    return Array.from(this.bookings.values()).filter(
-      (booking) => booking.carId === carId
-    );
-  }
-  
+  // ---- Booking ----
+  async getBooking(id: number) { return this.bookingsMap.get(id); }
+  async getBookingsByUser(userId: number) { return Array.from(this.bookingsMap.values()).filter((b) => b.userId === userId); }
+  async getBookingsByCar(carId: number) { return Array.from(this.bookingsMap.values()).filter((b) => b.carId === carId); }
   async getBookingsWithCars(userId: number): Promise<(Booking & { car: Car })[]> {
     const userBookings = await this.getBookingsByUser(userId);
-    return userBookings.map(booking => {
-      const car = this.cars.get(booking.carId);
-      return {
-        ...booking,
-        car: car!
-      };
-    }).filter(booking => booking.car !== undefined) as (Booking & { car: Car })[];
+    return userBookings.map((b) => ({ ...b, car: this.carsMap.get(b.carId)! })).filter((b) => b.car);
   }
-
-  async createBooking(insertBooking: InsertBooking): Promise<Booking> {
-    const id = this.bookingId++;
-    const booking: Booking = { 
-      ...insertBooking, 
-      id, 
-      createdAt: new Date().toISOString() 
-    };
-    this.bookings.set(id, booking);
+  async createBooking(b: InsertBooking): Promise<Booking> {
+    const booking: Booking = { ...b, id: this.bookingId++, platformFee: 0, hostPayout: 0, paymentId: null, createdAt: new Date(), updatedAt: new Date() } as Booking;
+    this.bookingsMap.set(booking.id, booking);
     return booking;
   }
-  
-  async updateBooking(id: number, data: Partial<Booking>): Promise<Booking | undefined> {
-    const booking = this.bookings.get(id);
-    if (!booking) return undefined;
-    
-    const updatedBooking = { ...booking, ...data };
-    this.bookings.set(id, updatedBooking);
-    return updatedBooking;
+  async updateBooking(id: number, data: Partial<Booking>) {
+    const b = this.bookingsMap.get(id);
+    if (!b) return undefined;
+    const updated = { ...b, ...data, updatedAt: new Date() };
+    this.bookingsMap.set(id, updated);
+    return updated;
   }
-  
-  async getLastBookedCar(userId: number): Promise<number | undefined> {
+  async getLastBookedCar(userId: number) {
     const userBookings = await this.getBookingsByUser(userId);
-    if (userBookings.length === 0) return undefined;
-    
-    // Sort by creation date (newest first) and get the first one
-    const sortedBookings = userBookings.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-    
-    return sortedBookings[0].carId;
+    if (!userBookings.length) return undefined;
+    userBookings.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+    return userBookings[0].carId;
+  }
+  async hasBookingConflict(carId: number, startDate: Date, endDate: Date): Promise<boolean> {
+    const carBookings = await this.getBookingsByCar(carId);
+    return carBookings.some((b) => {
+      if (b.status === "cancelled" || b.status === "rejected") return false;
+      const bStart = new Date(b.startDate);
+      const bEnd = new Date(b.endDate);
+      return startDate < bEnd && endDate > bStart;
+    });
   }
 
-  // Favorite operations
-  async getFavorite(id: number): Promise<Favorite | undefined> {
-    return this.favorites.get(id);
-  }
-
-  async getFavoritesByUser(userId: number): Promise<Favorite[]> {
-    return Array.from(this.favorites.values()).filter(
-      (favorite) => favorite.userId === userId
-    );
-  }
-  
+  // ---- Favorite ----
+  async getFavorite(id: number) { return this.favoritesMap.get(id); }
+  async getFavoritesByUser(userId: number) { return Array.from(this.favoritesMap.values()).filter((f) => f.userId === userId); }
   async getFavoriteCarsByUser(userId: number): Promise<Car[]> {
-    const userFavorites = await this.getFavoritesByUser(userId);
-    return userFavorites.map(favorite => this.cars.get(favorite.carId)!)
-      .filter(car => car !== undefined);
+    const favs = await this.getFavoritesByUser(userId);
+    return favs.map((f) => this.carsMap.get(f.carId)!).filter(Boolean);
   }
-  
-  async isFavoriteCar(userId: number, carId: number): Promise<boolean> {
-    return Array.from(this.favorites.values()).some(
-      (favorite) => favorite.userId === userId && favorite.carId === carId
-    );
+  async isFavoriteCar(userId: number, carId: number) { return Array.from(this.favoritesMap.values()).some((f) => f.userId === userId && f.carId === carId); }
+  async createFavorite(f: InsertFavorite): Promise<Favorite> {
+    const exists = await this.isFavoriteCar(f.userId, f.carId);
+    if (exists) throw new Error("Already in favorites");
+    const fav: Favorite = { ...f, id: this.favoriteId++, createdAt: new Date() };
+    this.favoritesMap.set(fav.id, fav);
+    return fav;
+  }
+  async deleteFavorite(userId: number, carId: number) {
+    const fav = Array.from(this.favoritesMap.values()).find((f) => f.userId === userId && f.carId === carId);
+    if (fav) this.favoritesMap.delete(fav.id);
+  }
+  async getFavoriteIds(userId: number) { return (await this.getFavoritesByUser(userId)).map((f) => f.carId); }
+
+  // ---- Message ----
+  async getMessage(id: number) { return this.messagesMap.get(id); }
+  async getMessagesByUser(userId: number) { return Array.from(this.messagesMap.values()).filter((m) => m.senderId === userId || m.receiverId === userId); }
+  async getMessagesByBooking(bookingId: number) { return Array.from(this.messagesMap.values()).filter((m) => m.bookingId === bookingId); }
+  async getConversations(userId: number) {
+    const userMsgs = await this.getMessagesByUser(userId);
+    const otherIds = new Set<number>();
+    userMsgs.forEach((m) => { otherIds.add(m.senderId === userId ? m.receiverId : m.senderId); });
+    const convos = [];
+    for (const otherId of Array.from(otherIds)) {
+      const other = await this.getUser(otherId);
+      if (!other) continue;
+      const unread = userMsgs.filter((m) => m.senderId === otherId && m.receiverId === userId && !m.read).length;
+      convos.push({ id: otherId, username: other.username, profilePicture: other.profilePicture || undefined, unreadCount: unread });
+    }
+    return convos;
+  }
+  async getConversationMessages(userId: number, otherUserId: number) {
+    const msgs = (await this.getMessagesByUser(userId))
+      .filter((m) => (m.senderId === userId && m.receiverId === otherUserId) || (m.senderId === otherUserId && m.receiverId === userId))
+      .sort((a, b) => new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime());
+    return Promise.all(msgs.map(async (m) => ({ ...m, sender: (await this.getUser(m.senderId))! })));
+  }
+  async createMessage(m: InsertMessage): Promise<Message> {
+    const msg: Message = { ...m, id: this.messageId++, read: false, createdAt: new Date() } as Message;
+    this.messagesMap.set(msg.id, msg);
+    return msg;
+  }
+  async markConversationAsRead(userId: number, otherUserId: number) {
+    Array.from(this.messagesMap.values())
+      .filter((m) => m.senderId === otherUserId && m.receiverId === userId && !m.read)
+      .forEach((m) => this.messagesMap.set(m.id, { ...m, read: true }));
   }
 
-  async createFavorite(insertFavorite: InsertFavorite): Promise<Favorite> {
-    // Check if already exists
-    const exists = await this.isFavoriteCar(insertFavorite.userId, insertFavorite.carId);
-    if (exists) {
-      throw new Error("Car is already in favorites");
-    }
-    
-    const id = this.favoriteId++;
-    const favorite: Favorite = { 
-      ...insertFavorite, 
-      id, 
-      createdAt: new Date().toISOString() 
-    };
-    this.favorites.set(id, favorite);
-    return favorite;
+  // ---- Review ----
+  async createReview(r: InsertReview): Promise<Review> {
+    const review: Review = { ...r, id: this.reviewId++, createdAt: new Date() } as Review;
+    this.reviewsMap.set(review.id, review);
+    return review;
   }
-  
-  async deleteFavorite(userId: number, carId: number): Promise<void> {
-    const favoriteToDelete = Array.from(this.favorites.values()).find(
-      (favorite) => favorite.userId === userId && favorite.carId === carId
-    );
-    
-    if (favoriteToDelete) {
-      this.favorites.delete(favoriteToDelete.id);
-    }
-  }
-  
-  async getFavoriteIds(userId: number): Promise<number[]> {
-    const userFavorites = await this.getFavoritesByUser(userId);
-    return userFavorites.map(favorite => favorite.carId);
-  }
-  
-
-  
-  // Payout methods operations
-  async getPayoutMethods(userId: number): Promise<PayoutMethod[]> {
-    return Array.from(this.payoutMethods.values()).filter(
-      method => method.userId === userId
-    );
-  }
-  
-  async getPayoutMethod(id: number): Promise<PayoutMethod | undefined> {
-    return this.payoutMethods.get(id);
-  }
-  
-  async createPayoutMethod(method: InsertPayoutMethod): Promise<PayoutMethod> {
-    const id = this.payoutMethodId++;
-    const payoutMethod: PayoutMethod = {
-      ...method,
-      id,
-      createdAt: new Date().toISOString()
-    };
-    
-    this.payoutMethods.set(id, payoutMethod);
-    
-    // If this is the first payout method for the user, set it as default
-    const userMethods = await this.getPayoutMethods(method.userId);
-    if (userMethods.length === 1) {
-      await this.setDefaultPayoutMethod(method.userId, id);
-    }
-    
-    return payoutMethod;
-  }
-  
-  async updatePayoutMethod(id: number, data: Partial<PayoutMethod>): Promise<PayoutMethod | undefined> {
-    const method = this.payoutMethods.get(id);
-    if (!method) return undefined;
-    
-    const updatedMethod = { ...method, ...data };
-    this.payoutMethods.set(id, updatedMethod);
-    return updatedMethod;
-  }
-  
-  async deletePayoutMethod(id: number): Promise<void> {
-    const method = this.payoutMethods.get(id);
-    if (!method) return;
-    
-    // If this was the default method, try to set another one as default
-    if (method.isDefault) {
-      const userMethods = await this.getPayoutMethods(method.userId);
-      const otherMethod = userMethods.find(m => m.id !== id);
-      if (otherMethod) {
-        await this.setDefaultPayoutMethod(method.userId, otherMethod.id);
-      }
-    }
-    
-    this.payoutMethods.delete(id);
-  }
-  
-  async setDefaultPayoutMethod(userId: number, methodId: number): Promise<void> {
-    // Set all methods for this user to non-default
-    const userMethods = await this.getPayoutMethods(userId);
-    userMethods.forEach(method => {
-      const updatedMethod = { ...method, isDefault: false };
-      this.payoutMethods.set(method.id, updatedMethod);
-    });
-    
-    // Set the specified method as default
-    const method = this.payoutMethods.get(methodId);
-    if (method) {
-      const updatedMethod = { ...method, isDefault: true };
-      this.payoutMethods.set(methodId, updatedMethod);
-    }
-  }
-  
-  // Payout transactions operations
-  async getPayoutTransactions(userId: number): Promise<PayoutTransaction[]> {
-    return Array.from(this.payoutTransactions.values()).filter(
-      transaction => transaction.userId === userId
-    );
-  }
-  
-  async getPayoutTransaction(id: number): Promise<PayoutTransaction | undefined> {
-    return this.payoutTransactions.get(id);
-  }
-  
-  async createPayoutTransaction(transaction: InsertPayoutTransaction): Promise<PayoutTransaction> {
-    const id = this.payoutTransactionId++;
-    const reference = `TX-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-    
-    const payoutTransaction: PayoutTransaction = {
-      ...transaction,
-      id,
-      reference,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-      failureReason: null,
-      processedAt: null
-    };
-    
-    this.payoutTransactions.set(id, payoutTransaction);
-    return payoutTransaction;
-  }
-  
-  async updatePayoutTransactionStatus(id: number, status: string, failureReason?: string): Promise<PayoutTransaction | undefined> {
-    const transaction = this.payoutTransactions.get(id);
-    if (!transaction) return undefined;
-    
-    const updatedTransaction = { 
-      ...transaction, 
-      status,
-      failureReason: failureReason || transaction.failureReason
-    };
-    
-    if (status === "completed" || status === "failed") {
-      updatedTransaction.processedAt = new Date().toISOString();
-    }
-    
-    this.payoutTransactions.set(id, updatedTransaction);
-    return updatedTransaction;
-  }
-
-  // Message operations
-  async getMessage(id: number): Promise<Message | undefined> {
-    return this.messages.get(id);
-  }
-
-  async getMessagesByUser(userId: number): Promise<Message[]> {
-    return Array.from(this.messages.values()).filter(
-      (message) => message.senderId === userId || message.receiverId === userId
-    );
-  }
-  
-  async getConversations(userId: number): Promise<{ id: number, username: string, profilePicture?: string, unreadCount: number }[]> {
-    const userMessages = await this.getMessagesByUser(userId);
-    
-    // Get unique user IDs the current user has conversations with
-    const conversationUserIds = new Set<number>();
-    userMessages.forEach(message => {
-      if (message.senderId === userId) {
-        conversationUserIds.add(message.receiverId);
-      } else {
-        conversationUserIds.add(message.senderId);
-      }
-    });
-    
-    // Create conversation objects
-    const conversations = [];
-    for (const otherId of conversationUserIds) {
-      const otherUser = await this.getUser(otherId);
-      if (otherUser) {
-        // Count unread messages from this user
-        const unreadCount = userMessages.filter(
-          m => m.senderId === otherId && m.receiverId === userId && !m.read
-        ).length;
-        
-        conversations.push({
-          id: otherId,
-          username: otherUser.username,
-          profilePicture: otherUser.profilePicture,
-          unreadCount
-        });
-      }
-    }
-    
-    return conversations;
-  }
-  
-  async getConversationMessages(userId: number, otherUserId: number): Promise<(Message & { sender: User })[]> {
-    const userMessages = await this.getMessagesByUser(userId);
-    
-    // Filter messages between the two users
-    const conversationMessages = userMessages.filter(
-      message => 
-        (message.senderId === userId && message.receiverId === otherUserId) ||
-        (message.senderId === otherUserId && message.receiverId === userId)
-    );
-    
-    // Sort by creation date (oldest first)
-    const sortedMessages = conversationMessages.sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
-    
-    // Add sender information
-    return Promise.all(sortedMessages.map(async message => {
-      const sender = await this.getUser(message.senderId);
-      return {
-        ...message,
-        sender: sender!
-      };
+  async getReviewsByCar(carId: number) {
+    const carReviews = Array.from(this.reviewsMap.values()).filter((r) => r.carId === carId);
+    return Promise.all(carReviews.map(async (r) => {
+      const reviewer = await this.getUser(r.reviewerId);
+      return { ...r, reviewer: reviewer ? { id: reviewer.id, username: reviewer.username, profilePicture: reviewer.profilePicture } : { id: 0, username: "Unknown" } };
     }));
   }
-
-  async createMessage(insertMessage: InsertMessage): Promise<Message> {
-    const id = this.messageId++;
-    const message: Message = { 
-      ...insertMessage, 
-      id, 
-      read: false,
-      createdAt: new Date()
-    };
-    this.messages.set(id, message);
-    return message;
-  }
-  
-  async markConversationAsRead(userId: number, otherUserId: number): Promise<void> {
-    const userMessages = await this.getMessagesByUser(userId);
-    
-    // Find messages from the other user that are unread
-    const unreadMessages = userMessages.filter(
-      message => message.senderId === otherUserId && message.receiverId === userId && !message.read
-    );
-    
-    // Mark them as read
-    unreadMessages.forEach(message => {
-      const updatedMessage = { ...message, read: true };
-      this.messages.set(message.id, updatedMessage);
-    });
+  async getReviewsByUser(userId: number) { return Array.from(this.reviewsMap.values()).filter((r) => r.revieweeId === userId); }
+  async getReviewByBookingAndReviewer(bookingId: number, reviewerId: number) {
+    return Array.from(this.reviewsMap.values()).find((r) => r.bookingId === bookingId && r.reviewerId === reviewerId);
   }
 
-  // Verification operations
-  async getVerificationDocuments(userId: number): Promise<VerificationDocument[]> {
-    return Array.from(this.verificationDocuments.values()).filter(
-      (doc) => doc.userId === userId
-    );
+  // ---- Payment ----
+  async createPayment(p: InsertPayment): Promise<Payment> {
+    const payment: Payment = { ...p, id: this.paymentId++, providerPaymentId: null, status: "pending", createdAt: new Date(), updatedAt: new Date() } as Payment;
+    this.paymentsMap.set(payment.id, payment);
+    return payment;
+  }
+  async getPaymentByIdempotencyKey(key: string) {
+    return Array.from(this.paymentsMap.values()).find((p) => p.idempotencyKey === key);
+  }
+  async updatePaymentStatus(id: number, status: string, providerPaymentId?: string) {
+    const p = this.paymentsMap.get(id);
+    if (!p) return undefined;
+    const updated = { ...p, status, updatedAt: new Date(), ...(providerPaymentId ? { providerPaymentId } : {}) };
+    this.paymentsMap.set(id, updated);
+    return updated;
   }
 
-  async getVerificationDocument(id: number): Promise<VerificationDocument | undefined> {
-    return this.verificationDocuments.get(id);
+  // ---- Verification ----
+  async getVerificationDocuments(userId: number) { return Array.from(this.verificationDocumentsMap.values()).filter((d) => d.userId === userId); }
+  async getVerificationDocument(id: number) { return this.verificationDocumentsMap.get(id); }
+  async createVerificationDocument(d: InsertVerificationDocument): Promise<VerificationDocument> {
+    const doc: VerificationDocument = { ...d, id: this.verificationDocumentId++, status: "pending", notes: null, submittedAt: new Date(), updatedAt: new Date() } as VerificationDocument;
+    this.verificationDocumentsMap.set(doc.id, doc);
+    return doc;
+  }
+  async updateVerificationDocument(id: number, data: Partial<VerificationDocument>) {
+    const d = this.verificationDocumentsMap.get(id);
+    if (!d) return undefined;
+    const updated = { ...d, ...data, updatedAt: new Date() };
+    this.verificationDocumentsMap.set(id, updated);
+    return updated;
+  }
+  async updateUserVerificationStatus(userId: number, status: string) {
+    return this.updateUser(userId, { verificationStatus: status, isVerified: status === "approved" });
   }
 
-  async createVerificationDocument(document: InsertVerificationDocument): Promise<VerificationDocument> {
-    const id = this.verificationDocumentId++;
-    const verificationDocument: VerificationDocument = {
-      ...document,
-      id,
-      verificationStatus: "pending",
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    this.verificationDocuments.set(id, verificationDocument);
-    
-    // Update user verification status if not already pending
-    const user = await this.getUser(document.userId);
-    if (user && user.verificationStatus === "unverified") {
-      await this.updateUserVerificationStatus(document.userId, "pending");
-    }
-    
-    return verificationDocument;
-  }
-
-  async updateVerificationDocument(id: number, data: Partial<VerificationDocument>): Promise<VerificationDocument | undefined> {
-    const document = this.verificationDocuments.get(id);
-    if (!document) return undefined;
-    
-    const updatedDocument = { 
-      ...document, 
-      ...data,
-      updatedAt: new Date().toISOString()
-    };
-    this.verificationDocuments.set(id, updatedDocument);
-    
-    // If document is being approved/rejected, update user verification status
-    if (data.verificationStatus && document.verificationStatus !== data.verificationStatus) {
-      const userDocs = await this.getVerificationDocuments(document.userId);
-      
-      // Check if all required documents are submitted and approved
-      const hasApprovedIdFront = userDocs.some(d => d.documentType === "id_front" && d.verificationStatus === "approved");
-      const hasApprovedIdBack = userDocs.some(d => d.documentType === "id_back" && d.verificationStatus === "approved");
-      const hasApprovedSelfie = userDocs.some(d => d.documentType === "selfie" && d.verificationStatus === "approved");
-      
-      if (hasApprovedIdFront && hasApprovedIdBack && hasApprovedSelfie) {
-        await this.updateUserVerificationStatus(document.userId, "approved");
-      } else if (data.verificationStatus === "rejected") {
-        // If any document is rejected, user verification is rejected
-        await this.updateUserVerificationStatus(document.userId, "rejected");
-      }
-    }
-    
-    return updatedDocument;
-  }
-
-  async updateUserVerificationStatus(userId: number, status: string): Promise<User | undefined> {
-    const user = await this.getUser(userId);
-    if (!user) return undefined;
-    
-    const isVerified = status === "approved";
-    
-    const updatedUser = { 
-      ...user,
-      verificationStatus: status,
-      isVerified
-    };
-    
-    this.users.set(userId, updatedUser);
-    return updatedUser;
-  }
-}
-
-// Database storage implementation
-
-export class DatabaseStorage implements IStorage {
-  sessionStore: session.Store;
-
-  constructor() {
-    try {
-      // Test database connection before proceeding
-      console.log('Testing database connection...');
-      
-      // Use a more resilient session store configuration with better timeout handling
-      this.sessionStore = new PostgresSessionStore({ 
-        conObject: {
-          connectionString: process.env.DATABASE_URL,
-          ssl: { rejectUnauthorized: false }, // Compatible SSL setting
-          connectionTimeoutMillis: 10000,     // More generous connection timeout
-          idleTimeoutMillis: 60000,           // Longer idle timeout
-          keepAlive: true,                    // Enable TCP keepalive
-          max: 10,                            // Maximum pool size
-          min: 2,                             // Minimum pool size (keep some connections ready)
-        },
-        createTableIfMissing: true,
-        tableName: 'session',
-        pruneSessionInterval: 60,             // Prune stale sessions every minute
-        errorLog: (err) => console.error('PostgreSQL session store error:', err)
-      });
-      
-      console.log('Database connection established successfully.');
-    } catch (error) {
-      console.error('Failed to initialize database session store:', error);
-      
-      // Fall back to memory store if database connection fails
-      console.warn('Falling back to memory session store');
-      this.sessionStore = new MemoryStore({
-        checkPeriod: 86400000 // Prune expired entries every 24h
-      });
-      
-      // If this is a critical failure that affects all operations, throw
-      // so our createStorage function can fall back to MemStorage
-      if (error instanceof Error && 
-          (error.message.includes('connection') || 
-           error.message.includes('connect'))) {
-        throw new Error('Critical database connection failure: ' + error.message);
-      }
-    }
-  }
-
-  // User operations
-  async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
-  }
-
-  async createUser(user: InsertUser): Promise<User> {
-    const [createdUser] = await db.insert(users).values(user).returning();
-    return createdUser;
-  }
-
-  async updateUser(id: number, data: Partial<User>): Promise<User | undefined> {
-    const [updatedUser] = await db
-      .update(users)
-      .set(data)
-      .where(eq(users.id, id))
-      .returning();
-    return updatedUser;
-  }
-
-  // Car operations
-  async getCar(id: number): Promise<Car | undefined> {
-    const [car] = await db.select().from(cars).where(eq(cars.id, id));
-    return car;
-  }
-
-  async getCars(): Promise<Car[]> {
-    // Get all cars
-    const allCars = await db.select().from(cars);
-    
-    // Find the Range Rover if it exists
-    const rangeRoverIndex = allCars.findIndex(car => 
-      car.make === "Land Rover" && car.model === "Range Rover" && car.year === 2023
-    );
-    
-    // If Range Rover exists, move it to the top of the list
-    if (rangeRoverIndex !== -1) {
-      const rangeRover = allCars.splice(rangeRoverIndex, 1)[0];
-      allCars.unshift(rangeRover);
-    }
-    
-    return allCars;
-  }
-  
-  async getCarsWithFilters(filters: any): Promise<Car[]> {
-    try {
-      // Import query helper functions
-      const { 
-        buildCarFilterConditions, 
-        buildCarSortClause, 
-        buildPaginationClause,
-        CarFilterOptions 
-      } = await import('./utils/query-helpers');
-      
-      // Create a query builder that starts with selecting all cars
-      let query = db.select().from(cars);
-      
-      // Add filter conditions if there are any
-      const whereConditions = buildCarFilterConditions(filters);
-      query = query.where(whereConditions);
-      
-      // Add sort condition
-      query = query.orderBy(buildCarSortClause(filters.sort));
-      
-      // Add pagination
-      if (filters.limit || filters.offset) {
-        query = query.limit(filters.limit || 50).offset(filters.offset || 0);
-      }
-      
-      // Execute the query
-      const filteredCars = await query;
-      
-      // If "Land Rover Range Rover" should be prioritized regardless of filters
-      if (filters.make?.includes("Land Rover") || !filters.make || filters.make.length === 0) {
-        const rangeRoverIndex = filteredCars.findIndex(car => 
-          car.make === "Land Rover" && car.model === "Range Rover" && car.year === 2023
-        );
-        
-        if (rangeRoverIndex !== -1) {
-          const rangeRover = filteredCars.splice(rangeRoverIndex, 1)[0];
-          filteredCars.unshift(rangeRover);
-        }
-      }
-      
-      return filteredCars;
-    } catch (error) {
-      console.error("Error in getCarsWithFilters:", error);
-      // Fall back to regular getCars if there's an error
-      return this.getCars();
-    }
-  }
-
-  async getCarsByHost(hostId: number): Promise<Car[]> {
-    return db.select().from(cars).where(eq(cars.hostId, hostId));
-  }
-
-  async createCar(car: InsertCar): Promise<Car> {
-    const [createdCar] = await db.insert(cars).values(car).returning();
-    return createdCar;
-  }
-
-  async updateCar(id: number, data: Partial<Car>): Promise<Car | undefined> {
-    const [updatedCar] = await db
-      .update(cars)
-      .set(data)
-      .where(eq(cars.id, id))
-      .returning();
-    return updatedCar;
-  }
-
-  // Booking operations
-  async getBooking(id: number): Promise<Booking | undefined> {
-    const [booking] = await db.select().from(bookings).where(eq(bookings.id, id));
-    return booking;
-  }
-
-  async getBookingsByUser(userId: number): Promise<Booking[]> {
-    return db.select().from(bookings).where(eq(bookings.userId, userId));
-  }
-
-  async getBookingsByCar(carId: number): Promise<Booking[]> {
-    return db.select().from(bookings).where(eq(bookings.carId, carId));
-  }
-
-  async getBookingsWithCars(userId: number): Promise<(Booking & { car: Car })[]> {
-    const userBookings = await db.select().from(bookings).where(eq(bookings.userId, userId));
-    
-    const bookingsWithCars = await Promise.all(
-      userBookings.map(async (booking) => {
-        const [car] = await db.select().from(cars).where(eq(cars.id, booking.carId));
-        return {
-          ...booking,
-          car
-        };
-      })
-    );
-    
-    return bookingsWithCars as (Booking & { car: Car })[];
-  }
-
-  async createBooking(booking: InsertBooking): Promise<Booking> {
-    const [createdBooking] = await db.insert(bookings).values(booking).returning();
-    return createdBooking;
-  }
-
-  async updateBooking(id: number, data: Partial<Booking>): Promise<Booking | undefined> {
-    const [updatedBooking] = await db
-      .update(bookings)
-      .set(data)
-      .where(eq(bookings.id, id))
-      .returning();
-    return updatedBooking;
-  }
-
-  async getLastBookedCar(userId: number): Promise<number | undefined> {
-    const [lastBooking] = await db
-      .select({ carId: bookings.carId })
-      .from(bookings)
-      .where(eq(bookings.userId, userId))
-      .orderBy(desc(bookings.createdAt))
-      .limit(1);
-      
-    return lastBooking?.carId;
-  }
-
-  // Favorite operations
-  async getFavorite(id: number): Promise<Favorite | undefined> {
-    const [favorite] = await db.select().from(favorites).where(eq(favorites.id, id));
-    return favorite;
-  }
-
-  async getFavoritesByUser(userId: number): Promise<Favorite[]> {
-    return db.select().from(favorites).where(eq(favorites.userId, userId));
-  }
-
-  async getFavoriteCarsByUser(userId: number): Promise<Car[]> {
-    const userFavorites = await this.getFavoritesByUser(userId);
-    
-    if (userFavorites.length === 0) {
-      return [];
-    }
-    
-    const carIds = userFavorites.map(favorite => favorite.carId);
-    
-    const favoriteCars = await Promise.all(
-      carIds.map(async (carId) => {
-        const car = await this.getCar(carId);
-        return car;
-      })
-    );
-    
-    // Filter out undefined cars and cast to Car[]
-    return favoriteCars.filter(car => car !== undefined) as Car[];
-  }
-
-  async isFavoriteCar(userId: number, carId: number): Promise<boolean> {
-    const [favorite] = await db
-      .select()
-      .from(favorites)
-      .where(
-        and(
-          eq(favorites.userId, userId),
-          eq(favorites.carId, carId)
-        )
-      );
-    return !!favorite;
-  }
-
-  async createFavorite(favorite: InsertFavorite): Promise<Favorite> {
-    const [createdFavorite] = await db.insert(favorites).values(favorite).returning();
-    return createdFavorite;
-  }
-
-  async deleteFavorite(userId: number, carId: number): Promise<void> {
-    await db
-      .delete(favorites)
-      .where(
-        and(
-          eq(favorites.userId, userId),
-          eq(favorites.carId, carId)
-        )
-      );
-  }
-
-  async getFavoriteIds(userId: number): Promise<number[]> {
-    const results = await db
-      .select({ carId: favorites.carId })
-      .from(favorites)
-      .where(eq(favorites.userId, userId));
-    
-    return results.map(result => result.carId);
-  }
-
-  // Message operations
-  async getMessage(id: number): Promise<Message | undefined> {
-    const [message] = await db.select().from(messages).where(eq(messages.id, id));
-    return message;
-  }
-
-  async getMessagesByUser(userId: number): Promise<Message[]> {
-    return db
-      .select()
-      .from(messages)
-      .where(
-        sql`${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId}`
-      );
-  }
-
-  async getConversations(userId: number): Promise<{ id: number, username: string, profilePicture?: string, unreadCount: number }[]> {
-    // Get all messages for this user
-    const userMessages = await this.getMessagesByUser(userId);
-    
-    if (userMessages.length === 0) {
-      return [];
-    }
-    
-    // Get unique user IDs that the current user has conversations with
-    const conversationUserIds = new Set<number>();
-    userMessages.forEach(message => {
-      if (message.senderId === userId) {
-        conversationUserIds.add(message.receiverId);
-      } else {
-        conversationUserIds.add(message.senderId);
-      }
-    });
-    
-    // Get conversation details for each user
-    const conversations = await Promise.all(
-      Array.from(conversationUserIds).map(async (otherUserId) => {
-        const [otherUser] = await db.select().from(users).where(eq(users.id, otherUserId));
-        
-        if (!otherUser) {
-          return null;
-        }
-        
-        // Count unread messages
-        const unreadCount = userMessages.filter(
-          message => message.receiverId === userId && message.senderId === otherUserId && !message.read
-        ).length;
-        
-        return {
-          id: otherUserId,
-          username: otherUser.username,
-          profilePicture: otherUser.profilePicture || undefined,
-          unreadCount
-        };
-      })
-    );
-    
-    return conversations.filter(conv => conv !== null) as { id: number, username: string, profilePicture?: string, unreadCount: number }[];
-  }
-
-  async getConversationMessages(userId: number, otherUserId: number): Promise<(Message & { sender: User })[]> {
-    // Get messages between the two users
-    const conversationMessages = await db
-      .select()
-      .from(messages)
-      .where(
-        sql`(${messages.senderId} = ${userId} AND ${messages.receiverId} = ${otherUserId}) OR 
-            (${messages.senderId} = ${otherUserId} AND ${messages.receiverId} = ${userId})`
-      )
-      .orderBy(asc(messages.createdAt));
-    
-    // Add sender info to each message
-    const messagesWithSender = await Promise.all(
-      conversationMessages.map(async (message) => {
-        const sender = await this.getUser(message.senderId);
-        return {
-          ...message,
-          sender: sender as User
-        };
-      })
-    );
-    
-    return messagesWithSender as (Message & { sender: User })[];
-  }
-
-  async createMessage(message: InsertMessage): Promise<Message> {
-    const [createdMessage] = await db.insert(messages).values(message).returning();
-    return createdMessage;
-  }
-
-  async markConversationAsRead(userId: number, otherUserId: number): Promise<void> {
-    await db
-      .update(messages)
-      .set({ read: true })
-      .where(
-        and(
-          eq(messages.senderId, otherUserId),
-          eq(messages.receiverId, userId),
-          sql`${messages.read} = false`
-        )
-      );
-  }
-
-  // Verification operations
-  async getVerificationDocuments(userId: number): Promise<VerificationDocument[]> {
-    return db
-      .select()
-      .from(verificationDocuments)
-      .where(eq(verificationDocuments.userId, userId));
-  }
-
-  async getVerificationDocument(id: number): Promise<VerificationDocument | undefined> {
-    const [document] = await db
-      .select()
-      .from(verificationDocuments)
-      .where(eq(verificationDocuments.id, id));
-    return document;
-  }
-
-  async createVerificationDocument(document: InsertVerificationDocument): Promise<VerificationDocument> {
-    const [createdDocument] = await db
-      .insert(verificationDocuments)
-      .values(document)
-      .returning();
-    return createdDocument;
-  }
-
-  async updateVerificationDocument(id: number, data: Partial<VerificationDocument>): Promise<VerificationDocument | undefined> {
-    // Add updatedAt timestamp
-    const updateData = {
-      ...data,
-      updatedAt: new Date()
-    };
-    
-    const [updatedDocument] = await db
-      .update(verificationDocuments)
-      .set(updateData)
-      .where(eq(verificationDocuments.id, id))
-      .returning();
-    
-    // If document is being approved/rejected, update user verification status
-    if (updatedDocument && data.verificationStatus && 
-        updatedDocument.verificationStatus !== data.verificationStatus) {
-      
-      const userDocs = await this.getVerificationDocuments(updatedDocument.userId);
-      
-      // Check if all required documents are submitted and approved
-      const hasApprovedIdFront = userDocs.some(d => d.documentType === "id_front" && d.verificationStatus === "approved");
-      const hasApprovedIdBack = userDocs.some(d => d.documentType === "id_back" && d.verificationStatus === "approved");
-      const hasApprovedSelfie = userDocs.some(d => d.documentType === "selfie" && d.verificationStatus === "approved");
-      
-      if (hasApprovedIdFront && hasApprovedIdBack && hasApprovedSelfie) {
-        await this.updateUserVerificationStatus(updatedDocument.userId, "approved");
-      } else if (data.verificationStatus === "rejected") {
-        // If any document is rejected, user verification is rejected
-        await this.updateUserVerificationStatus(updatedDocument.userId, "rejected");
-      }
-    }
-    
-    return updatedDocument;
-  }
-
-  async updateUserVerificationStatus(userId: number, status: string): Promise<User | undefined> {
-    const isVerified = status === "approved";
-    
-    const [updatedUser] = await db
-      .update(users)
-      .set({
-        verificationStatus: status,
-        isVerified
-      })
-      .where(eq(users.id, userId))
-      .returning();
-    
-    return updatedUser;
-  }
-
-  // Payout methods operations
-  async getPayoutMethods(userId: number): Promise<PayoutMethod[]> {
-    return db
-      .select()
-      .from(payoutMethods)
-      .where(eq(payoutMethods.userId, userId));
-  }
-
-  async getPayoutMethod(id: number): Promise<PayoutMethod | undefined> {
-    const [method] = await db
-      .select()
-      .from(payoutMethods)
-      .where(eq(payoutMethods.id, id));
+  // ---- Payout Methods ----
+  async getPayoutMethods(userId: number) { return Array.from(this.payoutMethodsMap.values()).filter((m) => m.userId === userId); }
+  async getPayoutMethod(id: number) { return this.payoutMethodsMap.get(id); }
+  async createPayoutMethod(m: InsertPayoutMethod): Promise<PayoutMethod> {
+    const method: PayoutMethod = { ...m, id: this.payoutMethodId++, status: "verified", createdAt: new Date(), updatedAt: new Date() } as PayoutMethod;
+    this.payoutMethodsMap.set(method.id, method);
     return method;
   }
-
-  async createPayoutMethod(method: InsertPayoutMethod): Promise<PayoutMethod> {
-    // If this is marked as default, remove default status from other methods
-    if (method.isDefault) {
-      await db
-        .update(payoutMethods)
-        .set({ isDefault: false })
-        .where(eq(payoutMethods.userId, method.userId));
-    }
-    
-    const [createdMethod] = await db
-      .insert(payoutMethods)
-      .values(method)
-      .returning();
-    return createdMethod;
+  async updatePayoutMethod(id: number, data: Partial<PayoutMethod>) {
+    const m = this.payoutMethodsMap.get(id);
+    if (!m) return undefined;
+    const updated = { ...m, ...data, updatedAt: new Date() };
+    this.payoutMethodsMap.set(id, updated);
+    return updated;
+  }
+  async deletePayoutMethod(id: number) { this.payoutMethodsMap.delete(id); }
+  async setDefaultPayoutMethod(userId: number, methodId: number) {
+    (await this.getPayoutMethods(userId)).forEach((m) => this.payoutMethodsMap.set(m.id, { ...m, isDefault: m.id === methodId }));
   }
 
-  async updatePayoutMethod(id: number, data: Partial<PayoutMethod>): Promise<PayoutMethod | undefined> {
-    const [method] = await db
-      .select()
-      .from(payoutMethods)
-      .where(eq(payoutMethods.id, id));
-    
-    if (!method) return undefined;
-    
-    // If updating to default, remove default status from other methods
-    if (data.isDefault) {
-      await db
-        .update(payoutMethods)
-        .set({ isDefault: false })
-        .where(
-          and(
-            eq(payoutMethods.userId, method.userId),
-            sql`${payoutMethods.id} != ${id}`
-          )
-        );
-    }
-    
-    const [updatedMethod] = await db
-      .update(payoutMethods)
-      .set(data)
-      .where(eq(payoutMethods.id, id))
-      .returning();
-    return updatedMethod;
+  // ---- Payout Transactions ----
+  async getPayoutTransactions(userId: number) { return Array.from(this.payoutTransactionsMap.values()).filter((t) => t.userId === userId); }
+  async getPayoutTransaction(id: number) { return this.payoutTransactionsMap.get(id); }
+  async createPayoutTransaction(t: InsertPayoutTransaction): Promise<PayoutTransaction> {
+    const tx: PayoutTransaction = { ...t, id: this.payoutTransactionId++, reference: `TX-${Date.now()}`, status: "pending", failureReason: null, createdAt: new Date(), processedAt: null } as PayoutTransaction;
+    this.payoutTransactionsMap.set(tx.id, tx);
+    return tx;
   }
-
-  async deletePayoutMethod(id: number): Promise<void> {
-    // Check if this was the default method
-    const [method] = await db
-      .select()
-      .from(payoutMethods)
-      .where(eq(payoutMethods.id, id));
-    
-    if (method && method.isDefault) {
-      // Find another method to set as default
-      const [alternativeMethod] = await db
-        .select()
-        .from(payoutMethods)
-        .where(
-          and(
-            eq(payoutMethods.userId, method.userId),
-            sql`${payoutMethods.id} != ${id}`
-          )
-        )
-        .limit(1);
-      
-      if (alternativeMethod) {
-        await db
-          .update(payoutMethods)
-          .set({ isDefault: true })
-          .where(eq(payoutMethods.id, alternativeMethod.id));
-      }
-    }
-    
-    await db
-      .delete(payoutMethods)
-      .where(eq(payoutMethods.id, id));
-  }
-
-  async setDefaultPayoutMethod(userId: number, methodId: number): Promise<void> {
-    // Reset all methods for this user
-    await db
-      .update(payoutMethods)
-      .set({ isDefault: false })
-      .where(eq(payoutMethods.userId, userId));
-    
-    // Set the specified method as default
-    await db
-      .update(payoutMethods)
-      .set({ isDefault: true })
-      .where(
-        and(
-          eq(payoutMethods.id, methodId),
-          eq(payoutMethods.userId, userId)
-        )
-      );
-  }
-
-  // Payout transaction operations
-  async getPayoutTransactions(userId: number): Promise<PayoutTransaction[]> {
-    return db
-      .select()
-      .from(payoutTransactions)
-      .where(eq(payoutTransactions.userId, userId))
-      .orderBy(desc(payoutTransactions.createdAt));
-  }
-
-  async getPayoutTransaction(id: number): Promise<PayoutTransaction | undefined> {
-    const [transaction] = await db
-      .select()
-      .from(payoutTransactions)
-      .where(eq(payoutTransactions.id, id));
-    return transaction;
-  }
-
-  async createPayoutTransaction(transaction: InsertPayoutTransaction): Promise<PayoutTransaction> {
-    const [createdTransaction] = await db
-      .insert(payoutTransactions)
-      .values(transaction)
-      .returning();
-    return createdTransaction;
-  }
-
-  async updatePayoutTransactionStatus(id: number, status: string, failureReason?: string): Promise<PayoutTransaction | undefined> {
-    const updateData: Partial<PayoutTransaction> = { 
-      status,
-      updatedAt: new Date()
-    };
-    
-    if (failureReason) {
-      updateData.failureReason = failureReason;
-    }
-    
-    // If the transaction is successful, mark the completion date
-    if (status === 'completed') {
-      updateData.completedAt = new Date();
-    }
-    
-    const [updatedTransaction] = await db
-      .update(payoutTransactions)
-      .set(updateData)
-      .where(eq(payoutTransactions.id, id))
-      .returning();
-    return updatedTransaction;
+  async updatePayoutTransactionStatus(id: number, status: string, failureReason?: string) {
+    const t = this.payoutTransactionsMap.get(id);
+    if (!t) return undefined;
+    const updated = { ...t, status, failureReason: failureReason || t.failureReason, processedAt: status === "completed" || status === "failed" ? new Date() : t.processedAt };
+    this.payoutTransactionsMap.set(id, updated);
+    return updated;
   }
 }
 
-// Create a function to determine the appropriate storage implementation
-function createStorage(): IStorage {
-  try {
-    // First try to use database storage
-    console.log('Initializing database storage...');
-    return new DatabaseStorage();
-  } catch (error) {
-    // If that fails, fall back to in-memory storage with a warning
-    console.warn('Database connection failed, falling back to in-memory storage:', error);
-    return new MemStorage();
-  }
-}
-
-// Export an instance of storage with fallback mechanism
-export const storage = createStorage();
+// Use in-memory storage for MVP (can be swapped to DatabaseStorage with PostgreSQL)
+export const storage: IStorage = new MemStorage();

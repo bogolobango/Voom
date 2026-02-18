@@ -110,7 +110,7 @@ export default function BookingSuccess() {
               <CardContent className="p-4">
                 <div className="flex items-start space-x-4 mb-4">
                   <img
-                    src={car.imageUrl}
+                    src={car.imageUrl ?? undefined}
                     alt={`${car.make} ${car.model}`}
                     className="w-24 h-24 object-cover rounded-md"
                   />

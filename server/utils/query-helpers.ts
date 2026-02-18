@@ -76,7 +76,7 @@ export function buildCarFilterConditions(filters: CarFilterOptions): SQL<unknown
     if (featuresConditions.length === 1) {
       conditions.push(featuresConditions[0]);
     } else if (featuresConditions.length > 1) {
-      conditions.push(and(...featuresConditions));
+      conditions.push(and(...featuresConditions)!);
     }
   }
   
@@ -113,11 +113,11 @@ export function buildCarFilterConditions(filters: CarFilterOptions): SQL<unknown
       ilike(cars.model, searchTerm),
       ilike(cars.description, searchTerm)
     );
-    conditions.push(searchCondition);
+    conditions.push(searchCondition!);
   }
   
   // Combine all conditions with AND or return TRUE if no conditions
-  return conditions.length ? and(...conditions) : sql`TRUE`;
+  return conditions.length ? and(...conditions)! : sql`TRUE`;
 }
 
 /**

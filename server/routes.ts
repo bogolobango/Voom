@@ -999,6 +999,391 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== Payout Method Routes ====================
+
+  apiRouter.get("/payout-methods", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const methods = await storage.getPayoutMethods(userId);
+      return res.json(methods);
+    } catch (error) {
+      return res.status(500).json({ message: (error as Error).message });
+    }
+  });
+
+  apiRouter.post("/payout-methods", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const { methodType, accountName, accountNumber, routingNumber, phoneNumber, bitcoinAddress, isDefault } = req.body;
+
+      if (!methodType) {
+        return res.status(400).json({ message: "Method type is required" });
+      }
+
+      const method = await storage.createPayoutMethod({
+        userId,
+        methodType,
+        accountName: accountName || null,
+        accountNumber: accountNumber || null,
+        routingNumber: routingNumber || null,
+        phoneNumber: phoneNumber || null,
+        bitcoinAddress: bitcoinAddress || null,
+        isDefault: isDefault || false,
+      });
+
+      // If this is the default, unset others
+      if (isDefault) {
+        await storage.setDefaultPayoutMethod(userId, method.id);
+      }
+
+      return res.status(201).json(method);
+    } catch (error) {
+      return res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  apiRouter.put("/payout-methods/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid payout method ID" });
+
+      const method = await storage.getPayoutMethod(id);
+      if (!method) return res.status(404).json({ message: "Payout method not found" });
+      if (method.userId !== userId) return res.status(403).json({ message: "Not authorized" });
+
+      const updated = await storage.updatePayoutMethod(id, req.body);
+      return res.json(updated);
+    } catch (error) {
+      return res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  apiRouter.delete("/payout-methods/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid payout method ID" });
+
+      const method = await storage.getPayoutMethod(id);
+      if (!method) return res.status(404).json({ message: "Payout method not found" });
+      if (method.userId !== userId) return res.status(403).json({ message: "Not authorized" });
+
+      await storage.deletePayoutMethod(id);
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  apiRouter.post("/payout-methods/:id/default", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid payout method ID" });
+
+      const method = await storage.getPayoutMethod(id);
+      if (!method) return res.status(404).json({ message: "Payout method not found" });
+      if (method.userId !== userId) return res.status(403).json({ message: "Not authorized" });
+
+      await storage.setDefaultPayoutMethod(userId, id);
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  // ==================== Payout Transaction Routes ====================
+
+  apiRouter.get("/payouts", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const transactions = await storage.getPayoutTransactions(userId);
+      return res.json(transactions);
+    } catch (error) {
+      return res.status(500).json({ message: (error as Error).message });
+    }
+  });
+
+  apiRouter.post("/payouts/request", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const { payoutMethodId, amount, currency, description } = req.body;
+
+      if (!payoutMethodId || !amount) {
+        return res.status(400).json({ message: "Payout method ID and amount are required" });
+      }
+
+      const method = await storage.getPayoutMethod(parseInt(payoutMethodId));
+      if (!method) return res.status(404).json({ message: "Payout method not found" });
+      if (method.userId !== userId) return res.status(403).json({ message: "Not authorized" });
+
+      const transaction = await storage.createPayoutTransaction({
+        userId,
+        payoutMethodId: method.id,
+        amount: parseInt(amount),
+        currency: currency || "FCFA",
+        description: description || null,
+      });
+
+      return res.status(201).json(transaction);
+    } catch (error) {
+      return res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  // ==================== Admin Routes ====================
+
+  const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ message: "Not authenticated" });
+    const user = req.user;
+    if (!user || user.role !== "admin") {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+    next();
+  };
+
+  // Admin: list all users with pagination
+  apiRouter.get("/admin/users", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      // For now, get all cars to derive hosts, plus all users if we extend storage
+      // We'll use a pragmatic approach with existing storage methods
+      const allCars = await storage.getCars();
+      const hostIds = Array.from(new Set(allCars.map((c) => c.hostId)));
+      const users: any[] = [];
+
+      for (const hostId of hostIds) {
+        const user = await storage.getUser(hostId);
+        if (user) {
+          const { password, ...safe } = user;
+          users.push(safe);
+        }
+      }
+
+      return res.json({ users, total: users.length });
+    } catch (error) {
+      return res.status(500).json({ message: (error as Error).message });
+    }
+  });
+
+  // Admin: get a specific user
+  apiRouter.get("/admin/users/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid user ID" });
+
+      const user = await storage.getUser(id);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const { password, ...safe } = user;
+      const cars = await storage.getCarsByHost(id);
+      const bookings = await storage.getBookingsByUser(id);
+      const reviews = await storage.getReviewsByUser(id);
+
+      return res.json({ user: safe, cars, bookings, reviews });
+    } catch (error) {
+      return res.status(500).json({ message: (error as Error).message });
+    }
+  });
+
+  // Admin: update user (role, verification status, ban)
+  apiRouter.patch("/admin/users/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid user ID" });
+
+      const { role, verificationStatus, isVerified } = req.body;
+      const updates: Record<string, any> = {};
+      if (role) updates.role = role;
+      if (verificationStatus) {
+        updates.verificationStatus = verificationStatus;
+        updates.isVerified = verificationStatus === "approved";
+      }
+      if (isVerified !== undefined) updates.isVerified = isVerified;
+
+      const updated = await storage.updateUser(id, updates);
+      if (!updated) return res.status(404).json({ message: "User not found" });
+
+      const { password, ...safe } = updated;
+      return res.json(safe);
+    } catch (error) {
+      return res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  // Admin: list all cars with filters
+  apiRouter.get("/admin/cars", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { status } = req.query;
+      let allCars = await storage.getCars();
+      if (status) {
+        allCars = allCars.filter((c) => c.status === status);
+      }
+      return res.json({ cars: allCars, total: allCars.length });
+    } catch (error) {
+      return res.status(500).json({ message: (error as Error).message });
+    }
+  });
+
+  // Admin: approve/reject a car listing
+  apiRouter.patch("/admin/cars/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid car ID" });
+
+      const { status, available } = req.body;
+      const updates: Record<string, any> = {};
+      if (status) updates.status = status;
+      if (available !== undefined) updates.available = available;
+
+      const updated = await storage.updateCar(id, updates);
+      if (!updated) return res.status(404).json({ message: "Car not found" });
+      return res.json(updated);
+    } catch (error) {
+      return res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  // Admin: list all bookings
+  apiRouter.get("/admin/bookings", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const allCars = await storage.getCars();
+      const allBookings: any[] = [];
+      for (const car of allCars) {
+        const carBookings = await storage.getBookingsByCar(car.id);
+        for (const booking of carBookings) {
+          allBookings.push({ ...booking, car });
+        }
+      }
+      allBookings.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+      return res.json({ bookings: allBookings, total: allBookings.length });
+    } catch (error) {
+      return res.status(500).json({ message: (error as Error).message });
+    }
+  });
+
+  // Admin: update a booking status
+  apiRouter.patch("/admin/bookings/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid booking ID" });
+
+      const updated = await storage.updateBooking(id, req.body);
+      if (!updated) return res.status(404).json({ message: "Booking not found" });
+      return res.json(updated);
+    } catch (error) {
+      return res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  // Admin: list all verification documents
+  apiRouter.get("/admin/verifications", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      // Get all users that have pending verifications by checking all cars' hosts
+      const allCars = await storage.getCars();
+      const hostIds = Array.from(new Set(allCars.map((c) => c.hostId)));
+      const allDocs: any[] = [];
+
+      for (const hostId of hostIds) {
+        const docs = await storage.getVerificationDocuments(hostId);
+        const user = await storage.getUser(hostId);
+        for (const doc of docs) {
+          allDocs.push({
+            ...doc,
+            user: user ? { id: user.id, username: user.username, fullName: user.fullName } : null,
+          });
+        }
+      }
+
+      return res.json({ documents: allDocs, total: allDocs.length });
+    } catch (error) {
+      return res.status(500).json({ message: (error as Error).message });
+    }
+  });
+
+  // Admin: approve/reject verification document
+  apiRouter.patch("/admin/verifications/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid document ID" });
+
+      const { status, notes } = req.body;
+      if (!status) return res.status(400).json({ message: "Status is required" });
+
+      const updated = await storage.updateVerificationDocument(id, { status, notes: notes || null });
+      if (!updated) return res.status(404).json({ message: "Document not found" });
+
+      // If all docs are approved, update user verification status
+      if (status === "approved") {
+        const docs = await storage.getVerificationDocuments(updated.userId);
+        const allApproved = docs.every((d) => d.status === "approved");
+        if (allApproved) {
+          await storage.updateUserVerificationStatus(updated.userId, "approved");
+        }
+      } else if (status === "rejected") {
+        await storage.updateUserVerificationStatus(updated.userId, "rejected");
+      }
+
+      return res.json(updated);
+    } catch (error) {
+      return res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  // Admin: process payout transaction
+  apiRouter.patch("/admin/payouts/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid payout ID" });
+
+      const { status, failureReason } = req.body;
+      if (!status) return res.status(400).json({ message: "Status is required" });
+
+      const updated = await storage.updatePayoutTransactionStatus(id, status, failureReason);
+      if (!updated) return res.status(404).json({ message: "Payout not found" });
+      return res.json(updated);
+    } catch (error) {
+      return res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  // Admin: platform stats
+  apiRouter.get("/admin/stats", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const allCars = await storage.getCars();
+      let totalBookings = 0;
+      let totalRevenue = 0;
+      let pendingBookings = 0;
+
+      for (const car of allCars) {
+        const carBookings = await storage.getBookingsByCar(car.id);
+        totalBookings += carBookings.length;
+        for (const booking of carBookings) {
+          if (booking.status === "completed") {
+            totalRevenue += booking.platformFee || 0;
+          }
+          if (booking.status === "pending") {
+            pendingBookings++;
+          }
+        }
+      }
+
+      const hostIds = Array.from(new Set(allCars.map((c) => c.hostId)));
+
+      return res.json({
+        totalCars: allCars.length,
+        activeCars: allCars.filter((c) => c.status === "active" && c.available).length,
+        totalBookings,
+        pendingBookings,
+        totalRevenue,
+        totalHosts: hostIds.length,
+        currency: "FCFA",
+      });
+    } catch (error) {
+      return res.status(500).json({ message: (error as Error).message });
+    }
+  });
+
   // Register the API router
   app.use("/api", apiRouter);
 

@@ -423,6 +423,26 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  async updatePaymentStatusIfPending(
+    id: number,
+    status: string,
+    providerPaymentId?: string,
+  ): Promise<Payment | undefined> {
+    const updateData: Record<string, any> = { status, updatedAt: new Date() };
+    if (providerPaymentId) updateData.providerPaymentId = providerPaymentId;
+    const [updated] = await db
+      .update(payments)
+      .set(updateData)
+      .where(and(eq(payments.id, id), eq(payments.status, "pending")))
+      .returning();
+    return updated;
+  }
+
+  // Admin: get all users
+  async getAllUsers(): Promise<User[]> {
+    return db.select().from(users);
+  }
+
   // ---- Verification ----
 
   async getVerificationDocuments(userId: number): Promise<VerificationDocument[]> {

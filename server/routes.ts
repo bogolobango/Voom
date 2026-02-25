@@ -237,7 +237,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!car) return res.status(404).json({ message: "Car not found" });
       if (car.hostId !== userId) return res.status(403).json({ message: "Not authorized to edit this listing" });
 
-      const updatedCar = await storage.updateCar(carId, req.body);
+      // Whitelist allowed fields — prevent overwriting hostId, id, etc.
+      const allowedCarFields = [
+        "make", "model", "year", "type", "dailyRate", "currency", "location",
+        "city", "country", "description", "imageUrl", "images", "color",
+        "licensePlate", "available", "features", "transmission", "fuelType", "seats",
+      ];
+      const carUpdates: Record<string, any> = {};
+      for (const field of allowedCarFields) {
+        if (req.body[field] !== undefined) {
+          carUpdates[field] = req.body[field];
+        }
+      }
+
+      const updatedCar = await storage.updateCar(carId, carUpdates);
       return res.json(updatedCar);
     } catch (error) {
       return res.status(400).json({ message: (error as Error).message });
@@ -277,17 +290,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!car.available) return res.status(400).json({ message: "Car is not available" });
       if (car.hostId === userId) return res.status(400).json({ message: "You cannot book your own car" });
 
-      // Check date conflicts
+      // Validate dates
       const start = new Date(startDate);
       const end = new Date(endDate);
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return res.status(400).json({ message: "Invalid date format" });
+      }
       if (start >= end) return res.status(400).json({ message: "End date must be after start date" });
       if (start < new Date()) return res.status(400).json({ message: "Start date must be in the future" });
 
+      // Enforce maximum rental duration of 90 days
+      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      if (days > 90) {
+        return res.status(400).json({ message: "Maximum rental duration is 90 days" });
+      }
+
+      // Check date conflicts
       const hasConflict = await storage.hasBookingConflict(car.id, start, end);
       if (hasConflict) return res.status(409).json({ message: "Car is already booked for these dates" });
-
-      // Calculate pricing server-side
-      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
       const totalAmount = days * car.dailyRate;
       const platformFee = Math.round(totalAmount * PLATFORM_FEE_PERCENT / 100);
       const hostPayout = totalAmount - platformFee;
@@ -455,7 +475,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Backward compat for generic booking update
+  // Generic booking update — only allow safe fields (pickup/dropoff locations)
   apiRouter.patch("/bookings/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const userId = getUserId(req);
@@ -468,7 +488,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Not authorized" });
       }
 
-      const updated = await storage.updateBooking(id, req.body);
+      // Whitelist — only allow safe field updates, never status/amounts
+      const allowedFields = ["pickupLocation", "dropoffLocation", "paymentMethod"];
+      const updates: Record<string, any> = {};
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+          updates[field] = req.body[field];
+        }
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ message: "No valid fields to update" });
+      }
+
+      const updated = await storage.updateBooking(id, updates);
       return res.json(updated);
     } catch (error) {
       return res.status(400).json({ message: (error as Error).message });
@@ -656,11 +689,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // MoMo callback (called by MTN servers when payment status changes)
   apiRouter.post("/payments/momo/callback", async (req: Request, res: Response) => {
     try {
-      const { externalId, status } = req.body;
-      if (externalId) {
-        const paymentStatus = status === "SUCCESSFUL" ? "completed" : "failed";
-        await storage.updatePaymentStatus(parseInt(externalId), paymentStatus);
+      const { externalId, status, referenceId } = req.body;
+
+      if (!externalId || !status) {
+        return res.status(400).json({ message: "Missing externalId or status" });
       }
+
+      const paymentId = parseInt(externalId);
+      if (isNaN(paymentId)) {
+        return res.status(400).json({ message: "Invalid externalId" });
+      }
+
+      // Only update if current status is "pending" to prevent replayed callbacks
+      const newStatus = status === "SUCCESSFUL" ? "completed" : "failed";
+      await storage.updatePaymentStatusIfPending(paymentId, newStatus, referenceId);
+
       return res.json({ received: true });
     } catch (error) {
       return res.status(400).json({ message: (error as Error).message });
@@ -919,8 +962,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Receiver ID and content are required" });
       }
 
-      // Sanitize content (basic XSS prevention)
-      const sanitizedContent = content.replace(/<[^>]*>/g, "").trim();
+      // Sanitize content — strip all HTML tags and entities to prevent XSS
+      const sanitizedContent = content
+        .replace(/<[^>]*>?/gm, "")           // Remove HTML tags
+        .replace(/&[a-zA-Z]+;/g, "")         // Remove HTML entities
+        .replace(/javascript:/gi, "")         // Remove javascript: URIs
+        .replace(/on\w+\s*=/gi, "")          // Remove event handlers like onclick=
+        .trim();
       if (!sanitizedContent) {
         return res.status(400).json({ message: "Message content cannot be empty" });
       }
@@ -1119,14 +1167,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Payout method ID and amount are required" });
       }
 
+      const parsedAmount = parseInt(amount);
+      if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        return res.status(400).json({ message: "Amount must be a positive number" });
+      }
+
       const method = await storage.getPayoutMethod(parseInt(payoutMethodId));
       if (!method) return res.status(404).json({ message: "Payout method not found" });
       if (method.userId !== userId) return res.status(403).json({ message: "Not authorized" });
 
+      // Verify host has sufficient available balance
+      const hostCars = await storage.getCarsByHost(userId);
+      let availableBalance = 0;
+      for (const car of hostCars) {
+        const carBookings = await storage.getBookingsByCar(car.id);
+        for (const booking of carBookings) {
+          if (booking.status === "completed") {
+            availableBalance += booking.hostPayout || 0;
+          }
+        }
+      }
+      // Subtract already paid out amounts
+      const existingPayouts = await storage.getPayoutTransactions(userId);
+      const paidOut = existingPayouts
+        .filter(p => p.status === "completed" || p.status === "pending")
+        .reduce((sum, p) => sum + p.amount, 0);
+      availableBalance -= paidOut;
+
+      if (parsedAmount > availableBalance) {
+        return res.status(400).json({ message: `Insufficient balance. Available: ${availableBalance}` });
+      }
+
       const transaction = await storage.createPayoutTransaction({
         userId,
         payoutMethodId: method.id,
-        amount: parseInt(amount),
+        amount: parsedAmount,
         currency: currency || "FCFA",
         description: description || null,
       });
@@ -1148,24 +1223,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
-  // Admin: list all users with pagination
+  // Admin: list all users
   apiRouter.get("/admin/users", requireAdmin, async (req: Request, res: Response) => {
     try {
-      // For now, get all cars to derive hosts, plus all users if we extend storage
-      // We'll use a pragmatic approach with existing storage methods
-      const allCars = await storage.getCars();
-      const hostIds = Array.from(new Set(allCars.map((c) => c.hostId)));
-      const users: any[] = [];
-
-      for (const hostId of hostIds) {
-        const user = await storage.getUser(hostId);
-        if (user) {
-          const { password, ...safe } = user;
-          users.push(safe);
-        }
-      }
-
-      return res.json({ users, total: users.length });
+      const allUsers = await storage.getAllUsers();
+      const safeUsers = allUsers.map(({ password, ...safe }) => safe);
+      return res.json({ users: safeUsers, total: safeUsers.length });
     } catch (error) {
       return res.status(500).json({ message: (error as Error).message });
     }
@@ -1249,17 +1312,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: list all bookings
+  // Admin: list all bookings (uses a single join query via getAllBookingsWithCars if available)
   apiRouter.get("/admin/bookings", requireAdmin, async (req: Request, res: Response) => {
     try {
+      // Get all users' bookings by collecting from all cars (single pass)
       const allCars = await storage.getCars();
+      const carMap = new Map(allCars.map(c => [c.id, c]));
       const allBookings: any[] = [];
-      for (const car of allCars) {
-        const carBookings = await storage.getBookingsByCar(car.id);
-        for (const booking of carBookings) {
+
+      // Collect bookings for all cars in parallel
+      const carIds = allCars.map(c => c.id);
+      const bookingsArrays = await Promise.all(carIds.map(id => storage.getBookingsByCar(id)));
+      for (let i = 0; i < carIds.length; i++) {
+        const car = carMap.get(carIds[i]);
+        for (const booking of bookingsArrays[i]) {
           allBookings.push({ ...booking, car });
         }
       }
+
       allBookings.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
       return res.json({ bookings: allBookings, total: allBookings.length });
     } catch (error) {
@@ -1360,8 +1430,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let totalRevenue = 0;
       let pendingBookings = 0;
 
-      for (const car of allCars) {
-        const carBookings = await storage.getBookingsByCar(car.id);
+      // Fetch all bookings in parallel instead of sequentially
+      const bookingsArrays = await Promise.all(allCars.map(c => storage.getBookingsByCar(c.id)));
+      for (const carBookings of bookingsArrays) {
         totalBookings += carBookings.length;
         for (const booking of carBookings) {
           if (booking.status === "completed") {

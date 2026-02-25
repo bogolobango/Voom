@@ -92,6 +92,10 @@ export interface IStorage {
   createPayment(payment: InsertPayment): Promise<Payment>;
   getPaymentByIdempotencyKey(key: string): Promise<Payment | undefined>;
   updatePaymentStatus(id: number, status: string, providerPaymentId?: string): Promise<Payment | undefined>;
+  updatePaymentStatusIfPending(id: number, status: string, providerPaymentId?: string): Promise<Payment | undefined>;
+
+  // Admin: get all users
+  getAllUsers(): Promise<User[]>;
 
   // Verification operations
   getVerificationDocuments(userId: number): Promise<VerificationDocument[]>;
@@ -421,6 +425,16 @@ export class MemStorage implements IStorage {
     const updated = { ...p, status, updatedAt: new Date(), ...(providerPaymentId ? { providerPaymentId } : {}) };
     this.paymentsMap.set(id, updated);
     return updated;
+  }
+  async updatePaymentStatusIfPending(id: number, status: string, providerPaymentId?: string) {
+    const p = this.paymentsMap.get(id);
+    if (!p || p.status !== "pending") return undefined;
+    return this.updatePaymentStatus(id, status, providerPaymentId);
+  }
+
+  // Admin: get all users
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.usersMap.values());
   }
 
   // ---- Verification ----

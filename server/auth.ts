@@ -66,8 +66,12 @@ async function comparePasswords(supplied: string, stored: string) {
 
 export function setupAuth(app: Express) {
   // Enhanced session security settings
+  const sessionSecret = process.env.SESSION_SECRET || "voom-car-sharing-secret";
+  if (!process.env.SESSION_SECRET) {
+    console.warn("WARNING: SESSION_SECRET not set. Using default — set SESSION_SECRET in production.");
+  }
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || "voom-car-sharing-secret",
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,

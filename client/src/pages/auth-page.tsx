@@ -21,7 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Mail, Home, Menu, Search, User, Heart } from "lucide-react";
+import { Loader2, Home, Menu, Search, User, Heart } from "lucide-react";
 import { SiGoogle } from "react-icons/si";
 import { Logo } from "@/components/ui/logo";
 import { AuthLogo } from "@/components/ui/auth-logo";
@@ -221,10 +221,6 @@ export default function AuthPage() {
                     </>
                   )}
                 </Button>
-                <Button variant="outline" className="h-11">
-                  <Mail className="mr-2 h-4 w-4" />
-                  Continue with Email
-                </Button>
               </div>
             </TabsContent>
 
@@ -348,10 +344,6 @@ export default function AuthPage() {
                       Sign up with Google
                     </>
                   )}
-                </Button>
-                <Button variant="outline" className="h-11">
-                  <Mail className="mr-2 h-4 w-4" />
-                  Sign up with Email
                 </Button>
               </div>
             </TabsContent>

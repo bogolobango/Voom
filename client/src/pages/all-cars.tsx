@@ -140,7 +140,7 @@ export default function AllCarsPage() {
             
             <div>
               <Link href="/become-host">
-                <Button variant="outline" size="sm" className="rounded-full border-red-500 text-red-500 hover:bg-red-50">
+                <Button variant="outline" size="sm" className="rounded-full border-red-600 text-red-600 hover:bg-red-50">
                   Become a Host
                 </Button>
               </Link>
@@ -192,7 +192,7 @@ export default function AllCarsPage() {
             <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
               <Button 
                 variant="default" 
-                className="rounded-full flex-shrink-0 bg-red-500 hover:bg-red-600"
+                className="rounded-full flex-shrink-0 bg-red-600 hover:bg-red-700"
                 onClick={() => navigate("/all-cars")}
               >
                 All Cars
@@ -269,7 +269,7 @@ export default function AllCarsPage() {
                   transition={{ duration: 0.3 }}
                   className="bg-white rounded-lg overflow-hidden shadow-sm border border-gray-100"
                 >
-                  <Link href={`/car-detail/${car.id}`}>
+                  <Link href={`/cars/${car.id}`}>
                     <div className="flex flex-col md:flex-row">
                       {/* Car Image */}
                       <div className="relative w-full md:w-1/3 h-48 md:h-auto">
@@ -292,24 +292,23 @@ export default function AllCarsPage() {
                         {/* Rating */}
                         <div className="flex items-center gap-1 mt-1">
                           <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                          <span className="text-sm">{car.rating || 4.0} ({car.ratingCount || 28} voyages)</span>
+                          <span className="text-sm">{car.rating ? car.rating.toFixed(1) : "New"} ({car.ratingCount || 0} trips)</span>
                         </div>
                         
                         {/* Location */}
                         <p className="text-sm text-gray-600 mt-2">
-                          Prise en charge et retour: {car.location}
+                          Pickup &amp; return: {car.location}
                         </p>
-                        
-                        {/* Features/extra info */}
+
                         <p className="text-sm text-gray-600 mt-1">
-                          Annuler Gratuitement
+                          Free cancellation
                         </p>
                         
                         {/* Price */}
                         <div className="mt-4 flex justify-between items-center">
                           <div className="text-right">
                             <p className="text-xl font-bold">{formatCurrency(car.dailyRate, currency)}</p>
-                            <p className="text-sm text-gray-600">{currency}/jour</p>
+                            <p className="text-sm text-gray-600">{currency}/day</p>
                           </div>
                           <div>
                             <span className="text-xs text-red-500 font-medium uppercase">VOOM</span>
@@ -347,7 +346,7 @@ export default function AllCarsPage() {
                   });
                   setSearchQuery("");
                 }}
-                className="bg-red-500 hover:bg-red-600 text-white"
+                className="bg-red-600 hover:bg-red-700 text-white"
               >
                 Reset Filters
               </Button>

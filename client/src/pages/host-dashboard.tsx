@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/layout/header";
 import { BottomNav } from "@/components/layout/bottom-nav";
@@ -22,50 +22,12 @@ import {
   Users,
   ArrowLeft,
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 export default function HostDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const { toast } = useToast();
-  const [location, setLocation] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Welcome toast message when dashboard loads
-    toast({
-      title: "Welcome to Host Dashboard",
-      description: "Manage your cars, bookings, and earnings in one place",
-      variant: "default"
-    });
-  }, []);
-  
-  // Track tab changes for better UX
-  useEffect(() => {
-    if (activeTab === "overview") {
-      toast({
-        title: "Dashboard Overview",
-        description: "View your hosting activity at a glance",
-        variant: "default"
-      });
-    } else if (activeTab === "cars") {
-      toast({
-        title: "Your Listed Cars",
-        description: "Manage your vehicle listings",
-        variant: "default"
-      });
-    } else if (activeTab === "bookings") {
-      toast({
-        title: "Your Bookings",
-        description: "Track your upcoming and past bookings",
-        variant: "default"
-      });
-    } else if (activeTab === "earnings") {
-      toast({
-        title: "Earnings Dashboard",
-        description: "Monitor your rental income",
-        variant: "default"
-      });
-    }
-  }, [activeTab]);
+  const [, navigate] = useLocation();
 
   const { data: user, isLoading: isLoadingUser } = useQuery<User>({
     queryKey: ["/api/users/me"],
@@ -99,20 +61,18 @@ export default function HostDashboard() {
   const totalListings = cars?.length || 0;
   const activeBookings = bookings?.filter(b => b.status === "confirmed").length || 0;
   const totalEarnings = bookings?.reduce((sum, booking) => sum + (booking.totalAmount || 0), 0) || 0;
-  const averageRating = 4.8; // Placeholder, would be calculated from ratings
+  // Compute average rating from cars that have ratings
+  const carsWithRatings = cars?.filter(c => c.rating && c.rating > 0) || [];
+  const averageRating = carsWithRatings.length > 0
+    ? (carsWithRatings.reduce((sum, c) => sum + (c.rating || 0), 0) / carsWithRatings.length)
+    : 0;
 
   return (
     <>
       <Header 
         title="Host Dashboard" 
         showBack 
-        onBack={() => {
-          toast({
-            title: "Returning to Account",
-            description: "Navigating back to your account page",
-          });
-          window.location.href = "/account";
-        }} 
+        onBack={() => navigate("/account")} 
       />
       <main className="container mx-auto px-4 py-6 mb-20 md:mb-6">
         {/* Host Profile Summary */}
@@ -128,7 +88,7 @@ export default function HostDashboard() {
                   <h2 className="text-xl font-semibold">{user?.username}</h2>
                   <div className="flex items-center">
                     <Star className="h-4 w-4 text-yellow-400 mr-1" />
-                    <span className="text-sm text-gray-500">{averageRating}/5 • Host since {new Date(user?.createdAt || "").toLocaleDateString()}</span>
+                    <span className="text-sm text-gray-500">{averageRating > 0 ? `${averageRating.toFixed(1)}/5` : "No ratings yet"} &middot; Host since {new Date(user?.createdAt || "").toLocaleDateString()}</span>
                   </div>
                 </div>
               </div>
@@ -200,7 +160,7 @@ export default function HostDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-500">Rating</p>
-                      <h3 className="text-2xl font-bold">{averageRating}/5</h3>
+                      <h3 className="text-2xl font-bold">{averageRating > 0 ? `${averageRating.toFixed(1)}/5` : "N/A"}</h3>
                     </div>
                     <div className="bg-red-100 p-3 rounded-full">
                       <Star className="h-5 w-5 text-red-600" />
@@ -293,13 +253,7 @@ export default function HostDashboard() {
                       <div 
                         key={car.id} 
                         className="flex items-center justify-between border-b pb-4 last:border-0 cursor-pointer hover:bg-gray-50 rounded-md p-2"
-                        onClick={() => {
-                          toast({
-                            title: "Car Details",
-                            description: `Viewing details for ${car.make} ${car.model}`,
-                          });
-                          window.location.href = `/car-detail?id=${car.id}`;
-                        }}
+                        onClick={() => navigate(`/cars/${car.id}`)}
                       >
                         <div className="flex items-center">
                           <div className="h-16 w-16 rounded-md overflow-hidden relative mr-3">
@@ -351,13 +305,7 @@ export default function HostDashboard() {
                       <div 
                         key={booking.id} 
                         className="border rounded-lg p-4 hover:border-red-200 hover:shadow-sm transition-all cursor-pointer"
-                        onClick={() => {
-                          toast({
-                            title: "Booking Details",
-                            description: `Viewing booking for ${booking.car.make} ${booking.car.model}`,
-                          });
-                          window.location.href = `/booking-detail/${booking.id}`;
-                        }}
+                        onClick={() => navigate(`/bookings`)}
                       >
                         <div className="flex justify-between items-start mb-3">
                           <div>
@@ -440,39 +388,53 @@ export default function HostDashboard() {
                       <div className="flex items-center">
                         <div className="w-2 h-8 bg-red-600 rounded-full mr-3"></div>
                         <div>
-                          <p className="text-sm text-gray-500">Booking Rate</p>
-                          <p className="font-semibold">78%</p>
+                          <p className="text-sm text-gray-500">Total Bookings</p>
+                          <p className="font-semibold">{bookings?.length || 0}</p>
                         </div>
                       </div>
                       <div className="flex items-center">
                         <div className="w-2 h-8 bg-blue-600 rounded-full mr-3"></div>
                         <div>
-                          <p className="text-sm text-gray-500">Response Rate</p>
-                          <p className="font-semibold">92%</p>
+                          <p className="text-sm text-gray-500">Completed</p>
+                          <p className="font-semibold">{bookings?.filter(b => b.status === "completed").length || 0}</p>
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="mt-4">
-                      <p className="text-sm font-medium mb-2">Occupancy Rate</p>
-                      <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div className="bg-red-600 h-2.5 rounded-full w-[65%]"></div>
-                      </div>
-                      <div className="flex justify-between mt-1">
-                        <p className="text-xs text-gray-500">65% Occupancy</p>
-                        <p className="text-xs text-gray-500">Target: 75%</p>
-                      </div>
+                      <p className="text-sm font-medium mb-2">Completion Rate</p>
+                      {(() => {
+                        const total = bookings?.length || 0;
+                        const completed = bookings?.filter(b => b.status === "completed" || b.status === "confirmed").length || 0;
+                        const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+                        return (
+                          <>
+                            <div className="w-full bg-gray-200 rounded-full h-2.5">
+                              <div className="bg-red-600 h-2.5 rounded-full" style={{ width: `${rate}%` }}></div>
+                            </div>
+                            <div className="flex justify-between mt-1">
+                              <p className="text-xs text-gray-500">{rate}% Completion</p>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
-                    
+
                     <div className="mt-4">
                       <p className="text-sm font-medium mb-2">Customer Satisfaction</p>
-                      <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div className="bg-green-600 h-2.5 rounded-full w-[92%]"></div>
-                      </div>
-                      <div className="flex justify-between mt-1">
-                        <p className="text-xs text-gray-500">4.8/5 Rating</p>
-                        <p className="text-xs text-gray-500">Top 10% of hosts</p>
-                      </div>
+                      {(() => {
+                        const ratingPct = averageRating > 0 ? Math.round((averageRating / 5) * 100) : 0;
+                        return (
+                          <>
+                            <div className="w-full bg-gray-200 rounded-full h-2.5">
+                              <div className="bg-green-600 h-2.5 rounded-full" style={{ width: `${ratingPct}%` }}></div>
+                            </div>
+                            <div className="flex justify-between mt-1">
+                              <p className="text-xs text-gray-500">{averageRating > 0 ? `${averageRating.toFixed(1)}/5 Rating` : "No ratings yet"}</p>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 </CardContent>
@@ -482,82 +444,66 @@ export default function HostDashboard() {
             <div className="grid gap-6 md:grid-cols-2 mb-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Monthly Earnings</CardTitle>
-                  <CardDescription>Last 6 months of earnings</CardDescription>
+                  <CardTitle>Recent Earnings</CardTitle>
+                  <CardDescription>Your rental income summary</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[200px] flex items-end justify-between mb-2">
-                    {[40, 65, 45, 80, 75, 90].map((height, index) => (
-                      <div key={index} className="relative flex flex-col items-center">
-                        <div 
-                          className="w-10 bg-red-600 rounded-t-sm" 
-                          style={{ height: `${height}%` }}
-                        ></div>
-                        <span className="text-xs mt-2">{
-                          new Date(Date.now() - (5-index) * 30 * 24 * 60 * 60 * 1000).toLocaleString('default', { month: 'short' })
-                        }</span>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="flex justify-between items-center mt-4 pt-4 border-t">
-                    <div>
-                      <p className="text-sm text-gray-500">Best month</p>
-                      <p className="font-medium">March 2025</p>
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 rounded-lg p-4 text-center">
+                      <p className="text-sm text-gray-500">Total from {bookings?.length || 0} bookings</p>
+                      <p className="text-3xl font-bold mt-1">{formatCurrency(totalEarnings)}</p>
                     </div>
-                    <p className="font-bold">{formatCurrency(450000)}</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-green-50 rounded-lg p-3 text-center">
+                        <p className="text-xs text-gray-500">Confirmed</p>
+                        <p className="text-lg font-bold text-green-700">
+                          {formatCurrency(bookings?.filter(b => b.status === "confirmed").reduce((s, b) => s + (b.totalAmount || 0), 0) || 0)}
+                        </p>
+                      </div>
+                      <div className="bg-yellow-50 rounded-lg p-3 text-center">
+                        <p className="text-xs text-gray-500">Pending</p>
+                        <p className="text-lg font-bold text-yellow-700">
+                          {formatCurrency(bookings?.filter(b => b.status === "pending").reduce((s, b) => s + (b.totalAmount || 0), 0) || 0)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
               
               <Card>
                 <CardHeader>
-                  <CardTitle>Revenue Breakdown</CardTitle>
-                  <CardDescription>By car and service type</CardDescription>
+                  <CardTitle>Revenue by Car</CardTitle>
+                  <CardDescription>Earnings breakdown per vehicle</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div>
-                      <p className="text-sm font-medium mb-2">By Car</p>
-                      <div className="space-y-2">
-                        {cars && cars.map((car, index) => {
-                          // Calculate a percentage based on car index (for demonstration)
-                          const percentage = 100 - (index * 15);
+                    {cars && cars.length > 0 ? (
+                      <div className="space-y-3">
+                        {cars.map((car, index) => {
+                          const carEarnings = bookings?.filter(b => b.carId === car.id && b.status !== "cancelled")
+                            .reduce((s, b) => s + (b.totalAmount || 0), 0) || 0;
+                          const pct = totalEarnings > 0 ? Math.round((carEarnings / totalEarnings) * 100) : 0;
+                          const colors = ["bg-red-600", "bg-blue-600", "bg-green-600", "bg-purple-600", "bg-orange-600"];
                           return (
                             <div key={car.id} className="space-y-1">
                               <div className="flex justify-between text-sm">
                                 <span>{car.make} {car.model}</span>
-                                <span>{percentage}%</span>
+                                <span className="font-medium">{formatCurrency(carEarnings)}</span>
                               </div>
                               <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div 
-                                  className={`${index === 0 ? 'bg-red-600' : index === 1 ? 'bg-blue-600' : 'bg-green-600'} h-2 rounded-full`}
-                                  style={{ width: `${percentage}%` }}
+                                <div
+                                  className={`${colors[index % colors.length]} h-2 rounded-full`}
+                                  style={{ width: `${Math.max(pct, 2)}%` }}
                                 ></div>
                               </div>
                             </div>
                           );
                         })}
                       </div>
-                    </div>
-                    
-                    <div className="pt-2">
-                      <p className="text-sm font-medium mb-3">By Booking Length</p>
-                      <div className="grid grid-cols-3 gap-2 text-center">
-                        <div className="bg-gray-50 p-2 rounded-lg">
-                          <p className="text-xs text-gray-500">1-3 days</p>
-                          <p className="font-medium">35%</p>
-                        </div>
-                        <div className="bg-gray-50 p-2 rounded-lg">
-                          <p className="text-xs text-gray-500">4-7 days</p>
-                          <p className="font-medium">45%</p>
-                        </div>
-                        <div className="bg-gray-50 p-2 rounded-lg">
-                          <p className="text-xs text-gray-500">8+ days</p>
-                          <p className="font-medium">20%</p>
-                        </div>
-                      </div>
-                    </div>
+                    ) : (
+                      <p className="text-gray-500 text-center py-4">No cars listed yet</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>

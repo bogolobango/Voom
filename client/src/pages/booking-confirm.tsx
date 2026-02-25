@@ -37,8 +37,8 @@ export default function BookingConfirm() {
   const [match, params] = useRoute("/booking-confirm/:id");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("airtel");
   const [isPickupSameAsDropoff, setIsPickupSameAsDropoff] = useState(true);
-  const [pickupLocation, setPickupLocation] = useState("Dakar, Senegal");
-  const [dropoffLocation, setDropoffLocation] = useState("Dakar, Senegal");
+  const [pickupLocation, setPickupLocation] = useState("");
+  const [dropoffLocation, setDropoffLocation] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -101,14 +101,14 @@ export default function BookingConfirm() {
       totalAmount,
       currency: "FCFA",
       paymentMethod,
-      status: "confirmed", // Auto-confirm for the demo
+      status: "pending",
     };
     
     createBookingMutation.mutate(bookingData);
   };
 
   const handleBack = () => {
-    navigate((-1).toString());
+    window.history.back();
   };
 
   const handleEditBooking = () => {

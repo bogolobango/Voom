@@ -16,9 +16,11 @@ import { useToast } from "@/hooks/use-toast";
 import { LoadingScreen } from "@/components/ui/loader";
 import { Camera, Settings, Car, CreditCard, LogOut, Shield, UserCog, ChevronRight } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Account() {
   const { toast } = useToast();
+  const { logoutMutation } = useAuth();
   const queryClient = useQueryClient();
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -245,10 +247,10 @@ export default function Account() {
                                 <span>Upload document</span>
                               </label>
                               
-                              <div className="flex items-center p-3 hover:bg-gray-50 rounded-lg cursor-pointer" 
+                              <div className="flex items-center p-3 hover:bg-gray-50 rounded-lg cursor-pointer"
                                 onClick={() => {
                                   setShowUploadMenu(false);
-                                  window.location.href = '/add-profile-picture';
+                                  setLocation('/add-profile-picture');
                                 }}>
                                 <div className="bg-red-100 p-2 rounded-full mr-3">
                                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600">
@@ -380,12 +382,14 @@ export default function Account() {
                 </CardContent>
               </Card>
 
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full border-red-600 text-red-600 hover:bg-red-50"
+                onClick={() => logoutMutation.mutate()}
+                disabled={logoutMutation.isPending}
               >
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Sign Out</span>
+                <span>{logoutMutation.isPending ? "Signing out..." : "Sign Out"}</span>
               </Button>
             </div>
           </TabsContent>

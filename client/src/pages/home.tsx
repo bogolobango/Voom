@@ -385,7 +385,7 @@ export default function Home() {
                       <h3 className="font-semibold">{car.make} {car.model}</h3>
                       <div className="flex items-center">
                         <Star className="w-4 h-4 text-yellow-500 mr-1" />
-                        <span className="text-sm">{car.rating || "4.9"}</span>
+                        <span className="text-sm">{car.rating ? car.rating.toFixed(1) : "New"}</span>
                       </div>
                     </div>
                     <p className="text-gray-500 text-sm">{car.location}</p>
@@ -397,7 +397,7 @@ export default function Home() {
               ))}
             </motion.div>
           ) : (
-            <motion.div 
+            <motion.div
               className="text-center py-12"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -588,7 +588,7 @@ export default function Home() {
                       <h3 className="font-semibold">{car.make} {car.model}</h3>
                       <div className="flex items-center">
                         <Star className="w-4 h-4 text-yellow-500 mr-1" />
-                        <span className="text-sm">{car.rating || "4.8"}</span>
+                        <span className="text-sm">{car.rating ? car.rating.toFixed(1) : "New"}</span>
                       </div>
                     </div>
                     <p className="text-gray-500 text-sm">{car.location}</p>

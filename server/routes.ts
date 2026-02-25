@@ -19,6 +19,7 @@ import { isStripeConfigured, createPaymentIntent, verifyWebhookEvent } from "./s
 import { isMoMoConfigured, requestToPay, getTransactionStatus } from "./services/momo";
 import { uploadFile, isFileStorageConfigured } from "./services/file-storage";
 import { randomUUID } from "crypto";
+import { setupWebSocket, notifyNewMessage } from "./websocket";
 
 // Platform fee percentage (15%)
 const PLATFORM_FEE_PERCENT = 15;
@@ -932,6 +933,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const message = await storage.createMessage(messageData as any);
+
+      // Notify receiver via WebSocket for real-time delivery
+      notifyNewMessage(parseInt(receiverId), message);
+
       return res.status(201).json(message);
     } catch (error) {
       return res.status(400).json({ message: (error as Error).message });
@@ -1388,5 +1393,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", apiRouter);
 
   const httpServer = createServer(app);
+  setupWebSocket(httpServer);
   return httpServer;
 }

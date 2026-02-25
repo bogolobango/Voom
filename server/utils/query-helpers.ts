@@ -3,7 +3,7 @@
  */
 import { SQL, sql } from 'drizzle-orm';
 import { cars } from '@shared/schema';
-import { ilike, and, or, eq, between, gte, lte, inArray } from 'drizzle-orm/expressions';
+import { ilike, and, or, eq, between, gte, lte, inArray } from 'drizzle-orm';
 
 // Export the interface for use in other files
 export interface CarFilterOptions {

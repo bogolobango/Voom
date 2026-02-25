@@ -23,25 +23,28 @@ export function log(message: string, source = "express") {
 }
 
 export async function setupVite(app: Express, server: Server) {
+  console.log('[v0] setupVite called');
   const serverOptions = {
     middlewareMode: true as const,
     hmr: { server },
     allowedHosts: true as const,
   };
 
+  console.log('[v0] Creating Vite server with config:', JSON.stringify({ root: viteConfig?.root, configFile: false }));
   const vite = await createViteServer({
     ...viteConfig,
     configFile: false,
     customLogger: {
       ...viteLogger,
       error: (msg, options) => {
+        console.error('[v0] Vite error:', msg);
         viteLogger.error(msg, options);
-        process.exit(1);
       },
     },
     server: serverOptions,
     appType: "custom",
   });
+  console.log('[v0] Vite server created successfully');
 
   app.use(vite.middlewares);
   app.use("*", async (req, res, next) => {
@@ -55,6 +58,8 @@ export async function setupVite(app: Express, server: Server) {
         "index.html",
       );
 
+      console.log('[v0] Serving HTML for:', url, 'from:', clientTemplate, 'exists:', fs.existsSync(clientTemplate));
+
       // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
@@ -64,6 +69,7 @@ export async function setupVite(app: Express, server: Server) {
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
+      console.error('[v0] Error serving HTML:', (e as Error).message);
       vite.ssrFixStacktrace(e as Error);
       next(e);
     }

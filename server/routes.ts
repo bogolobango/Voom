@@ -15,6 +15,10 @@ import {
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth } from "./auth";
+import { isStripeConfigured, createPaymentIntent, verifyWebhookEvent } from "./services/stripe";
+import { isMoMoConfigured, requestToPay, getTransactionStatus } from "./services/momo";
+import { uploadFile, isFileStorageConfigured } from "./services/file-storage";
+import { randomUUID } from "crypto";
 
 // Platform fee percentage (15%)
 const PLATFORM_FEE_PERCENT = 15;
@@ -76,11 +80,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/users/profile-picture", requireAuth, async (req: Request, res: Response) => {
     try {
       const userId = getUserId(req);
-      const { profilePicture } = req.body;
-      if (!profilePicture || typeof profilePicture !== "string") {
-        return res.status(400).json({ message: "Profile picture URL is required" });
+      const { profilePicture, fileData, fileName, contentType } = req.body;
+
+      let imageUrl = profilePicture;
+
+      // Support base64 file upload
+      if (fileData && fileName) {
+        const buffer = Buffer.from(fileData, "base64");
+        imageUrl = await uploadFile({
+          buffer,
+          filename: fileName,
+          contentType: contentType || "image/jpeg",
+          folder: "profile-pictures",
+        });
       }
-      const updatedUser = await storage.updateUser(userId, { profilePicture });
+
+      if (!imageUrl || typeof imageUrl !== "string") {
+        return res.status(400).json({ message: "Profile picture is required" });
+      }
+      const updatedUser = await storage.updateUser(userId, { profilePicture: imageUrl });
       if (!updatedUser) return res.status(404).json({ message: "User not found" });
       const { password, ...safe } = updatedUser;
       return res.json(safe);
@@ -182,7 +200,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/cars", requireAuth, async (req: Request, res: Response) => {
     try {
       const userId = getUserId(req);
-      const carData = validateBody(insertCarSchema, { ...req.body, hostId: userId });
+      const body = { ...req.body, hostId: userId };
+
+      // Handle base64 image upload for the primary car image
+      if (body.imageFileData && body.imageFileName) {
+        const buffer = Buffer.from(body.imageFileData, "base64");
+        body.imageUrl = await uploadFile({
+          buffer,
+          filename: body.imageFileName,
+          contentType: body.imageContentType || "image/jpeg",
+          folder: "car-images",
+        });
+        delete body.imageFileData;
+        delete body.imageFileName;
+        delete body.imageContentType;
+      }
+
+      const carData = validateBody(insertCarSchema, body);
       const car = await storage.createCar(carData);
       // Mark user as host
       await storage.updateUser(userId, { isHost: true, role: "both" });
@@ -454,52 +488,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (booking.userId !== userId) return res.status(403).json({ message: "Not your booking" });
 
       // Check idempotency
+      const idemKey = idempotencyKey || `stripe_${booking.id}_${Date.now()}`;
       if (idempotencyKey) {
         const existing = await storage.getPaymentByIdempotencyKey(idempotencyKey);
         if (existing) return res.json(existing);
       }
 
-      // For MVP: create payment record (Stripe integration would go here)
+      // Create payment record
       const payment = await storage.createPayment({
         bookingId: booking.id,
         amount: booking.totalAmount,
         currency: booking.currency,
         method: "stripe",
-        idempotencyKey: idempotencyKey || `stripe_${booking.id}_${Date.now()}`,
+        idempotencyKey: idemKey,
         metadata: null,
       });
 
-      // In production, this would create a Stripe PaymentIntent:
-      // const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-      // const paymentIntent = await stripe.paymentIntents.create({
-      //   amount: booking.totalAmount,
-      //   currency: booking.currency.toLowerCase(),
-      //   metadata: { bookingId: booking.id, paymentId: payment.id },
-      //   idempotency_key: idempotencyKey,
-      // });
+      // If Stripe is configured, create a real PaymentIntent
+      if (isStripeConfigured()) {
+        const { clientSecret, paymentIntentId } = await createPaymentIntent({
+          amount: booking.totalAmount,
+          currency: booking.currency,
+          bookingId: booking.id,
+          paymentId: payment.id,
+          idempotencyKey: idemKey,
+        });
 
+        await storage.updatePaymentStatus(payment.id, "pending", paymentIntentId);
+
+        return res.json({
+          paymentId: payment.id,
+          clientSecret,
+          amount: booking.totalAmount,
+          currency: booking.currency,
+          status: "pending",
+        });
+      }
+
+      // Fallback: no Stripe configured — return stub for development
       return res.json({
         paymentId: payment.id,
-        // clientSecret: paymentIntent.client_secret, // Would come from Stripe
+        clientSecret: null,
         amount: booking.totalAmount,
         currency: booking.currency,
         status: "pending",
+        _dev: "Stripe not configured — payment created as stub",
       });
     } catch (error) {
       return res.status(400).json({ message: (error as Error).message });
     }
   });
 
-  apiRouter.post("/payments/stripe/webhook", async (req: Request, res: Response) => {
-    // In production: verify Stripe signature with process.env.STRIPE_WEBHOOK_SECRET
-    // const sig = req.headers['stripe-signature'];
-    // const event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+  apiRouter.post("/payments/stripe/webhook", express.raw({ type: "application/json" }), async (req: Request, res: Response) => {
     try {
-      const { type, data } = req.body;
+      const sig = req.headers["stripe-signature"] as string | undefined;
 
+      // If Stripe is configured AND we have a signature, verify it
+      if (isStripeConfigured() && sig) {
+        const event = verifyWebhookEvent(req.body, sig);
+
+        if (event.type === "payment_intent.succeeded") {
+          const pi = event.data.object as any;
+          const paymentId = pi.metadata?.paymentId;
+          const bookingId = pi.metadata?.bookingId;
+          if (paymentId) {
+            await storage.updatePaymentStatus(parseInt(paymentId), "completed", pi.id);
+          }
+          if (bookingId) {
+            await storage.updateBooking(parseInt(bookingId), { paymentId: pi.id });
+          }
+        } else if (event.type === "payment_intent.payment_failed") {
+          const pi = event.data.object as any;
+          const paymentId = pi.metadata?.paymentId;
+          if (paymentId) {
+            await storage.updatePaymentStatus(parseInt(paymentId), "failed");
+          }
+        }
+
+        return res.json({ received: true });
+      }
+
+      // Fallback: unverified webhook (dev mode)
+      const { type, data } = req.body;
       if (type === "payment_intent.succeeded") {
-        const bookingId = data?.object?.metadata?.bookingId;
         const paymentId = data?.object?.metadata?.paymentId;
+        const bookingId = data?.object?.metadata?.bookingId;
         if (paymentId) {
           await storage.updatePaymentStatus(parseInt(paymentId), "completed", data?.object?.id);
         }
@@ -533,43 +606,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (booking.userId !== userId) return res.status(403).json({ message: "Not your booking" });
 
       // Check idempotency
+      const idemKey = idempotencyKey || `momo_${booking.id}_${Date.now()}`;
       if (idempotencyKey) {
         const existing = await storage.getPaymentByIdempotencyKey(idempotencyKey);
         if (existing) return res.json(existing);
       }
+
+      const referenceId = randomUUID();
 
       const payment = await storage.createPayment({
         bookingId: booking.id,
         amount: booking.totalAmount,
         currency: booking.currency,
         method: "momo",
-        idempotencyKey: idempotencyKey || `momo_${booking.id}_${Date.now()}`,
-        metadata: JSON.stringify({ phoneNumber }),
+        idempotencyKey: idemKey,
+        metadata: JSON.stringify({ phoneNumber, referenceId }),
       });
 
-      // In production: MTN MoMo Collection API request-to-pay
-      // const momoResponse = await momoClient.requestToPay({
-      //   amount: booking.totalAmount.toString(),
-      //   currency: booking.currency,
-      //   externalId: payment.id.toString(),
-      //   payer: { partyIdType: 'MSISDN', partyId: phoneNumber },
-      //   payerMessage: `VOOM Booking #${booking.id}`,
-      // });
+      // If MoMo is configured, initiate real request-to-pay
+      if (isMoMoConfigured()) {
+        await requestToPay({
+          amount: booking.totalAmount,
+          currency: booking.currency,
+          phoneNumber,
+          externalId: payment.id.toString(),
+          payerMessage: `VOOM Booking #${booking.id}`,
+          referenceId,
+        });
+
+        await storage.updatePaymentStatus(payment.id, "pending", referenceId);
+      }
 
       return res.json({
         paymentId: payment.id,
+        referenceId,
         amount: booking.totalAmount,
         currency: booking.currency,
         status: "pending",
-        message: "Payment request sent to your phone",
+        message: isMoMoConfigured()
+          ? "Payment request sent to your phone"
+          : "MoMo not configured — payment created as stub",
       });
     } catch (error) {
       return res.status(400).json({ message: (error as Error).message });
     }
   });
 
+  // MoMo callback (called by MTN servers when payment status changes)
   apiRouter.post("/payments/momo/callback", async (req: Request, res: Response) => {
-    // In production: validate callback signature/source
     try {
       const { externalId, status } = req.body;
       if (externalId) {
@@ -722,13 +806,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/verification/upload", requireAuth, async (req: Request, res: Response) => {
     try {
       const authUserId = getUserId(req);
-      const { userId, documentType, textData } = req.body;
+      const { userId, documentType, textData, fileData, fileName, contentType } = req.body;
 
       const targetUserId = parseInt(userId) || authUserId;
       if (targetUserId !== authUserId) return res.status(403).json({ message: "Not authorized" });
 
       if (!documentType) {
         return res.status(400).json({ message: "Document type is required" });
+      }
+
+      // Determine the document URL: real file upload or text fallback
+      let documentUrl = textData || "uploaded-document";
+      if (fileData && fileName) {
+        // fileData is expected as base64 string from the frontend
+        const buffer = Buffer.from(fileData, "base64");
+        documentUrl = await uploadFile({
+          buffer,
+          filename: fileName,
+          contentType: contentType || "application/octet-stream",
+          folder: "verification-docs",
+        });
       }
 
       const documents = await storage.getVerificationDocuments(targetUserId);
@@ -738,14 +835,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (existingDoc) {
         verificationDoc = await storage.updateVerificationDocument(existingDoc.id, {
           status: "completed",
-          documentUrl: textData || "uploaded-document",
+          documentUrl,
           notes: null,
         });
       } else {
         verificationDoc = await storage.createVerificationDocument({
           userId: targetUserId,
           documentType,
-          documentUrl: textData || "uploaded-document",
+          documentUrl,
         });
       }
 

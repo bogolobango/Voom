@@ -35,10 +35,12 @@ export const pool = poolConfig ? new Pool(poolConfig) : null!;
 export const db = poolConfig ? drizzle({ client: pool, schema, logger: dbLogger }) : null!;
 
 // Handle pool errors to prevent crashes
-pool.on('error', (err) => {
-  console.error('Unexpected database pool error:', err);
-  // Don't crash the process, just log the error
-});
+if (pool) {
+  pool.on('error', (err) => {
+    console.error('Unexpected database pool error:', err);
+    // Don't crash the process, just log the error
+  });
+}
 
 /**
  * Execute a query with automatic retries for transient errors
@@ -80,6 +82,7 @@ export async function executeWithRetry<T>(
 export async function withTransaction<T>(
   fn: (db: NeonDatabase<typeof schema>) => Promise<T>
 ): Promise<T> {
+  if (!pool) throw new Error("Database not configured (DATABASE_URL missing)");
   const client = await pool.connect();
   
   try {
@@ -100,6 +103,7 @@ export async function withTransaction<T>(
 
 // Graceful shutdown function
 export async function closeDatabase() {
+  if (!pool) return;
   try {
     await pool.end();
     console.log('All database connections closed');

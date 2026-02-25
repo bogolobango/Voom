@@ -62,10 +62,10 @@ export default function Home() {
           <Link href="/">
             <div className="flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
-                   className="w-8 h-8 text-red-500" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                   className="w-8 h-8 text-red-600" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19 9.2C19 6.4 16.4 4 13.2 4c-3.2 0-5.9 2.4-5.9 5.2 0 2.1.8 3.9 2.1 5.4.8.9 1.6 1.8 2.8 3 .6.7 1.2 1.3 1.9 2.1.7-.7 1.4-1.4 2-2.1 1.1-1.2 2-2 2.8-3 1.3-1.5 2.1-3.3 2.1-5.4z" />
               </svg>
-              <span className="text-xl font-bold text-red-500 ml-2">voom</span>
+              <span className="text-xl font-bold text-red-600 ml-2">voom</span>
             </div>
           </Link>
           
@@ -305,7 +305,7 @@ export default function Home() {
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold">Browse by category</h2>
               <Link href="/all-cars">
-                <Button variant="link" className="text-red-500 font-semibold">
+                <Button variant="link" className="text-red-600 font-semibold">
                   See all cars <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </Link>
@@ -370,12 +370,11 @@ export default function Home() {
                 >
                   <div className="relative">
                     <img 
-                      src={car.imageUrl ? `${car.imageUrl}&q=80&w=800&h=600&fit=crop&crop=entropy` : `https://placehold.co/800x600/e2e8f0/64748b?text=${car.make}+${car.model}`}
+                      src={car.imageUrl || undefined}
                       alt={`${car.make} ${car.model}`}
                       className="w-full h-48 object-cover"
                       onError={(e) => {
-                        // Fallback to a placeholder if image fails to load
-                        e.currentTarget.src = `https://placehold.co/800x600/e2e8f0/64748b?text=${car.make}+${car.model}`;
+                        e.currentTarget.style.display = "none";
                       }}
                     />
                     <Badge className="absolute top-2 left-2 bg-white text-black">Superhost</Badge>
@@ -452,7 +451,7 @@ export default function Home() {
                   duration: 0.8 
                 }}
               >
-                <Shield className="w-12 h-12 mb-4 text-red-500" />
+                <Shield className="w-12 h-12 mb-4 text-red-600" />
               </motion.div>
               <h3 className="text-lg font-semibold mb-2">Book with confidence</h3>
               <p className="text-gray-600">
@@ -481,7 +480,7 @@ export default function Home() {
                   duration: 0.8 
                 }}
               >
-                <Gift className="w-12 h-12 mb-4 text-red-500" />
+                <Gift className="w-12 h-12 mb-4 text-red-600" />
               </motion.div>
               <h3 className="text-lg font-semibold mb-2">Find more amenities</h3>
               <p className="text-gray-600">
@@ -510,7 +509,7 @@ export default function Home() {
                   duration: 0.8 
                 }}
               >
-                <CalendarIcon className="w-12 h-12 mb-4 text-red-500" />
+                <CalendarIcon className="w-12 h-12 mb-4 text-red-600" />
               </motion.div>
               <h3 className="text-lg font-semibold mb-2">Keep it flexible</h3>
               <p className="text-gray-600">
@@ -573,12 +572,11 @@ export default function Home() {
                 >
                   <div className="relative">
                     <img 
-                      src={car.imageUrl ? `${car.imageUrl}&q=80&w=800&h=600&fit=crop&crop=entropy` : `https://placehold.co/800x600/e2e8f0/64748b?text=${car.make}+${car.model}`}
+                      src={car.imageUrl || undefined}
                       alt={`${car.make} ${car.model}`}
                       className="w-full h-48 object-cover"
                       onError={(e) => {
-                        // Fallback to a placeholder if image fails to load
-                        e.currentTarget.src = `https://placehold.co/800x600/e2e8f0/64748b?text=${car.make}+${car.model}`;
+                        e.currentTarget.style.display = "none";
                       }}
                     />
                     <Badge className="absolute top-2 left-2 bg-white text-black">Guest favorite</Badge>

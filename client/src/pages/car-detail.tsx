@@ -197,9 +197,7 @@ export default function CarDetail() {
   };
 
   // Car images for carousel
-  const carImages = car ? [
-    car.imageUrl || `https://placehold.co/800x600/e2e8f0/64748b?text=${encodeURIComponent(car.make + " " + car.model)}`,
-  ] : [];
+  const carImages = car?.imageUrl ? [car.imageUrl] : [];
 
   if (isLoading || !car) {
     return (
@@ -230,8 +228,7 @@ export default function CarDetail() {
                       alt={`${car.make} ${car.model} - View ${index + 1}`}
                       className="w-full h-64 object-cover rounded-lg"
                       onError={(e) => {
-                        // Fallback to a placeholder if image fails to load
-                        e.currentTarget.src = `https://placehold.co/800x600/e2e8f0/64748b?text=${car.make}+${car.model}`;
+                        e.currentTarget.style.display = "none";
                       }}
                     />
                     {index === 0 && car.type && (

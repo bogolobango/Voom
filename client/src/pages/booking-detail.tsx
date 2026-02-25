@@ -13,9 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Header } from "@/components/layout/header";
 import { Separator } from "@/components/ui/separator";
+import { BottomNav } from "@/components/layout/bottom-nav";
 import { BookingDetails } from "@/components/booking-details";
 import { CancellationPolicy } from "@/components/cancellation-policy";
-import { formatCurrency, formatDateAndTime, getDaysDifference } from "@/lib/utils";
+import { formatCurrency, formatDateAndTime, getDaysDifference, getStatusBadgeClass } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function BookingDetailPage() {
@@ -83,7 +84,7 @@ export default function BookingDetailPage() {
   const canCancel = booking.status === "confirmed" || booking.status === "pending";
   
   return (
-    <div className="min-h-screen bg-gray-50 pb-16">
+    <div className="min-h-screen bg-gray-50 pb-20">
       <Header title="Booking Details" showBack />
       
       <div className="container mx-auto px-4 py-6">
@@ -102,14 +103,8 @@ export default function BookingDetailPage() {
                     <h2 className="text-xl font-semibold">{car.make} {car.model}</h2>
                     <div className="text-gray-600">{car.year}</div>
                     <div className="mt-1">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        booking.status === "confirmed" 
-                          ? "bg-green-100 text-green-800" 
-                          : booking.status === "cancelled"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-blue-100 text-blue-800"
-                      }`}>
-                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusBadgeClass(booking.status)}`}>
+                        {booking.status}
                       </span>
                     </div>
                   </div>
@@ -161,30 +156,35 @@ export default function BookingDetailPage() {
                 <Separator className="my-4" />
                 
                 <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>Daily Rate</span>
-                    <span>{formatCurrency(car.dailyRate)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Days</span>
-                    <span>{getDaysDifference(new Date(booking.startDate), new Date(booking.endDate))}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Insurance</span>
-                    <span>{formatCurrency(15000)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Service Fee</span>
-                    <span>{formatCurrency(5000)}</span>
-                  </div>
-                  <Separator className="my-2" />
-                  <div className="flex justify-between font-semibold">
-                    <span>Total</span>
-                    <span>{formatCurrency(booking.totalAmount)}</span>
-                  </div>
-                  <div className="text-xs text-gray-500 text-right">
-                    Paid with {booking.paymentMethod === "card" ? "Credit Card" : booking.paymentMethod === "airtel" ? "Airtel Money" : "PayPal"}
-                  </div>
+                  {(() => {
+                    const days = getDaysDifference(new Date(booking.startDate), new Date(booking.endDate));
+                    const subtotal = car.dailyRate * days;
+                    const platformFee = Math.round(booking.totalAmount - subtotal) > 0
+                      ? booking.totalAmount - subtotal
+                      : Math.round(subtotal * 0.15);
+                    return (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">{formatCurrency(car.dailyRate)} x {days} days</span>
+                          <span>{formatCurrency(subtotal)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Service fee</span>
+                          <span>{formatCurrency(platformFee)}</span>
+                        </div>
+                        <Separator className="my-2" />
+                        <div className="flex justify-between font-semibold">
+                          <span>Total</span>
+                          <span>{formatCurrency(booking.totalAmount)}</span>
+                        </div>
+                        {booking.paymentMethod && (
+                          <div className="text-xs text-gray-500 text-right capitalize">
+                            Paid with {booking.paymentMethod}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </CardContent>
             </Card>
@@ -193,14 +193,10 @@ export default function BookingDetailPage() {
             <Card className="mt-6">
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold mb-4">Location</h3>
-                <div className="h-64 bg-gray-200 rounded-lg overflow-hidden relative">
-                  {/* Placeholder for Google Maps - would be integrated with Google Maps API */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center">
-                      <MapPin className="h-8 w-8 text-red-600 mx-auto mb-2" />
-                      <div className="text-sm font-medium">{booking.pickupLocation}</div>
-                      <div className="text-xs text-gray-600 mt-1">Google Maps integration would go here</div>
-                    </div>
+                <div className="h-48 bg-gray-100 rounded-lg overflow-hidden relative flex items-center justify-center">
+                  <div className="text-center">
+                    <MapPin className="h-8 w-8 text-red-600 mx-auto mb-2" />
+                    <p className="text-sm font-medium">{booking.pickupLocation}</p>
                   </div>
                 </div>
               </CardContent>
@@ -309,6 +305,7 @@ export default function BookingDetailPage() {
           </div>
         </div>
       </div>
+      <BottomNav />
     </div>
   );
 }

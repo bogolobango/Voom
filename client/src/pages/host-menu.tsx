@@ -6,12 +6,9 @@ import {
   LogOut,
   MessageSquare,
   Settings,
-  Star,
   TrendingUp,
   User,
   CarFront,
-  FileText,
-  Mail,
   Wallet,
   ShieldCheck,
 } from "lucide-react";
@@ -75,11 +72,6 @@ export default function HostMenu() {
           onClick: () => navigate("/host-analytics"),
         },
         {
-          icon: Star,
-          label: "Reviews",
-          onClick: () => navigate("/host-reviews"),
-        },
-        {
           icon: Wallet,
           label: "Earnings & Payouts",
           onClick: () => navigate("/host-earnings"),
@@ -87,27 +79,17 @@ export default function HostMenu() {
       ],
     },
     {
-      group: "Resources",
+      group: "Support",
       items: [
         {
           icon: HelpCircle,
           label: "Help Center",
-          onClick: () => navigate("/help"),
+          onClick: () => navigate("/account"),
         },
         {
           icon: ShieldCheck,
-          label: "Insurance & Protection",
-          onClick: () => navigate("/host-insurance"),
-        },
-        {
-          icon: FileText,
-          label: "Policies",
-          onClick: () => navigate("/policies"),
-        },
-        {
-          icon: Mail,
-          label: "Contact Support",
-          onClick: () => navigate("/contact"),
+          label: "Privacy & Security",
+          onClick: () => navigate("/privacy-security"),
         },
       ],
     },

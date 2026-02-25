@@ -314,11 +314,17 @@ export default function HostDashboard() {
                       >
                         <div className="flex items-center">
                           <div className="h-16 w-16 rounded-md overflow-hidden relative mr-3">
-                            <img 
-                              src={car.imageUrl || "/placeholder-car.png"} 
-                              alt={`${car.make} ${car.model}`}
-                              className="h-full w-full object-cover"
-                            />
+                            {car.imageUrl ? (
+                              <img
+                                src={car.imageUrl}
+                                alt={`${car.make} ${car.model}`}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="h-full w-full bg-gray-100 flex items-center justify-center">
+                                <CarIcon className="h-6 w-6 text-gray-400" />
+                              </div>
+                            )}
                           </div>
                           <div>
                             <h3 className="font-medium">{car.make} {car.model}</h3>

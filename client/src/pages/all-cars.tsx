@@ -127,7 +127,7 @@ export default function AllCarsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-white pb-16">
+    <div className="min-h-screen bg-white pb-20">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-white border-b border-gray-100">
         <div className="container mx-auto px-4 py-3">

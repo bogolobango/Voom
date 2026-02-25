@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Header } from "@/components/layout/header";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { Button } from "@/components/ui/button";
@@ -10,9 +10,11 @@ import { User, Car, Booking } from "@shared/schema";
 import { getInitials, formatCurrency } from "@/lib/utils";
 import { LoadingScreen } from "@/components/ui/loader";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Calendar,
   Car as CarIcon,
+  Check,
   ChevronRight,
   Clock,
   DollarSign,
@@ -20,6 +22,7 @@ import {
   MessageSquare,
   Star,
   Users,
+  X,
   ArrowLeft,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
@@ -41,6 +44,48 @@ export default function HostDashboard() {
   const { data: bookings, isLoading: isLoadingBookings } = useQuery<(Booking & { car: Car })[]>({
     queryKey: ["/api/hosts/bookings"],
     enabled: !!user,
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: async (bookingId: number) => {
+      const res = await apiRequest("PUT", `/api/bookings/${bookingId}/approve`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/hosts/bookings"] });
+      toast({ title: "Booking approved", description: "The renter has been notified." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Failed to approve", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: async (bookingId: number) => {
+      const res = await apiRequest("PUT", `/api/bookings/${bookingId}/reject`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/hosts/bookings"] });
+      toast({ title: "Booking rejected" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Failed to reject", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const completeMutation = useMutation({
+    mutationFn: async (bookingId: number) => {
+      const res = await apiRequest("PUT", `/api/bookings/${bookingId}/complete`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/hosts/bookings"] });
+      toast({ title: "Booking completed", description: "Earnings will be added to your balance." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Failed to complete", description: err.message, variant: "destructive" });
+    },
   });
 
   const isLoading = isLoadingUser || isLoadingCars || isLoadingBookings;
@@ -224,6 +269,18 @@ export default function HostDashboard() {
                       List a New Car
                     </Button>
                   </Link>
+                  <Link href="/host-earnings">
+                    <Button variant="outline" className="w-full">
+                      <DollarSign className="mr-2 h-4 w-4" />
+                      Earnings
+                    </Button>
+                  </Link>
+                  <Link href="/host-analytics">
+                    <Button variant="outline" className="w-full">
+                      <LineChart className="mr-2 h-4 w-4" />
+                      Analytics
+                    </Button>
+                  </Link>
                   <Link href="/messages">
                     <Button variant="outline" className="w-full">
                       <MessageSquare className="mr-2 h-4 w-4" />
@@ -294,47 +351,143 @@ export default function HostDashboard() {
 
           {/* Bookings Tab */}
           <TabsContent value="bookings">
+            {/* Pending Requests Section */}
+            {(() => {
+              const pendingBookings = bookings?.filter(b => b.status === "pending") || [];
+              if (pendingBookings.length === 0) return null;
+              return (
+                <Card className="mb-4 border-yellow-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-yellow-600" />
+                      Pending Requests ({pendingBookings.length})
+                    </CardTitle>
+                    <CardDescription>These bookings need your approval</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {pendingBookings.map((booking) => (
+                        <div key={booking.id} className="border border-yellow-100 bg-yellow-50/50 rounded-lg p-4">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h3 className="font-medium">{booking.car.make} {booking.car.model}</h3>
+                              <p className="text-sm text-gray-500">
+                                {new Date(booking.startDate).toLocaleDateString()} - {new Date(booking.endDate).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <p className="font-semibold">{formatCurrency(booking.totalAmount || 0)}</p>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
+                            <span>Pickup: {booking.pickupLocation}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                              disabled={approveMutation.isPending}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                approveMutation.mutate(booking.id);
+                              }}
+                            >
+                              <Check className="h-4 w-4 mr-1" /> Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 border-red-200 text-red-600 hover:bg-red-50"
+                              disabled={rejectMutation.isPending}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                rejectMutation.mutate(booking.id);
+                              }}
+                            >
+                              <X className="h-4 w-4 mr-1" /> Reject
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
+
+            {/* Active & Approved Bookings */}
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle className="text-base">Active Bookings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const activeBookingsList = bookings?.filter(b => b.status === "approved" || b.status === "active") || [];
+                  if (activeBookingsList.length === 0) return <p className="text-gray-500 text-center py-4 text-sm">No active bookings</p>;
+                  return (
+                    <div className="space-y-4">
+                      {activeBookingsList.map((booking) => (
+                        <div key={booking.id} className="border rounded-lg p-4">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h3 className="font-medium">{booking.car.make} {booking.car.model}</h3>
+                              <p className="text-sm text-gray-500">
+                                {new Date(booking.startDate).toLocaleDateString()} - {new Date(booking.endDate).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold">{formatCurrency(booking.totalAmount || 0)}</p>
+                              <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full capitalize">{booking.status}</span>
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full mt-2"
+                            disabled={completeMutation.isPending}
+                            onClick={() => completeMutation.mutate(booking.id)}
+                          >
+                            Mark as Completed
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+
+            {/* All Bookings */}
             <Card>
               <CardHeader>
-                <CardTitle>Upcoming Bookings</CardTitle>
+                <CardTitle className="text-base">All Bookings</CardTitle>
               </CardHeader>
               <CardContent>
                 {bookings && bookings.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {bookings.map((booking) => (
-                      <div 
-                        key={booking.id} 
-                        className="border rounded-lg p-4 hover:border-red-200 hover:shadow-sm transition-all cursor-pointer"
-                        onClick={() => navigate(`/bookings`)}
-                      >
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h3 className="font-medium">{booking.car.make} {booking.car.model}</h3>
-                            <p className="text-sm text-gray-500">
-                              {new Date(booking.startDate).toLocaleDateString()} - {new Date(booking.endDate).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <div className={`
-                            px-2 py-1 rounded-full text-xs
-                            ${booking.status === 'confirmed' ? 'bg-green-100 text-green-800' : ''}
-                            ${booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : ''}
-                            ${booking.status === 'cancelled' ? 'bg-red-100 text-red-800' : ''}
-                          `}>
-                            {booking.status}
-                          </div>
+                      <div key={booking.id} className="flex items-center justify-between border-b pb-3 last:border-0">
+                        <div>
+                          <p className="font-medium text-sm">{booking.car.make} {booking.car.model}</p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(booking.startDate).toLocaleDateString()} - {new Date(booking.endDate).toLocaleDateString()}
+                          </p>
                         </div>
-                        <div className="flex justify-between items-center">
-                          <p className="font-semibold">{formatCurrency(booking.totalAmount || 0)}</p>
-                          <Button variant="outline" size="sm" className="hover:bg-red-50">
-                            View Details
-                          </Button>
+                        <div className="text-right">
+                          <p className="text-sm font-medium">{formatCurrency(booking.totalAmount || 0)}</p>
+                          <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${
+                            booking.status === 'approved' ? 'bg-green-100 text-green-800' :
+                            booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            booking.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                            booking.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                            booking.status === 'cancelled' ? 'bg-gray-100 text-gray-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>{booking.status}</span>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="text-center py-6">
-                    <p className="text-gray-500">No upcoming bookings</p>
+                    <p className="text-gray-500">No bookings yet</p>
                   </div>
                 )}
               </CardContent>

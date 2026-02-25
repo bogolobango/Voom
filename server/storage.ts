@@ -479,5 +479,16 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Use in-memory storage for MVP (can be swapped to DatabaseStorage with PostgreSQL)
-export const storage: IStorage = new MemStorage();
+// Use DatabaseStorage when DATABASE_URL is set, otherwise fall back to in-memory for local dev
+import { DatabaseStorage } from "./database-storage";
+
+function createStorage(): IStorage {
+  if (process.env.DATABASE_URL) {
+    console.log("Using PostgreSQL database storage");
+    return new DatabaseStorage();
+  }
+  console.log("Using in-memory storage (set DATABASE_URL for persistence)");
+  return new MemStorage();
+}
+
+export const storage: IStorage = createStorage();

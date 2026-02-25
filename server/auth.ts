@@ -22,7 +22,7 @@ const scryptAsync = promisify(scrypt);
  * @param iterations Optional cost factor for hashing (higher is more secure but slower)
  * @returns A string containing the hashed password and salt
  */
-async function hashPassword(password: string, iterations = 64) {
+export async function hashPassword(password: string, iterations = 64) {
   // Use a larger salt for increased security
   const salt = randomBytes(32).toString("hex");
   // Add a pepper if configured in environment (not shown in the hash)

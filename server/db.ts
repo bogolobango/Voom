@@ -11,34 +11,26 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Optimized pool configuration for production workloads
+const isServerless = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+
 const poolConfig = process.env.DATABASE_URL ? {
   connectionString: process.env.DATABASE_URL,
-  max: process.env.NODE_ENV === 'production' ? 20 : 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  // Serverless: keep pool tiny to avoid exhausting Supabase connection limit
+  max: isServerless ? 3 : 10,
+  idleTimeoutMillis: isServerless ? 10000 : 30000,
+  connectionTimeoutMillis: 5000,
 } : undefined;
-
-// Custom logger for database operations
-const dbLogger = {
-  logQuery: (query: string, params: any) => {
-    if (process.env.DEBUG_DB === 'true') {
-      console.log(`SQL Query: ${query} - with params: ${JSON.stringify(params)}`);
-    }
-  },
-};
 
 // Create and export the connection pool (null when no DATABASE_URL)
 export const pool = poolConfig ? new Pool(poolConfig) : null!;
 
 // Create and export the drizzle database instance (null when no DATABASE_URL)
-export const db = poolConfig ? drizzle({ client: pool, schema, logger: dbLogger }) : null!;
+export const db = poolConfig ? drizzle({ client: pool, schema }) : null!;
 
 // Handle pool errors to prevent crashes
 if (pool) {
   pool.on('error', (err) => {
     console.error('Unexpected database pool error:', err);
-    // Don't crash the process, just log the error
   });
 }
 
@@ -51,28 +43,26 @@ export async function executeWithRetry<T>(
 ): Promise<T> {
   let lastError: Error | null = null;
   let retries = 0;
-  
+
   while (retries < maxRetries) {
     try {
       return await queryFn();
     } catch (error: any) {
-      // Only retry on connection-related errors
       if (
         error.code === 'ECONNRESET' ||
         error.code === 'ETIMEDOUT' ||
-        error.code === '40001' || // Serialization failure
-        error.code === '40P01' // Deadlock detected
+        error.code === '40001' ||
+        error.code === '40P01'
       ) {
         lastError = error;
         retries++;
-        // Exponential backoff
         await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, retries)));
         continue;
       }
       throw error;
     }
   }
-  
+
   throw lastError || new Error('Query failed after retries');
 }
 
@@ -87,10 +77,8 @@ export async function withTransaction<T>(
   
   try {
     await client.query('BEGIN');
-    const transactionDb = drizzle({ client, schema, logger: dbLogger });
-    
+    const transactionDb = drizzle({ client, schema });
     const result = await fn(transactionDb);
-    
     await client.query('COMMIT');
     return result;
   } catch (error) {
@@ -112,13 +100,14 @@ export async function closeDatabase() {
   }
 }
 
-// Register shutdown handlers
-process.on('SIGINT', async () => {
-  await closeDatabase();
-  process.exit(0);
-});
-
-process.on('SIGTERM', async () => {
-  await closeDatabase();
-  process.exit(0);
-});
+// Only register shutdown handlers in long-running server mode, not serverless
+if (!isServerless) {
+  process.on('SIGINT', async () => {
+    await closeDatabase();
+    process.exit(0);
+  });
+  process.on('SIGTERM', async () => {
+    await closeDatabase();
+    process.exit(0);
+  });
+}

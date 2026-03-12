@@ -1,78 +1,113 @@
-# Voom - Car Sharing Platform
+# VOOM UI Update — Ghana Weekend Launch
 
-A dynamic car sharing platform that revolutionizes vehicle rental through intelligent, user-centric technology and comprehensive mobility solutions.
+## How to Apply
+You can either:
 
-## Key Technologies
+### Option A: Apply the patch (fastest)
+```bash
+cd Voom
+git apply FULL_PATCH.diff
+```
 
-- React.js frontend with TypeScript
-- Geolocation services with Google Maps integration
-- Real-time booking system
-- Multilingual support
-- Mobile-responsive design
-- Enhanced interactive UI components
-- Environment-aware location services
-- Advanced filtering and navigation for car listings
-- Multi-country support (Ghana and Cameroon)
+### Option B: Copy individual files
+Copy each file from this folder to the matching path in your Voom repo.
 
-## Project Structure
+---
 
-- **Frontend**: React, TypeScript, and Tailwind CSS
-- **Backend**: Express server with Drizzle ORM
-- **Database**: PostgreSQL hosted on Supabase
-- **Authentication**: Custom authentication system
-- **External Services**: Supabase for storage and database
+## What Changed (21 files)
 
-## Getting Started
+### 🎨 Design System
+- **`client/index.html`** — Added DM Serif Display (serif heading font) + DM Sans (body font) from Google Fonts to match Figma typography
+- **`client/src/index.css`** — Updated font-family: headings now use `DM Serif Display` (serif), body uses `DM Sans`
 
-### Prerequisites
+### 💰 Ghana Market (FCFA → GHS)
+- **`client/src/lib/utils.ts`** — Default currency changed to GHS (₵), conversion rates updated, GHS formatting no longer shows decimal places
+- **`client/src/hooks/use-currency.tsx`** — Default currency state set to `GHS`
+- **`client/src/pages/account-preferences.tsx`** — FCFA → GHS
+- **`client/src/pages/payment-methods.tsx`** — FCFA → GHS display
+- **`client/src/pages/become-host-rates.tsx`** — Labels say "GHS" not "FCFA"
+- **`client/src/pages/become-host/car-rates.tsx`** — GHS labels, adjusted default rate values for Ghana market
+- **`client/src/pages/become-host-summary.tsx`** — Currency + city updated (Douala → Accra)
+- **`client/src/pages/become-host/car-summary.tsx`** — Currency → GHS
+- **`client/src/pages/booking-confirm.tsx`** — Currency → GHS
+- **`client/src/components/booking-process-fixed.tsx`** — Currency → GHS
 
-- Node.js 18+
-- npm or yarn
-- Supabase account
+### 🇬🇭 French → English
+- **`client/src/pages/all-cars.tsx`** — "Prise en charge et retour" → "Pick-up & return", "Annuler Gratuitement" → "Free Cancellation", "/jour" → "/day"
+- **`client/src/pages/message-detail.tsx`** — Location references updated to Accra, Ghana
 
-### Installation
+### 📱 Core UI Components (Figma Pixel-Match)
+- **`client/src/components/car-card.tsx`** — Complete rewrite:
+  - Rounded image container with white heart button
+  - Serif heading for car name
+  - Star rating on the right (filled black star)
+  - "Pick-up & return: [city]" + "Free Cancellation" text
+  - Bold serif price with /day suffix
+  - Italic red "VOOM" branding bottom-right
+  
+- **`client/src/components/car-categories.tsx`** — Complete rewrite:
+  - Image thumbnails instead of icon circles (matches Figma)
+  - Red border on selected category
+  - Horizontal scroll, clean labels
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/bogolobango/Voom.git
-   cd Voom
-   ```
+- **`client/src/components/layout/bottom-nav.tsx`** — Complete rewrite:
+  - HOME / FAVORITES / BOOKINGS / MESSAGES / ACCOUNT
+  - Uppercase labels with letter-spacing
+  - Red active state (#C41E24-ish via hsl primary)
+  - Red notification badge on MESSAGES (count: 3)
+  - Safe area padding for mobile
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+### 📄 Page Redesigns
+- **`client/src/pages/home.tsx`** — Complete rewrite:
+  - Clean search bar with filter icon (matches Figma)
+  - Category thumbnails
+  - Vertical car card feed (no grid)
+  - Empty state with "No car found" message
+  - No header component — clean minimal top
 
-3. Set up environment variables (see `.env.example`).
+- **`client/src/pages/favorites.tsx`** — Redesigned:
+  - Serif "Favorites" heading
+  - Same car card layout as home
+  
+- **`client/src/pages/bookings.tsx`** — Complete rewrite:
+  - "Current Booking" / "Booking History" tabs (matches Figma)
+  - Car thumbnail with serif heading + star rating
+  - Booking details: ID, dates, location
+  - Total section with bold price
+  - Empty state
 
-4. Initialize the database:
-   ```bash
-   npm run db:push
-   ```
+- **`client/src/pages/car-detail.tsx`** — Key updates:
+  - **Reserve Now → WhatsApp deep link** to YOUR number
+  - Pre-filled message with car name, location, rate, dates
+  - Price display uses GHS with car currency
+  - Serif heading on price in sticky bottom bar
 
-5. Start the development server:
-   ```bash
-   npm run dev
-   ```
+---
 
-## Integration
+## ⚠️ Action Required Before Launch
 
-See the [Integration Guide](INTEGRATION.md) for detailed information about:
-- Supabase integration and configuration
-- GitHub synchronization
-- Environment variables setup
+### 1. Set your WhatsApp number
+In `client/src/pages/car-detail.tsx`, find this line:
+```typescript
+const VOOM_WHATSAPP_NUMBER = "233XXXXXXXXX";
+```
+Replace with your actual Ghana WhatsApp number (with country code, no + or spaces).
 
-## Features
+### 2. Seed Ghana car data
+The existing DB likely has FCFA-priced cars. You'll want to:
+- Update existing car records to use `currency: "GHS"` and adjust `dailyRate` to GHS values
+- Update `city` fields to Ghana cities (Accra, Kumasi, etc.)
+- Replace placeholder images with real car photos from owners
 
-- User authentication and account management
-- Car browsing and searching
-- Advanced filtering options
-- Booking management
-- Host dashboard
-- Messaging system
-- Payment integration
-- Location-based services
+### 3. Share the Facebook post link
+The app should be shared as: `https://v0-voom.vercel.app`
+Users land on the home feed, browse cars, tap one, and "Reserve Now" opens WhatsApp to you.
 
-## License
+---
 
-This project is licensed under the MIT License.
+## User Flow for Weekend Launch
+```
+Facebook Group Post → Voom Home Feed → Browse/Filter Cars → 
+Car Detail Page → "Reserve Now" → WhatsApp Chat (to you) → 
+You relay to car owner → Booking confirmed manually
+```

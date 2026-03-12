@@ -1,0 +1,2022 @@
+diff --git a/client/index.html b/client/index.html
+index f95bc3c..804207c 100644
+--- a/client/index.html
++++ b/client/index.html
+@@ -5,7 +5,7 @@
+     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23c92626' d='M19 20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-2h14v2zM6 7l3-3h6l3 3H6zm0 2h12v6.5a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5V9zm6 5a2 2 0 1 0 0-4 2 2 0 0 0 0 4z'/%3E%3C/svg%3E" />
+     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+     <title>VOOM - Car Sharing</title>
+-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
++    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+   </head>
+   <body>
+     <div id="root"></div>
+diff --git a/client/src/components/booking-process-fixed.tsx b/client/src/components/booking-process-fixed.tsx
+index 0fc059f..92c9730 100644
+--- a/client/src/components/booking-process-fixed.tsx
++++ b/client/src/components/booking-process-fixed.tsx
+@@ -190,7 +190,7 @@ export function BookingProcess({ car, user, onComplete, onBack }: BookingProcess
+       pickupLocation: pickupLocation || car.location,
+       dropoffLocation: isPickupSameAsDropoff ? (pickupLocation || car.location) : dropoffLocation,
+       totalAmount: grandTotal,
+-      currency: "FCFA",
++      currency: "GHS",
+       paymentMethod,
+       status: "confirmed", // Auto-confirm for the demo
+     };
+@@ -213,7 +213,7 @@ export function BookingProcess({ car, user, onComplete, onBack }: BookingProcess
+     pickupLocation: pickupLocation || car.location,
+     dropoffLocation: isPickupSameAsDropoff ? (pickupLocation || car.location) : dropoffLocation,
+     totalAmount: grandTotal,
+-    currency: "FCFA" as any // Type fix
++    currency: "GHS" as any // Type fix
+   };
+ 
+   // Cancellation date (24h before start)
+diff --git a/client/src/components/car-card.tsx b/client/src/components/car-card.tsx
+index 157575f..50fb634 100644
+--- a/client/src/components/car-card.tsx
++++ b/client/src/components/car-card.tsx
+@@ -1,8 +1,6 @@
+ import { useState } from "react";
+ import { Link } from "wouter";
+-import { Heart } from "lucide-react";
+-import { Card } from "@/components/ui/card";
+-import { Rating } from "@/components/ui/rating";
++import { Heart, Star } from "lucide-react";
+ import { formatCurrency } from "@/lib/utils";
+ import { Car, InsertFavorite } from "@shared/schema";
+ import { useToast } from "@/hooks/use-toast";
+@@ -26,7 +24,7 @@ export function CarCard({ car, isFavorite = false }: CarCardProps) {
+       } else {
+         const favoriteData: InsertFavorite = {
+           carId: car.id,
+-          userId: 1, // In a real app, get this from auth context
++          userId: 1,
+         };
+         return apiRequest("POST", "/api/favorites", favoriteData);
+       }
+@@ -34,7 +32,6 @@ export function CarCard({ car, isFavorite = false }: CarCardProps) {
+     onSuccess: () => {
+       setFavorite(!favorite);
+       queryClient.invalidateQueries({ queryKey: ["/api/favorites"] });
+-      
+       toast({
+         title: favorite ? "Removed from favorites" : "Added to favorites",
+         duration: 2000,
+@@ -57,56 +54,66 @@ export function CarCard({ car, isFavorite = false }: CarCardProps) {
+   };
+ 
+   return (
+-    <Card className="overflow-hidden relative">
+-      <div className="absolute top-4 right-4 z-10">
+-        <button
+-          className={`text-${favorite ? "red-600" : "gray-100"} hover:text-red-600 transition-colors`}
+-          aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
+-          onClick={handleToggleFavorite}
+-        >
+-          <Heart className={favorite ? "fill-current" : ""} size={24} />
+-        </button>
+-      </div>
+-      
++    <div className="mb-4">
+       <Link href={`/cars/${car.id}`}>
+         <div className="block cursor-pointer">
+-          <img
+-            src={car.imageUrl ? `${car.imageUrl}&q=80&w=800&h=600&fit=crop&crop=entropy` : `https://placehold.co/800x600/e2e8f0/64748b?text=${car.make}+${car.model}`}
+-            alt={`${car.make} ${car.model}`}
+-            className="w-full h-48 object-cover"
+-            onError={(e) => {
+-              // Fallback to a placeholder if image fails to load
+-              e.currentTarget.src = `https://placehold.co/800x600/e2e8f0/64748b?text=${car.make}+${car.model}`;
+-            }}
+-          />
+-          <div className="p-4">
++          {/* Image container with heart */}
++          <div className="relative rounded-xl overflow-hidden">
++            <img
++              src={car.imageUrl ? `${car.imageUrl}&q=80&w=800&h=500&fit=crop&crop=entropy` : `https://placehold.co/800x500/e2e8f0/64748b?text=${car.make}+${car.model}`}
++              alt={`${car.make} ${car.model}`}
++              className="w-full h-52 object-cover"
++              onError={(e) => {
++                e.currentTarget.src = `https://placehold.co/800x500/e2e8f0/64748b?text=${car.make}+${car.model}`;
++              }}
++            />
++            <button
++              className="absolute top-3 right-3 bg-white rounded-full p-1.5 shadow-sm"
++              aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
++              onClick={handleToggleFavorite}
++            >
++              <Heart 
++                className={`h-5 w-5 ${favorite ? "fill-red-600 text-red-600" : "text-gray-400"}`} 
++              />
++            </button>
++          </div>
++
++          {/* Card details */}
++          <div className="pt-3 pb-2">
++            {/* Title + Rating row */}
+             <div className="flex justify-between items-start">
+-              <div>
+-                <h2 className="text-lg font-semibold">{car.make} {car.model}</h2>
+-                <Rating 
+-                  value={car.rating ?? 0} 
+-                  count={car.ratingCount ?? 0} 
+-                  className="mt-1" 
+-                />
+-                <p className="text-sm mt-1 text-gray-500">
+-                  Prise en charge et retour: {car.location}
+-                </p>
+-                <p className="text-sm mt-1 text-gray-500">
+-                  Annuler Gratuitement
+-                </p>
+-              </div>
+-              <div className="text-right">
+-                <p className="font-semibold text-lg">
+-                  {formatCurrency(car.dailyRate)}/jour
+-                </p>
+-                <p className="text-xs uppercase font-semibold text-red-600 mt-1">
+-                  VOOM
+-                </p>
++              <h3 className="heading text-base font-normal text-gray-900">
++                {car.make} {car.model}
++              </h3>
++              <div className="flex items-center gap-1 ml-2 shrink-0">
++                <Star className="h-3.5 w-3.5 fill-black text-black" />
++                <span className="text-sm font-medium">{car.rating ? (car.rating / 10).toFixed(1) : "New"}</span>
+               </div>
+             </div>
++
++            {/* Location */}
++            <p className="text-sm text-gray-500 mt-0.5">
++              Pick-up & return: {car.city || car.location}
++            </p>
++
++            {/* Free cancellation */}
++            <p className="text-sm text-gray-500">
++              Free Cancellation
++            </p>
++
++            {/* Price row */}
++            <div className="flex justify-between items-end mt-1.5">
++              <p className="heading text-xl font-normal text-gray-900">
++                {formatCurrency(car.dailyRate, (car.currency as "GHS" | "FCFA" | "USD") || "GHS")}
++                <span className="text-sm font-normal text-gray-500 ml-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>/day</span>
++              </p>
++              <span className="heading text-base font-normal italic text-red-600 tracking-wide">
++                VOOM
++              </span>
++            </div>
+           </div>
+         </div>
+       </Link>
+-    </Card>
++    </div>
+   );
+ }
+diff --git a/client/src/components/car-categories.tsx b/client/src/components/car-categories.tsx
+index 3441e43..9da6c13 100644
+--- a/client/src/components/car-categories.tsx
++++ b/client/src/components/car-categories.tsx
+@@ -1,17 +1,5 @@
+-import React, { useRef, useState, useEffect } from "react";
+-import { Button } from "@/components/ui/button";
+-import { 
+-  Car, 
+-  TruckIcon, 
+-  Cog, 
+-  Crown, 
+-  GaugeCircle, 
+-  ShieldCheck, 
+-  ChevronRight, 
+-  ChevronLeft 
+-} from "lucide-react";
++import React, { useRef } from "react";
+ import { cn } from "@/lib/utils";
+-import { Badge } from "@/components/ui/badge";
+ 
+ interface CarCategoryProps {
+   onCategorySelect: (category: string) => void;
+@@ -21,170 +9,95 @@ interface CarCategoryProps {
+ type CategoryItem = {
+   id: string;
+   name: string;
+-  icon: React.ReactNode;
+-  description?: string;
+-  count?: number;
++  image: string;
+ };
+ 
+ export function CarCategories({ onCategorySelect, selectedCategory }: CarCategoryProps) {
+   const scrollRef = useRef<HTMLDivElement>(null);
+-  const [showLeftArrow, setShowLeftArrow] = useState(false);
+-  const [showRightArrow, setShowRightArrow] = useState(true);
+   
+   const categories: CategoryItem[] = [
+     {
+       id: "all",
+       name: "All Cars",
+-      icon: <Car className="h-6 w-6" />,
+-      description: "Browse all available vehicles",
+-      count: 8
+-    },
+-    {
+-      id: "sedan",
+-      name: "Sedan",
+-      icon: <Car className="h-6 w-6" />,
+-      description: "Comfortable 4-door vehicles",
+-      count: 2
+-    },
+-    {
+-      id: "suv",
+-      name: "SUV",
+-      icon: <ShieldCheck className="h-6 w-6" />,
+-      description: "Spacious vehicles with elevated seating",
+-      count: 1
++      image: "https://images.unsplash.com/photo-1549317661-bd32c8ce0afe?w=200&h=140&fit=crop",
+     },
+     {
+       id: "truck",
+       name: "Truck",
+-      icon: <TruckIcon className="h-6 w-6" />,
+-      description: "Utility vehicles with cargo beds",
+-      count: 1
++      image: "https://images.unsplash.com/photo-1559416523-140ddc3d238c?w=200&h=140&fit=crop",
++    },
++    {
++      id: "sedan",
++      name: "Sedan",
++      image: "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=200&h=140&fit=crop",
+     },
+     {
+       id: "sports",
+-      name: "Sports",
+-      icon: <GaugeCircle className="h-6 w-6" />,
+-      description: "High-performance vehicles",
+-      count: 1
++      name: "Sports Car",
++      image: "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=200&h=140&fit=crop",
+     },
+     {
+       id: "luxury",
+       name: "Luxury",
+-      icon: <Crown className="h-6 w-6" />,
+-      description: "Premium vehicles with high-end features",
+-      count: 2
++      image: "https://images.unsplash.com/photo-1563720223185-11003d516935?w=200&h=140&fit=crop",
++    },
++    {
++      id: "suv",
++      name: "SUV",
++      image: "https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=200&h=140&fit=crop",
+     },
+     {
+       id: "compact",
+       name: "Compact",
+-      icon: <Cog className="h-6 w-6" />,
+-      description: "Fuel-efficient smaller vehicles",
+-      count: 1
++      image: "https://images.unsplash.com/photo-1609521263047-f8f205293f24?w=200&h=140&fit=crop",
+     },
+   ];
+-  
+-  const checkScroll = () => {
+-    if (!scrollRef.current) return;
+-    
+-    const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+-    setShowLeftArrow(scrollLeft > 0);
+-    setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10); // Small buffer
+-  };
+-  
+-  useEffect(() => {
+-    const scrollElement = scrollRef.current;
+-    if (scrollElement) {
+-      scrollElement.addEventListener("scroll", checkScroll);
+-      // Initial check
+-      checkScroll();
+-      
+-      window.addEventListener('resize', checkScroll);
+-      
+-      return () => {
+-        scrollElement.removeEventListener("scroll", checkScroll);
+-        window.removeEventListener('resize', checkScroll);
+-      };
+-    }
+-  }, []);
+-  
+-  const scroll = (direction: 'left' | 'right') => {
+-    if (!scrollRef.current) return;
+-    
+-    const scrollAmount = 300; // Adjust as needed
+-    const newPosition = direction === 'left' 
+-      ? scrollRef.current.scrollLeft - scrollAmount 
+-      : scrollRef.current.scrollLeft + scrollAmount;
+-      
+-    scrollRef.current.scrollTo({
+-      left: newPosition,
+-      behavior: 'smooth'
+-    });
+-  };
+ 
+   return (
+-    <div className="mb-10 relative">
+-      <h2 className="text-lg font-medium mb-4">Browse by category</h2>
+-      
+-      {showLeftArrow && (
+-        <button 
+-          onClick={() => scroll('left')}
+-          className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-white rounded-full shadow-md p-2 border hidden md:flex items-center justify-center"
+-          aria-label="Scroll left"
+-        >
+-          <ChevronLeft className="h-4 w-4" />
+-        </button>
+-      )}
+-      
++    <div className="mb-4">
+       <div 
+         ref={scrollRef}
+         className="overflow-x-auto hide-scrollbar scroll-smooth"
+       >
+-        <div className="flex space-x-4 pb-2 px-1">
++        <div className="flex space-x-3 pb-2 px-1">
+           {categories.map((category) => (
+             <div
+               key={category.id}
+               className={cn(
+-                "flex flex-col items-center cursor-pointer min-w-[80px] transition-all duration-200",
++                "flex flex-col items-center cursor-pointer min-w-[72px] transition-all duration-200",
+                 selectedCategory === category.id 
+                   ? "opacity-100" 
+-                  : "opacity-70 hover:opacity-100"
++                  : "opacity-75 hover:opacity-100"
+               )}
+               onClick={() => onCategorySelect(category.id)}
+-              title={category.description}
+             >
+               <div className={cn(
+-                "flex items-center justify-center w-14 h-14 rounded-full mb-2",
++                "w-[72px] h-[52px] rounded-lg overflow-hidden mb-1.5 border-2 transition-colors",
+                 selectedCategory === category.id 
+-                  ? "text-white bg-red-600" 
+-                  : "text-gray-700 bg-gray-100"
++                  ? "border-red-600" 
++                  : "border-transparent"
+               )}>
+-                {category.icon}
++                <img 
++                  src={category.image} 
++                  alt={category.name}
++                  className="w-full h-full object-cover"
++                  onError={(e) => {
++                    e.currentTarget.src = `https://placehold.co/200x140/f3f4f6/9ca3af?text=${category.name}`;
++                  }}
++                />
+               </div>
+               <span className={cn(
+-                "text-sm truncate text-center",
+-                selectedCategory === category.id && "font-medium"
++                "text-xs text-center leading-tight",
++                selectedCategory === category.id 
++                  ? "font-semibold text-gray-900" 
++                  : "text-gray-600"
+               )}>
+                 {category.name}
+               </span>
+-              {category.count !== undefined && category.id !== "all" && selectedCategory === category.id && (
+-                <Badge className="mt-1 text-[10px]">
+-                  {category.count}
+-                </Badge>
+-              )}
+             </div>
+           ))}
+         </div>
+       </div>
+-      
+-      {showRightArrow && (
+-        <button 
+-          onClick={() => scroll('right')}
+-          className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-white rounded-full shadow-md p-2 border hidden md:flex items-center justify-center"
+-          aria-label="Scroll right"
+-        >
+-          <ChevronRight className="h-4 w-4" />
+-        </button>
+-      )}
+     </div>
+   );
+-}
+\ No newline at end of file
++}
+diff --git a/client/src/components/layout/bottom-nav.tsx b/client/src/components/layout/bottom-nav.tsx
+index b450779..e3617b2 100644
+--- a/client/src/components/layout/bottom-nav.tsx
++++ b/client/src/components/layout/bottom-nav.tsx
+@@ -1,9 +1,21 @@
+ import { useLocation, Link } from "wouter";
+-import { Home, Heart, Calendar, MessageSquare, Menu as MenuIcon, Search, Building } from "lucide-react";
++import { Home, Heart, MessageSquare, UserCircle, Building, Calendar } from "lucide-react";
+ import { cn } from "@/lib/utils";
+ import { useAuth } from "@/hooks/use-auth";
+ import { useHostMode } from "@/hooks/use-host-mode";
+ 
++// Custom bookings icon matching the Figma (looks like a ticket/receipt)
++function BookingsIcon({ className }: { className?: string }) {
++  return (
++    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
++      <rect x="2" y="4" width="20" height="16" rx="2" />
++      <path d="M2 10h20" />
++      <path d="M7 15h4" />
++      <path d="M7 18h2" />
++    </svg>
++  );
++}
++
+ interface NavItem {
+   name: string;
+   icon: React.ComponentType<any>;
+@@ -16,67 +28,72 @@ export function BottomNav() {
+   const { user } = useAuth();
+   const { isHostMode, toggleHostMode } = useHostMode();
+ 
+-  // Airbnb style bottom navigation for travelers
+   const travelNavItems: NavItem[] = [
+     {
+-      name: "Home",
++      name: "HOME",
+       icon: Home,
+       path: "/",
+     },
+     {
+-      name: "Explore",
+-      icon: Search,
+-      path: "/all-cars",
+-    },
+-    {
+-      name: "Wishlist",
++      name: "FAVORITES",
+       icon: Heart,
+       path: "/favorites",
+     },
+     {
+-      name: "Trips",
+-      icon: Calendar,
++      name: "BOOKINGS",
++      icon: BookingsIcon,
+       path: "/bookings",
+     },
+     {
+-      name: "Messages",
++      name: "MESSAGES",
+       icon: MessageSquare,
+       path: "/messages",
++      badge: 3,
++    },
++    {
++      name: "ACCOUNT",
++      icon: UserCircle,
++      path: "/profile",
+     },
+   ];
+ 
+-  // Airbnb style bottom navigation for hosts
+   const hostNavItems: NavItem[] = [
+     {
+-      name: "Today",
++      name: "TODAY",
+       icon: Home,
+       path: "/host-dashboard",
+     },
+     {
+-      name: "Calendar",
++      name: "CALENDAR",
+       icon: Calendar,
+       path: "/host-calendar",
+     },
+     {
+-      name: "Listings",
++      name: "LISTINGS",
+       icon: Building,
+       path: "/host-listings",
+     },
+     {
+-      name: "Inbox",
++      name: "INBOX",
+       icon: MessageSquare,
+       path: "/host-messages",
+       badge: 2,
+     },
+     {
+-      name: "Menu",
+-      icon: MenuIcon,
++      name: "MENU",
++      icon: UserCircle,
+       path: "/menu",
+     },
+   ];
+ 
+   const navItems: NavItem[] = isHostMode ? hostNavItems : travelNavItems;
+ 
++  // Check if a path is active (handles nested routes)
++  const isActive = (path: string) => {
++    if (path === "/") return location === "/";
++    return location.startsWith(path);
++  };
++
+   return (
+     <>
+       {/* Mode switcher button */}
+@@ -89,7 +106,7 @@ export function BottomNav() {
+             {isHostMode ? (
+               <>
+                 <Home className="h-4 w-4 mr-2" />
+-                <span className="text-sm font-medium">Switch to traveling</span>
++                <span className="text-sm font-medium">Switch to travelling</span>
+               </>
+             ) : (
+               <>
+@@ -101,39 +118,42 @@ export function BottomNav() {
+         </div>
+       )}
+       
+-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 py-2">
++      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50 pb-[env(safe-area-inset-bottom)]">
+         <div className="max-w-screen-lg mx-auto">
+-          <div className="flex justify-between px-4">
+-            {navItems.map((item) => (
+-              <Link key={item.name} href={item.path}>
+-                <div className="flex flex-col items-center relative">
+-                  <div 
+-                    className={cn(
+-                      "relative",
+-                      location === item.path ? "text-red-500" : "text-gray-400"
+-                    )}
+-                  >
+-                    <item.icon className="h-6 w-6" />
+-                    {item.badge && (
+-                      <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+-                        {item.badge}
+-                      </div>
+-                    )}
++          <div className="flex justify-around items-center px-2 pt-2 pb-1.5">
++            {navItems.map((item) => {
++              const active = isActive(item.path);
++              return (
++                <Link key={item.name} href={item.path}>
++                  <div className="flex flex-col items-center min-w-[56px] cursor-pointer">
++                    <div className="relative">
++                      <item.icon 
++                        className={cn(
++                          "h-5 w-5",
++                          active ? "text-red-600" : "text-gray-500"
++                        )} 
++                      />
++                      {item.badge && (
++                        <div className="absolute -top-1.5 -right-2 bg-red-600 text-white text-[9px] font-bold rounded-full h-3.5 min-w-[14px] flex items-center justify-center px-0.5">
++                          {item.badge}
++                        </div>
++                      )}
++                    </div>
++                    <span 
++                      className={cn(
++                        "text-[10px] mt-1 tracking-wider font-medium",
++                        active ? "text-red-600" : "text-gray-500"
++                      )}
++                    >
++                      {item.name}
++                    </span>
+                   </div>
+-                  <span 
+-                    className={cn(
+-                      "text-xs mt-1",
+-                      location === item.path ? "text-red-500 font-medium" : "text-gray-500"
+-                    )}
+-                  >
+-                    {item.name}
+-                  </span>
+-                </div>
+-              </Link>
+-            ))}
++                </Link>
++              );
++            })}
+           </div>
+         </div>
+       </div>
+     </>
+   );
+-}
+\ No newline at end of file
++}
+diff --git a/client/src/hooks/use-currency.tsx b/client/src/hooks/use-currency.tsx
+index 93b999d..bece541 100644
+--- a/client/src/hooks/use-currency.tsx
++++ b/client/src/hooks/use-currency.tsx
+@@ -11,7 +11,7 @@ export const CurrencyContext = createContext<CurrencyContextType | null>(null);
+ export function CurrencyProvider({ children }: { children: ReactNode }) {
+   // Use local storage to persist currency preference if available
+   const storedCurrency = localStorage.getItem('preferredCurrency') as CurrencyType | null;
+-  const [currency, setCurrency] = useState<CurrencyType>(storedCurrency || 'FCFA');
++  const [currency, setCurrency] = useState<CurrencyType>(storedCurrency || 'GHS');
+ 
+   const handleCurrencyChange = (newCurrency: CurrencyType) => {
+     setCurrency(newCurrency);
+diff --git a/client/src/index.css b/client/src/index.css
+index 88a1873..bca02d0 100644
+--- a/client/src/index.css
++++ b/client/src/index.css
+@@ -196,10 +196,10 @@
+   
+   body {
+     @apply bg-background text-foreground;
+-    font-family: 'Inter', sans-serif;
++    font-family: 'DM Sans', 'Inter', sans-serif;
+   }
+   
+   h1, h2, h3, h4, h5, h6, .heading {
+-    font-family: 'Montserrat', sans-serif;
++    font-family: 'DM Serif Display', Georgia, serif;
+   }
+ }
+diff --git a/client/src/lib/utils.ts b/client/src/lib/utils.ts
+index 241cf65..a26340f 100644
+--- a/client/src/lib/utils.ts
++++ b/client/src/lib/utils.ts
+@@ -9,26 +9,26 @@ export type CurrencyType = "FCFA" | "GHS" | "USD";
+ 
+ // Conversion rates (approximate)
+ const CONVERSION_RATES = {
+-  "FCFA": 1,
+-  "GHS": 0.011, // 1 FCFA ≈ 0.011 GHS
+-  "USD": 0.0017 // 1 FCFA ≈ 0.0017 USD
++  "GHS": 1,
++  "FCFA": 37.5, // 1 GHS ≈ 37.5 FCFA
++  "USD": 0.065 // 1 GHS ≈ 0.065 USD
+ };
+ 
+ export function convertCurrency(amount: number, fromCurrency: CurrencyType, toCurrency: CurrencyType): number {
+   if (fromCurrency === toCurrency) return amount;
+   
+-  // Convert to base currency (FCFA) first if needed
+-  const amountInFCFA = fromCurrency === "FCFA" 
++  // Convert to base currency (GHS) first if needed
++  const amountInGHS = fromCurrency === "GHS" 
+     ? amount 
+     : amount / CONVERSION_RATES[fromCurrency];
+     
+-  // Convert from FCFA to target currency
+-  return toCurrency === "FCFA"
+-    ? amountInFCFA
+-    : amountInFCFA * CONVERSION_RATES[toCurrency];
++  // Convert from GHS to target currency
++  return toCurrency === "GHS"
++    ? amountInGHS
++    : amountInGHS * CONVERSION_RATES[toCurrency];
+ }
+ 
+-export function formatCurrency(amount: number, currency: CurrencyType = "FCFA"): string {
++export function formatCurrency(amount: number, currency: CurrencyType = "GHS"): string {
+   let symbol = "";
+   let formatOptions: Intl.NumberFormatOptions = {
+     minimumFractionDigits: 0,
+@@ -43,8 +43,6 @@ export function formatCurrency(amount: number, currency: CurrencyType = "FCFA"):
+       break;
+     case "GHS":
+       symbol = "₵";
+-      formatOptions.minimumFractionDigits = 2;
+-      formatOptions.maximumFractionDigits = 2;
+       break;
+     case "FCFA":
+     default:
+@@ -54,7 +52,7 @@ export function formatCurrency(amount: number, currency: CurrencyType = "FCFA"):
+   
+   const formattedAmount = amount.toLocaleString(undefined, formatOptions);
+   return currency === "FCFA" 
+-    ? `${formattedAmount} ${currency}`
++    ? `${formattedAmount} FCFA`
+     : `${symbol}${formattedAmount}`;
+ }
+ 
+diff --git a/client/src/pages/account-preferences.tsx b/client/src/pages/account-preferences.tsx
+index c149064..bedeca7 100644
+--- a/client/src/pages/account-preferences.tsx
++++ b/client/src/pages/account-preferences.tsx
+@@ -89,7 +89,7 @@ export default function AccountPreferences() {
+                   <Label>Currency</Label>
+                 </div>
+                 <Button variant="outline" size="sm">
+-                  FCFA
++                  GHS
+                 </Button>
+               </div>
+             </div>
+diff --git a/client/src/pages/all-cars.tsx b/client/src/pages/all-cars.tsx
+index 8ccefe1..4dcf451 100644
+--- a/client/src/pages/all-cars.tsx
++++ b/client/src/pages/all-cars.tsx
+@@ -297,19 +297,19 @@ export default function AllCarsPage() {
+                         
+                         {/* Location */}
+                         <p className="text-sm text-gray-600 mt-2">
+-                          Prise en charge et retour: {car.location}
++                          Pick-up & return: {car.location}
+                         </p>
+                         
+                         {/* Features/extra info */}
+                         <p className="text-sm text-gray-600 mt-1">
+-                          Annuler Gratuitement
++                          Free Cancellation
+                         </p>
+                         
+                         {/* Price */}
+                         <div className="mt-4 flex justify-between items-center">
+                           <div className="text-right">
+                             <p className="text-xl font-bold">{formatCurrency(car.dailyRate, currency)}</p>
+-                            <p className="text-sm text-gray-600">{currency}/jour</p>
++                            <p className="text-sm text-gray-600">{currency}/day</p>
+                           </div>
+                           <div>
+                             <span className="text-xs text-red-500 font-medium uppercase">VOOM</span>
+diff --git a/client/src/pages/become-host-rates.tsx b/client/src/pages/become-host-rates.tsx
+index e4c8d90..4f12561 100644
+--- a/client/src/pages/become-host-rates.tsx
++++ b/client/src/pages/become-host-rates.tsx
+@@ -96,7 +96,7 @@ export default function BecomeHostRates() {
+                     name="dailyRate"
+                     render={({ field }) => (
+                       <FormItem>
+-                        <FormLabel>Daily Rate (FCFA)</FormLabel>
++                        <FormLabel>Daily Rate (GHS)</FormLabel>
+                         <FormControl>
+                           <Input 
+                             type="number"
+@@ -170,7 +170,7 @@ export default function BecomeHostRates() {
+                     name="securityDeposit"
+                     render={({ field }) => (
+                       <FormItem>
+-                        <FormLabel>Security Deposit (FCFA)</FormLabel>
++                        <FormLabel>Security Deposit (GHS)</FormLabel>
+                         <FormControl>
+                           <Input 
+                             type="number"
+diff --git a/client/src/pages/become-host-summary.tsx b/client/src/pages/become-host-summary.tsx
+index cb338a0..1e3104d 100644
+--- a/client/src/pages/become-host-summary.tsx
++++ b/client/src/pages/become-host-summary.tsx
+@@ -43,7 +43,7 @@ export default function BecomeHostSummary() {
+     // Location
+     location: {
+       address: "456 Elm St",
+-      city: "Douala",
++      city: "Accra",
+       state: "Littoral",
+       zipCode: "12345",
+       country: "Cameroon",
+@@ -106,7 +106,7 @@ export default function BecomeHostSummary() {
+       location: `${carData.location.city}, ${carData.location.country}`,
+       hostId: 1, // This would be the actual user's ID in a real implementation
+       // Add additional fields as needed based on the Car schema
+-      currency: "FCFA",
++      currency: "GHS",
+       imageUrl: "https://images.unsplash.com/photo-1590362891991-f776e747a588?ixlib=rb-4.0.3",
+       available: true
+     };
+diff --git a/client/src/pages/become-host/car-rates.tsx b/client/src/pages/become-host/car-rates.tsx
+index 2276058..ed10e6e 100644
+--- a/client/src/pages/become-host/car-rates.tsx
++++ b/client/src/pages/become-host/car-rates.tsx
+@@ -60,14 +60,14 @@ export default function CarRatesPage() {
+   const form = useForm<FormValues>({
+     resolver: zodResolver(formSchema),
+     defaultValues: {
+-      dailyRate: 20000, // FCFA
++      dailyRate: 200, // FCFA
+       weeklyDiscount: 10,
+       monthlyDiscount: 20,
+       minDays: 1,
+       maxDays: 30,
+       instantBook: true,
+       cancellationPolicy: "moderate",
+-      securityDeposit: 50000, // FCFA
++      securityDeposit: 500, // FCFA
+       additionalRules: "",
+     }
+   });
+@@ -181,7 +181,7 @@ export default function CarRatesPage() {
+                   render={({ field }) => (
+                     <FormItem>
+                       <FormLabel className="flex items-center">
+-                        Daily Rate (FCFA)
++                        Daily Rate (GHS)
+                         <Tooltip>
+                           <TooltipTrigger asChild>
+                             <Info className="h-4 w-4 ml-2 text-muted-foreground" />
+@@ -193,7 +193,7 @@ export default function CarRatesPage() {
+                       </FormLabel>
+                       <FormControl>
+                         <div className="relative">
+-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">FCFA</span>
++                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">GHS</span>
+                           <Input 
+                             type="number" 
+                             className="pl-14" 
+@@ -367,10 +367,10 @@ export default function CarRatesPage() {
+                   name="securityDeposit"
+                   render={({ field }) => (
+                     <FormItem>
+-                      <FormLabel>Security Deposit (FCFA)</FormLabel>
++                      <FormLabel>Security Deposit (GHS)</FormLabel>
+                       <FormControl>
+                         <div className="relative">
+-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">FCFA</span>
++                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">GHS</span>
+                           <Input type="number" className="pl-14" {...field} />
+                         </div>
+                       </FormControl>
+diff --git a/client/src/pages/become-host/car-summary.tsx b/client/src/pages/become-host/car-summary.tsx
+index 47cea50..ba20ff1 100644
+--- a/client/src/pages/become-host/car-summary.tsx
++++ b/client/src/pages/become-host/car-summary.tsx
+@@ -86,7 +86,7 @@ export default function CarSummaryPage() {
+       description: sampleCarData.description,
+       dailyRate: sampleCarData.rates.dailyRate,
+       location: sampleCarData.location.address,
+-      currency: "FCFA",
++      currency: "GHS",
+       imageUrl: sampleCarData.images[0], // Set first image as main image
+       images: sampleCarData.images, // Array of image URLs
+       features: ["Air Conditioning", "Bluetooth", "Backup Camera"],
+diff --git a/client/src/pages/booking-confirm.tsx b/client/src/pages/booking-confirm.tsx
+index 58621ee..6b114fd 100644
+--- a/client/src/pages/booking-confirm.tsx
++++ b/client/src/pages/booking-confirm.tsx
+@@ -99,7 +99,7 @@ export default function BookingConfirm() {
+       pickupLocation: pickupLocation || car.location,
+       dropoffLocation: isPickupSameAsDropoff ? (pickupLocation || car.location) : dropoffLocation,
+       totalAmount,
+-      currency: "FCFA",
++      currency: "GHS",
+       paymentMethod,
+       status: "confirmed", // Auto-confirm for the demo
+     };
+@@ -148,7 +148,7 @@ export default function BookingConfirm() {
+     pickupLocation: pickupLocation || car.location,
+     dropoffLocation: isPickupSameAsDropoff ? (pickupLocation || car.location) : dropoffLocation,
+     totalAmount,
+-    currency: "FCFA"
++    currency: "GHS"
+   };
+ 
+   return (
+diff --git a/client/src/pages/bookings.tsx b/client/src/pages/bookings.tsx
+index 76e4efa..d56c165 100644
+--- a/client/src/pages/bookings.tsx
++++ b/client/src/pages/bookings.tsx
+@@ -1,123 +1,153 @@
++import { useState } from "react";
+ import { useQuery } from "@tanstack/react-query";
+-import { Header } from "@/components/layout/header";
+ import { BottomNav } from "@/components/layout/bottom-nav";
+ import { LoadingScreen } from "@/components/ui/loader";
+ import { Button } from "@/components/ui/button";
+-import { Card, CardContent } from "@/components/ui/card";
+ import { Booking, Car } from "@shared/schema";
+ import { formatDateAndTime, formatCurrency, formatDuration } from "@/lib/utils";
+ import { Link } from "wouter";
+-import { Calendar, Clock, MapPin } from "lucide-react";
++import { Calendar, MapPin, Star } from "lucide-react";
+ 
+-// Define interface for bookings with car information
+ interface BookingWithCar extends Booking {
+   car: Car;
+ }
+ 
+ export default function Bookings() {
++  const [activeTab, setActiveTab] = useState<"current" | "history">("current");
++
+   const { data: bookings, isLoading } = useQuery<BookingWithCar[]>({
+     queryKey: ["/api/bookings"],
+   });
+ 
+-  const getStatusClass = (status: string) => {
+-    switch (status) {
+-      case "confirmed":
+-        return "bg-green-100 text-green-800";
+-      case "cancelled":
+-        return "bg-red-100 text-red-800";
+-      case "completed":
+-        return "bg-blue-100 text-blue-800";
+-      default:
+-        return "bg-yellow-100 text-yellow-800";
+-    }
+-  };
++  const currentBookings = bookings?.filter(b => ["pending", "confirmed", "active", "approved"].includes(b.status));
++  const historyBookings = bookings?.filter(b => ["completed", "cancelled", "rejected"].includes(b.status));
++  const displayBookings = activeTab === "current" ? currentBookings : historyBookings;
+ 
+   return (
+-    <>
+-      <Header title="Bookings" />
+-      <main className="container mx-auto px-4 py-6 mb-20 md:mb-6">
++    <div className="min-h-screen bg-white pb-20">
++      {/* Header */}
++      <div className="px-4 pt-4 pb-2">
++        <h1 className="heading text-2xl">Bookings</h1>
++      </div>
++
++      {/* Tabs */}
++      <div className="px-4 mb-4">
++        <div className="flex border-b border-gray-200">
++          <button
++            className={`py-2.5 px-1 mr-6 text-sm font-medium border-b-2 transition-colors ${
++              activeTab === "current"
++                ? "border-red-600 text-gray-900"
++                : "border-transparent text-gray-500"
++            }`}
++            onClick={() => setActiveTab("current")}
++          >
++            Current Booking
++          </button>
++          <button
++            className={`py-2.5 px-1 text-sm font-medium border-b-2 transition-colors ${
++              activeTab === "history"
++                ? "border-red-600 text-gray-900"
++                : "border-transparent text-gray-500"
++            }`}
++            onClick={() => setActiveTab("history")}
++          >
++            Booking History
++          </button>
++        </div>
++      </div>
++
++      {/* Content */}
++      <main className="px-4">
+         {isLoading ? (
+           <LoadingScreen />
+-        ) : bookings && bookings.length > 0 ? (
+-          <div className="space-y-4">
+-            {bookings.map((booking) => (
+-              <Card key={booking.id} className="overflow-hidden">
+-                <div className="flex border-b">
+-                  <img
+-                    src={booking.car.imageUrl ?? undefined}
+-                    alt={`${booking.car.make} ${booking.car.model}`}
+-                    className="w-32 h-32 object-cover"
+-                  />
+-                  <div className="p-4 flex-1">
+-                    <div className="flex justify-between items-start">
+-                      <div>
+-                        <h2 className="text-lg font-semibold">
+-                          {booking.car.make} {booking.car.model}
+-                        </h2>
+-                        <span className={`text-xs px-2 py-1 rounded-full mt-1 inline-block ${getStatusClass(booking.status)}`}>
+-                          {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
++        ) : displayBookings && displayBookings.length > 0 ? (
++          <div className="space-y-6">
++            {displayBookings.map((booking) => (
++              <div key={booking.id}>
++                {/* Car card */}
++                <div className="border border-gray-200 rounded-xl p-3 mb-4">
++                  <div className="flex items-center gap-3">
++                    <img
++                      src={booking.car.imageUrl ?? `https://placehold.co/120x80/e2e8f0/64748b?text=${booking.car.make}`}
++                      alt={`${booking.car.make} ${booking.car.model}`}
++                      className="w-20 h-14 object-cover rounded-lg"
++                    />
++                    <div>
++                      <h3 className="heading text-base">{booking.car.make} {booking.car.model}</h3>
++                      <div className="flex items-center gap-1 mt-0.5">
++                        <Star className="h-3 w-3 fill-black text-black" />
++                        <span className="text-xs text-gray-600">
++                          {booking.car.rating ? (booking.car.rating / 10).toFixed(1) : "New"} 
++                          ({booking.car.ratingCount || 0} trips)
+                         </span>
+                       </div>
+-                      <p className="font-semibold">
+-                        {formatCurrency(booking.totalAmount)}
+-                      </p>
+                     </div>
+                   </div>
+                 </div>
+-                <CardContent className="pt-4">
++
++                {/* Booking details */}
++                <div className="mb-4">
++                  <div className="flex justify-between items-center mb-3">
++                    <h2 className="heading text-lg">Your Booking</h2>
++                    <Link href={`/bookings/${booking.id}`}>
++                      <span className="text-sm text-red-600 font-medium cursor-pointer">Edit</span>
++                    </Link>
++                  </div>
++                  
+                   <div className="space-y-2">
+-                    <div className="flex items-start">
+-                      <Calendar className="h-5 w-5 mr-2 text-gray-500" />
+-                      <div>
+-                        <p className="text-sm text-gray-500">
+-                          {formatDateAndTime(booking.startDate)} -{" "}
+-                          {formatDateAndTime(booking.endDate)}
+-                        </p>
+-                        <p className="text-sm text-gray-500">
+-                          {formatDuration(booking.startDate, booking.endDate)}
+-                        </p>
+-                      </div>
++                    <div className="flex justify-between">
++                      <span className="text-sm text-gray-600">Booking ID</span>
++                      <span className="text-sm font-semibold">VOOM{String(booking.id).padStart(5, '0')}</span>
+                     </div>
+-                    <div className="flex items-start">
+-                      <MapPin className="h-5 w-5 mr-2 text-gray-500" />
+-                      <p className="text-sm text-gray-500">
+-                        {booking.pickupLocation}
+-                        {booking.pickupLocation !== booking.dropoffLocation
+-                          ? ` - ${booking.dropoffLocation}`
+-                          : ""}
+-                      </p>
++                    <div className="flex justify-between">
++                      <span className="text-sm text-gray-600">Start of Rental</span>
++                      <span className="text-sm font-semibold">{formatDateAndTime(booking.startDate)}</span>
++                    </div>
++                    <div className="flex justify-between">
++                      <span className="text-sm text-gray-600">End of Rental</span>
++                      <span className="text-sm font-semibold">{formatDateAndTime(booking.endDate)}</span>
++                    </div>
++                    <div className="flex justify-between">
++                      <span className="text-sm text-gray-600">Pick-up and drop-off point</span>
++                      <span className="text-sm font-semibold">{booking.pickupLocation}</span>
+                     </div>
+                   </div>
+-                  <div className="mt-4 flex justify-end space-x-2">
+-                    <Link href={`/bookings/${booking.id}`}>
+-                      <Button variant="outline" size="sm">
+-                        View Details
+-                      </Button>
+-                    </Link>
+-                    {booking.status === "confirmed" && (
+-                      <Link href={`/bookings/${booking.id}`}>
+-                        <Button
+-                          variant="destructive"
+-                          size="sm"
+-                          className="bg-red-600 hover:bg-red-700"
+-                        >
+-                          Cancel Booking
+-                        </Button>
+-                      </Link>
+-                    )}
++                </div>
++
++                {/* Total */}
++                <div className="border-t border-gray-200 pt-3">
++                  <h2 className="heading text-lg mb-2">Your Total</h2>
++                  <div className="flex justify-between mb-1">
++                    <span className="text-sm text-gray-600">{formatDuration(booking.startDate, booking.endDate)}</span>
++                    <span className="text-sm font-semibold">
++                      {formatCurrency(booking.totalAmount, (booking.currency as "GHS" | "FCFA" | "USD") || "GHS")}
++                    </span>
+                   </div>
+-                </CardContent>
+-              </Card>
++                  <div className="flex justify-between pt-2 border-t border-gray-100">
++                    <span className="text-sm font-bold">Total</span>
++                    <span className="heading text-base font-normal">
++                      {formatCurrency(booking.totalAmount, (booking.currency as "GHS" | "FCFA" | "USD") || "GHS")}
++                    </span>
++                  </div>
++                </div>
++              </div>
+             ))}
+           </div>
+         ) : (
+-          <div className="text-center py-12">
+-            <h2 className="text-xl font-semibold mb-2">No bookings yet</h2>
+-            <p className="text-gray-500 mb-6">
++          <div className="flex flex-col items-center justify-center py-20">
++            <div className="mb-4">
++              <svg className="h-12 w-12 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
++                <rect x="2" y="4" width="20" height="16" rx="2" />
++                <path d="M2 10h20" />
++                <path d="M7 15h4" />
++              </svg>
++            </div>
++            <h3 className="heading text-lg text-gray-900">No bookings yet</h3>
++            <p className="text-sm text-gray-500 text-center mt-1 px-8">
+               When you book a car, your booking details will appear here.
+             </p>
+             <Link href="/">
+-              <Button className="bg-red-600 hover:bg-red-700 text-white">
++              <Button className="mt-4 bg-red-600 hover:bg-red-700 text-white rounded-lg">
+                 Browse cars
+               </Button>
+             </Link>
+@@ -125,6 +155,6 @@ export default function Bookings() {
+         )}
+       </main>
+       <BottomNav />
+-    </>
++    </div>
+   );
+ }
+diff --git a/client/src/pages/car-detail.tsx b/client/src/pages/car-detail.tsx
+index 24ff364..2a8f514 100644
+--- a/client/src/pages/car-detail.tsx
++++ b/client/src/pages/car-detail.tsx
+@@ -133,27 +133,30 @@ export default function CarDetail() {
+     },
+   });
+ 
++  // VOOM WhatsApp number for booking relay
++  const VOOM_WHATSAPP_NUMBER = "233XXXXXXXXX"; // Replace with Jim's Ghana WhatsApp number
++
+   const handleReserve = () => {
+     if (car) {
+-      if (!user) {
+-        toast({
+-          title: "Login required", 
+-          description: "Please log in to book this car",
+-          variant: "destructive",
+-        });
+-        navigate("/auth");
+-        return;
+-      }
++      // Build WhatsApp deep link with pre-filled booking message
++      const carName = `${car.make} ${car.model}`;
++      const price = `${car.dailyRate} ${car.currency || "GHS"}`;
++      const location = car.city || car.location;
++      const startDate = selectedStartDate ? selectedStartDate.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "TBD";
++      const endDate = selectedEndDate ? selectedEndDate.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "TBD";
+       
+-      // For demo - checking verification status
+-      const isUserVerified = user.isVerified;
++      const message = encodeURIComponent(
++        `Hi! I'd like to book a car on VOOM 🚗\n\n` +
++        `🚘 Car: ${carName}\n` +
++        `📍 Location: ${location}\n` +
++        `💰 Rate: ${price}/day\n` +
++        `📅 From: ${startDate}\n` +
++        `📅 To: ${endDate}\n\n` +
++        `Please confirm availability. Thank you!`
++      );
+       
+-      if (!isUserVerified) {
+-        setShowVerificationDialog(true);
+-      } else {
+-        // Show the new booking process
+-        setShowBookingProcess(true);
+-      }
++      const whatsappUrl = `https://wa.me/${VOOM_WHATSAPP_NUMBER}?text=${message}`;
++      window.open(whatsappUrl, "_blank");
+     }
+   };
+   
+@@ -269,7 +272,7 @@ export default function CarDetail() {
+           </div>
+           <div className="text-right">
+             <p className="text-2xl font-bold">
+-              {formatCurrency(car.dailyRate)}<span className="text-sm font-normal">/day</span>
++              {formatCurrency(car.dailyRate, (car.currency as "GHS" | "FCFA" | "USD") || "GHS")}<span className="text-sm font-normal">/day</span>
+             </p>
+             {car.available ? (
+               <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
+@@ -583,11 +586,11 @@ export default function CarDetail() {
+             <div className="fixed bottom-0 left-0 right-0 bg-white p-4 border-t shadow-md z-10">
+               <div className="container mx-auto flex justify-between items-center">
+                 <div>
+-                  <p className="font-bold text-xl">{formatCurrency(car.dailyRate)}</p>
++                  <p className="heading text-xl font-normal">{formatCurrency(car.dailyRate, (car.currency as "GHS" | "FCFA" | "USD") || "GHS")}</p>
+                   <p className="text-sm text-gray-500">per day</p>
+                 </div>
+                 <Button 
+-                  className="bg-red-600 hover:bg-red-700 px-8"
++                  className="bg-red-600 hover:bg-red-700 px-8 rounded-lg text-white font-semibold"
+                   onClick={handleReserve}
+                   disabled={!car.available}
+                 >
+diff --git a/client/src/pages/favorites.tsx b/client/src/pages/favorites.tsx
+index 16c939b..67399c6 100644
+--- a/client/src/pages/favorites.tsx
++++ b/client/src/pages/favorites.tsx
+@@ -16,25 +16,27 @@ export default function Favorites() {
+   });
+   
+   return (
+-    <>
+-      <Header title="Favoris" />
+-      <main className="container mx-auto px-4 py-6 mb-20 md:mb-6">
++    <div className="min-h-screen bg-white pb-20">
++      <div className="px-4 pt-4 pb-2">
++        <h1 className="heading text-2xl">Favorites</h1>
++      </div>
++      <main className="px-4">
+         {isLoading ? (
+           <LoadingScreen />
+         ) : favorites && favorites.length > 0 ? (
+-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
++          <div>
+             {favorites.map((car) => (
+               <CarCard key={car.id} car={car} isFavorite={true} />
+             ))}
+           </div>
+         ) : (
+           <div className="text-center py-12">
+-            <h2 className="text-xl font-semibold mb-2">No favorites yet</h2>
++            <h2 className="heading text-xl mb-2">No favorites yet</h2>
+             <p className="text-gray-500 mb-6">
+               Add cars to your favorites list to quickly access them later.
+             </p>
+             <Link href="/">
+-              <Button className="bg-red-600 hover:bg-red-700 text-white">
++              <Button className="bg-red-600 hover:bg-red-700 text-white rounded-lg">
+                 Browse cars
+               </Button>
+             </Link>
+@@ -42,6 +44,6 @@ export default function Favorites() {
+         )}
+       </main>
+       <BottomNav />
+-    </>
++    </div>
+   );
+ }
+diff --git a/client/src/pages/home.tsx b/client/src/pages/home.tsx
+index feb4d95..1e0e491 100644
+--- a/client/src/pages/home.tsx
++++ b/client/src/pages/home.tsx
+@@ -1,34 +1,18 @@
+-import { useState, useEffect } from "react";
+-import { Link, useLocation } from "wouter";
++import { useState } from "react";
++import { useLocation } from "wouter";
+ import { useQuery } from "@tanstack/react-query";
+-import { Header } from "@/components/layout/header";
+ import { BottomNav } from "@/components/layout/bottom-nav";
+ import { CarCard } from "@/components/car-card";
+ import { CarCategories } from "@/components/car-categories";
+-import { Input } from "@/components/ui/input";
+-import { Button } from "@/components/ui/button";
+-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+-import { Separator } from "@/components/ui/separator";
+-import { Badge } from "@/components/ui/badge";
+-import { Calendar } from "@/components/ui/calendar";
+-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+-import { format } from "date-fns";
+ import { Car } from "@shared/schema";
+-import { Search, MapPin, Calendar as CalendarIcon, Shield, Gift, Car as CarIcon, Hotel, Star, ChevronRight } from "lucide-react";
+-import { useToast } from "@/hooks/use-toast";
++import { Search, SlidersHorizontal } from "lucide-react";
+ import { useAuth } from "@/hooks/use-auth";
+ import { CarGridSkeleton } from "@/components/ui/car-skeleton";
+-import { motion, AnimatePresence, stagger } from "framer-motion";
+ 
+ export default function Home() {
+   const [, navigate] = useLocation();
+   const [searchQuery, setSearchQuery] = useState("");
+-  const [selectedLocation, setSelectedLocation] = useState("Kotoka International Airport, Accra");
+-  const [checkInDate, setCheckInDate] = useState<Date | undefined>(undefined);
+-  const [checkOutDate, setCheckOutDate] = useState<Date | undefined>(undefined);
+-  const [adults, setAdults] = useState(2);
+-  const [children, setChildren] = useState(0);
+-  const { toast } = useToast();
++  const [selectedCategory, setSelectedCategory] = useState<string | null>("all");
+   const { user } = useAuth();
+   
+   const { data: cars, isLoading } = useQuery<Car[]>({
+@@ -39,617 +23,105 @@ export default function Home() {
+     queryKey: ["/api/favorites/ids"],
+   });
+ 
+-  const handleSearchSubmit = (e: React.FormEvent) => {
+-    e.preventDefault();
+-    toast({
+-      title: "Searching for cars",
+-      description: `Showing available cars in ${selectedLocation}`,
+-    });
+-  };
++  // Filter cars by category
++  const filteredCars = cars?.filter(car => {
++    // Category filter
++    if (selectedCategory && selectedCategory !== "all") {
++      const categoryMap: Record<string, string[]> = {
++        "sedan": ["Sedan"],
++        "suv": ["SUV"],
++        "truck": ["Truck"],
++        "sports": ["Sports", "Sports Car"],
++        "luxury": ["Luxury"],
++        "compact": ["Compact"],
++      };
++      const validTypes = categoryMap[selectedCategory] || [];
++      if (!validTypes.includes(car.type)) return false;
++    }
++    
++    // Search filter
++    if (searchQuery) {
++      const query = searchQuery.toLowerCase();
++      return (
++        car.make.toLowerCase().includes(query) ||
++        car.model.toLowerCase().includes(query) ||
++        car.type.toLowerCase().includes(query) ||
++        (car.city && car.city.toLowerCase().includes(query)) ||
++        car.location.toLowerCase().includes(query)
++      );
++    }
++    
++    return true;
++  });
+ 
+-  // Filter luxury cars for featured section
+-  const luxuryCars = cars?.filter(car => car.type === "Luxury").slice(0, 4);
+-  
+-  // Filter economy cars for budget section
+-  const economyCars = cars?.filter(car => 
+-    car.type === "Sedan" || car.type === "Compact"
+-  ).slice(0, 4);
++  const handleCategorySelect = (category: string) => {
++    setSelectedCategory(category);
++  };
+ 
+   return (
+-    <div className="min-h-screen flex flex-col">
+-      <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
+-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+-          <Link href="/">
+-            <div className="flex items-center">
+-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
+-                   className="w-8 h-8 text-red-500" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+-                <path d="M19 9.2C19 6.4 16.4 4 13.2 4c-3.2 0-5.9 2.4-5.9 5.2 0 2.1.8 3.9 2.1 5.4.8.9 1.6 1.8 2.8 3 .6.7 1.2 1.3 1.9 2.1.7-.7 1.4-1.4 2-2.1 1.1-1.2 2-2 2.8-3 1.3-1.5 2.1-3.3 2.1-5.4z" />
+-              </svg>
+-              <span className="text-xl font-bold text-red-500 ml-2">voom</span>
+-            </div>
+-          </Link>
+-          
+-          <div className="flex items-center gap-4">
+-            {!user ? (
+-              <>
+-                <Link href="/auth">
+-                  <Button variant="outline" size="sm" className="hidden md:flex">Sign up</Button>
+-                </Link>
+-                <Link href="/auth">
+-                  <Button size="sm">Log in</Button>
+-                </Link>
+-              </>
+-            ) : (
+-              <Link href="/menu">
+-                <Button variant="outline" size="sm" className="flex items-center gap-2 border border-gray-300 rounded-full py-1.5 pl-1.5 pr-3">
+-                  <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
+-                    {user.username.charAt(0).toUpperCase()}
+-                  </div>
+-                  <span>Menu</span>
+-                </Button>
+-              </Link>
+-            )}
+-          </div>
+-        </div>
+-      </div>
+-
+-      <main className="flex-grow">
+-        {/* List a New Car Banner - Prominently displayed at top */}
+-        <motion.div 
+-          className="bg-gradient-to-r from-red-500 to-red-600 py-4"
+-          initial={{ opacity: 0, y: -20 }}
+-          animate={{ opacity: 1, y: 0 }}
+-          transition={{ duration: 0.5 }}
+-        >
+-          <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center">
+-            <motion.div 
+-              className="text-white mb-3 md:mb-0"
+-              initial={{ opacity: 0 }}
+-              animate={{ opacity: 1 }}
+-              transition={{ delay: 0.2, duration: 0.5 }}
+-            >
+-              <h2 className="text-xl font-semibold mb-1">Have a car? Earn money by sharing it!</h2>
+-              <p className="text-white/90">Join thousands of hosts making extra income on Voom</p>
+-            </motion.div>
+-            <motion.div
+-              whileHover={{ scale: 1.05 }}
+-              whileTap={{ scale: 0.95 }}
+-              initial={{ opacity: 0 }}
+-              animate={{ opacity: 1 }}
+-              transition={{ delay: 0.4, duration: 0.5 }}
+-            >
+-              <Button 
+-                onClick={() => navigate("/become-host")} 
+-                className="bg-white text-red-600 hover:bg-gray-100 font-semibold"
+-                size="lg"
+-              >
+-                List Your Car
+-              </Button>
+-            </motion.div>
+-          </div>
+-        </motion.div>
+-        
+-        {/* Hero Section with Check-in Form FIRST */}
+-        <div className="relative bg-gray-100 overflow-hidden">
+-          {/* Background Image with Overlay */}
+-          <div className="absolute inset-0">
+-            <img 
+-              src="/images/IMG_0096.jpeg" 
+-              alt="Luxury car background" 
+-              className="w-full h-full object-cover"
+-            />
+-            <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/30 backdrop-blur-[2px]"></div>
+-          </div>
+-          
+-          <div className="container mx-auto px-4 md:px-8 py-10 md:py-20 relative z-10">
+-            <motion.div 
+-              className="max-w-lg bg-white/95 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-white/10"
+-              initial={{ opacity: 0, y: 30 }}
+-              animate={{ opacity: 1, y: 0 }}
+-              transition={{ duration: 0.7, ease: "easeOut" }}
+-            >
+-              <motion.h1 
+-                className="text-3xl font-bold mb-2 text-gray-900"
+-                initial={{ opacity: 0 }}
+-                animate={{ opacity: 1 }}
+-                transition={{ delay: 0.3, duration: 0.5 }}
+-              >
+-                Premium cars available in Accra
+-              </motion.h1>
+-              <motion.p 
+-                className="text-gray-700 mb-6"
+-                initial={{ opacity: 0 }}
+-                animate={{ opacity: 1 }}
+-                transition={{ delay: 0.5, duration: 0.5 }}
+-              >
+-                Discover luxury and comfort for your next adventure with Voom's top-rated car rentals.
+-              </motion.p>
+-
+-              <form onSubmit={handleSearchSubmit} className="space-y-4">
+-                <motion.div 
+-                  className="space-y-2"
+-                  initial={{ opacity: 0, x: -20 }}
+-                  animate={{ opacity: 1, x: 0 }}
+-                  transition={{ delay: 0.6, duration: 0.5 }}
+-                >
+-                  <label className="text-sm font-medium">LOCATION</label>
+-                  <div className="relative">
+-                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 z-10" size={18} />
+-                    <Select
+-                      value={selectedLocation}
+-                      onValueChange={(value) => setSelectedLocation(value)}
+-                    >
+-                      <SelectTrigger className="pl-10">
+-                        <SelectValue placeholder="Select an airport" />
+-                      </SelectTrigger>
+-                      <SelectContent>
+-                        <SelectItem value="Kotoka International Airport, Accra">Kotoka International Airport, Accra</SelectItem>
+-                        <SelectItem value="Tamale Airport, Tamale">Tamale Airport, Tamale</SelectItem>
+-                        <SelectItem value="Kumasi Airport, Kumasi">Kumasi Airport, Kumasi</SelectItem>
+-                        <SelectItem value="Takoradi Airport, Sekondi-Takoradi">Takoradi Airport, Sekondi-Takoradi</SelectItem>
+-                        <SelectItem value="Ho Airport, Ho">Ho Airport, Ho</SelectItem>
+-                        <SelectItem value="Wa Airport, Wa">Wa Airport, Wa</SelectItem>
+-                      </SelectContent>
+-                    </Select>
+-                  </div>
+-                </motion.div>
+-
+-                <motion.div 
+-                  className="grid grid-cols-2 gap-2"
+-                  initial={{ opacity: 0, x: -20 }}
+-                  animate={{ opacity: 1, x: 0 }}
+-                  transition={{ delay: 0.7, duration: 0.5 }}
+-                >
+-                  <div className="space-y-2">
+-                    <label className="text-sm font-medium">CHECK IN</label>
+-                    <Popover>
+-                      <PopoverTrigger asChild>
+-                        <Button
+-                          variant="outline"
+-                          className="w-full justify-start text-left font-normal"
+-                        >
+-                          <CalendarIcon className="mr-2 h-4 w-4" />
+-                          {checkInDate ? format(checkInDate, "PPP") : <span>Pick a date</span>}
+-                        </Button>
+-                      </PopoverTrigger>
+-                      <PopoverContent className="w-auto p-0">
+-                        <Calendar
+-                          mode="single"
+-                          selected={checkInDate}
+-                          onSelect={setCheckInDate}
+-                          initialFocus
+-                        />
+-                      </PopoverContent>
+-                    </Popover>
+-                  </div>
+-
+-                  <div className="space-y-2">
+-                    <label className="text-sm font-medium">CHECK OUT</label>
+-                    <Popover>
+-                      <PopoverTrigger asChild>
+-                        <Button
+-                          variant="outline"
+-                          className="w-full justify-start text-left font-normal"
+-                        >
+-                          <CalendarIcon className="mr-2 h-4 w-4" />
+-                          {checkOutDate ? format(checkOutDate, "PPP") : <span>Pick a date</span>}
+-                        </Button>
+-                      </PopoverTrigger>
+-                      <PopoverContent className="w-auto p-0">
+-                        <Calendar
+-                          mode="single"
+-                          selected={checkOutDate}
+-                          onSelect={setCheckOutDate}
+-                          initialFocus
+-                        />
+-                      </PopoverContent>
+-                    </Popover>
+-                  </div>
+-                </motion.div>
+-
+-                <motion.div 
+-                  className="grid grid-cols-2 gap-2"
+-                  initial={{ opacity: 0, x: -20 }}
+-                  animate={{ opacity: 1, x: 0 }}
+-                  transition={{ delay: 0.8, duration: 0.5 }}
+-                >
+-                  <div className="space-y-2">
+-                    <label className="text-sm font-medium">ADULTS</label>
+-                    <Select defaultValue={adults.toString()} onValueChange={(val) => setAdults(parseInt(val))}>
+-                      <SelectTrigger>
+-                        <SelectValue placeholder="Number of adults" />
+-                      </SelectTrigger>
+-                      <SelectContent>
+-                        {[1, 2, 3, 4, 5, 6].map(num => (
+-                          <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
+-                        ))}
+-                      </SelectContent>
+-                    </Select>
+-                  </div>
+-
+-                  <div className="space-y-2">
+-                    <label className="text-sm font-medium">CHILDREN</label>
+-                    <Select defaultValue={children.toString()} onValueChange={(val) => setChildren(parseInt(val))}>
+-                      <SelectTrigger>
+-                        <SelectValue placeholder="Number of children" />
+-                      </SelectTrigger>
+-                      <SelectContent>
+-                        {[0, 1, 2, 3, 4, 5, 6].map(num => (
+-                          <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
+-                        ))}
+-                      </SelectContent>
+-                    </Select>
+-                  </div>
+-                </motion.div>
+-
+-                <motion.div
+-                  initial={{ opacity: 0, y: 20 }}
+-                  animate={{ opacity: 1, y: 0 }}
+-                  transition={{ delay: 0.9, duration: 0.5 }}
+-                  whileHover={{ scale: 1.03 }}
+-                  whileTap={{ scale: 0.97 }}
+-                >
+-                  <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white">
+-                    Search
+-                  </Button>
+-                </motion.div>
+-              </form>
+-            </motion.div>
+-          </div>
+-          {/* Desktop image removed as we now have a full-width background image */}
+-        </div>
+-
+-        {/* Category Selection SECOND */}
+-        <div className="container mx-auto px-4 py-6">
+-          <div className="space-y-3">
+-            <div className="flex justify-between items-center">
+-              <h2 className="text-xl font-semibold">Browse by category</h2>
+-              <Link href="/all-cars">
+-                <Button variant="link" className="text-red-500 font-semibold">
+-                  See all cars <ChevronRight className="h-4 w-4 ml-1" />
+-                </Button>
+-              </Link>
+-            </div>
+-            <CarCategories 
+-              onCategorySelect={(category) => navigate(`/category/${category}`)}
+-              selectedCategory={null}
++    <div className="min-h-screen bg-white flex flex-col pb-20">
++      {/* Search bar - matching Figma */}
++      <div className="sticky top-0 z-10 bg-white px-4 pt-4 pb-3">
++        <div className="flex items-center gap-3">
++          <div className="flex-1 relative">
++            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
++            <input
++              type="text"
++              placeholder="Search for a car, a city, a type..."
++              className="w-full pl-10 pr-4 py-2.5 rounded-full border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:border-gray-300 focus:bg-white transition-colors"
++              value={searchQuery}
++              onChange={(e) => setSearchQuery(e.target.value)}
+             />
+           </div>
+-        </div>
+-
+-        {/* Featured Luxury Cars THIRD */}
+-        <div className="container mx-auto px-4 py-8">
+-          <div className="flex justify-between items-center mb-6">
+-            <div>
+-              <h2 className="text-2xl font-bold">Premium vehicles with amenities</h2>
+-              <p className="text-gray-600">Find luxury cars complete with top features and driver services.</p>
+-            </div>
+-            <Button variant="outline" onClick={() => navigate('/category/luxury')} className="hidden md:flex items-center">
+-              Explore more <ChevronRight size={16} />
+-            </Button>
+-          </div>
+-
+-          {isLoading ? (
+-            <CarGridSkeleton count={4} />
+-          ) : luxuryCars && luxuryCars.length > 0 ? (
+-            <motion.div 
+-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+-              initial="hidden"
+-              whileInView="visible"
+-              viewport={{ once: true, margin: "-100px" }}
+-              variants={{
+-                visible: {
+-                  transition: {
+-                    staggerChildren: 0.1
+-                  }
+-                },
+-                hidden: {}
+-              }}
+-            >
+-              {luxuryCars.map((car) => (
+-                <motion.div 
+-                  key={car.id} 
+-                  className="rounded-lg overflow-hidden border border-gray-200 cursor-pointer"
+-                  variants={{
+-                    visible: { 
+-                      opacity: 1, 
+-                      y: 0,
+-                      transition: { duration: 0.5 }
+-                    },
+-                    hidden: { 
+-                      opacity: 0, 
+-                      y: 30
+-                    }
+-                  }}
+-                  whileHover={{ 
+-                    y: -8,
+-                    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+-                    transition: { duration: 0.2 } 
+-                  }}
+-                  onClick={() => navigate(`/cars/${car.id}`)}
+-                >
+-                  <div className="relative">
+-                    <img 
+-                      src={car.imageUrl ? `${car.imageUrl}&q=80&w=800&h=600&fit=crop&crop=entropy` : `https://placehold.co/800x600/e2e8f0/64748b?text=${car.make}+${car.model}`}
+-                      alt={`${car.make} ${car.model}`}
+-                      className="w-full h-48 object-cover"
+-                      onError={(e) => {
+-                        // Fallback to a placeholder if image fails to load
+-                        e.currentTarget.src = `https://placehold.co/800x600/e2e8f0/64748b?text=${car.make}+${car.model}`;
+-                      }}
+-                    />
+-                    <Badge className="absolute top-2 left-2 bg-white text-black">Superhost</Badge>
+-                  </div>
+-                  <div className="p-4">
+-                    <div className="flex justify-between">
+-                      <h3 className="font-semibold">{car.make} {car.model}</h3>
+-                      <div className="flex items-center">
+-                        <Star className="w-4 h-4 text-yellow-500 mr-1" />
+-                        <span className="text-sm">{car.rating || "4.9"}</span>
+-                      </div>
+-                    </div>
+-                    <p className="text-gray-500 text-sm">{car.location}</p>
+-                    <p className="mt-2">
+-                      <span className="font-semibold">FCFA {car.dailyRate.toLocaleString()}</span> / day
+-                    </p>
+-                  </div>
+-                </motion.div>
+-              ))}
+-            </motion.div>
+-          ) : (
+-            <motion.div 
+-              className="text-center py-12"
+-              initial={{ opacity: 0 }}
+-              animate={{ opacity: 1 }}
+-              transition={{ duration: 0.5 }}
+-            >
+-              <h3 className="text-xl font-semibold mb-2">No luxury cars available at the moment</h3>
+-              <p className="text-gray-500 mb-4">Check back soon for premium vehicles.</p>
+-            </motion.div>
+-          )}
+-          
+-          <div className="mt-4 text-center md:hidden">
+-            <Button variant="outline" onClick={() => navigate('/category/luxury')} className="w-full">
+-              Show all luxury cars
+-            </Button>
+-          </div>
+-        </div>
+-
+-        {/* Features Section */}
+-        <div className="container mx-auto px-4 py-12">
+-          <motion.div 
+-            className="grid grid-cols-1 md:grid-cols-3 gap-8"
+-            initial="hidden"
+-            whileInView="visible"
+-            viewport={{ once: true }}
+-            variants={{
+-              visible: {
+-                transition: {
+-                  staggerChildren: 0.2
+-                }
+-              },
+-              hidden: {}
+-            }}
++          <button 
++            className="p-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
++            onClick={() => navigate("/all-cars")}
+           >
+-            <motion.div 
+-              className="flex flex-col items-center text-center"
+-              variants={{
+-                visible: { 
+-                  opacity: 1, 
+-                  y: 0,
+-                  transition: { duration: 0.6 }
+-                },
+-                hidden: { opacity: 0, y: 50 }
+-              }}
+-            >
+-              <motion.div
+-                initial={{ scale: 0.5, opacity: 0 }}
+-                whileInView={{ scale: 1, opacity: 1 }}
+-                transition={{ 
+-                  type: "spring", 
+-                  stiffness: 300, 
+-                  delay: 0.2,
+-                  duration: 0.8 
+-                }}
+-              >
+-                <Shield className="w-12 h-12 mb-4 text-red-500" />
+-              </motion.div>
+-              <h3 className="text-lg font-semibold mb-2">Book with confidence</h3>
+-              <p className="text-gray-600">
+-                Get 24/7 support and discover helpful reviews from our trusted community of guests.
+-              </p>
+-            </motion.div>
+-
+-            <motion.div 
+-              className="flex flex-col items-center text-center"
+-              variants={{
+-                visible: { 
+-                  opacity: 1, 
+-                  y: 0,
+-                  transition: { duration: 0.6 }
+-                },
+-                hidden: { opacity: 0, y: 50 }
+-              }}
+-            >
+-              <motion.div
+-                initial={{ scale: 0.5, opacity: 0 }}
+-                whileInView={{ scale: 1, opacity: 1 }}
+-                transition={{ 
+-                  type: "spring", 
+-                  stiffness: 300, 
+-                  delay: 0.4,
+-                  duration: 0.8 
+-                }}
+-              >
+-                <Gift className="w-12 h-12 mb-4 text-red-500" />
+-              </motion.div>
+-              <h3 className="text-lg font-semibold mb-2">Find more amenities</h3>
+-              <p className="text-gray-600">
+-                Explore cars based on the comforts you want for the perfect, dreamy getaway.
+-              </p>
+-            </motion.div>
+-
+-            <motion.div 
+-              className="flex flex-col items-center text-center"
+-              variants={{
+-                visible: { 
+-                  opacity: 1, 
+-                  y: 0,
+-                  transition: { duration: 0.6 }
+-                },
+-                hidden: { opacity: 0, y: 50 }
+-              }}
+-            >
+-              <motion.div
+-                initial={{ scale: 0.5, opacity: 0 }}
+-                whileInView={{ scale: 1, opacity: 1 }}
+-                transition={{ 
+-                  type: "spring", 
+-                  stiffness: 300, 
+-                  delay: 0.6,
+-                  duration: 0.8 
+-                }}
+-              >
+-                <CalendarIcon className="w-12 h-12 mb-4 text-red-500" />
+-              </motion.div>
+-              <h3 className="text-lg font-semibold mb-2">Keep it flexible</h3>
+-              <p className="text-gray-600">
+-                Stays with flexible cancellation make it easy to re-book if your plans change.
+-              </p>
+-            </motion.div>
+-          </motion.div>
++            <SlidersHorizontal className="h-4 w-4 text-gray-700" />
++          </button>
+         </div>
++      </div>
+ 
+-        {/* Economic Cars Section FOURTH */}
+-        <div className="container mx-auto px-4 py-8 mb-20">
+-          <div className="flex justify-between items-center mb-6">
+-            <div>
+-              <h2 className="text-2xl font-bold">Affordable rides for every budget</h2>
+-              <p className="text-gray-600">Discover economic vehicles perfect for daily commutes and short trips.</p>
+-            </div>
+-            <Button variant="outline" onClick={() => navigate('/category/sedan')} className="hidden md:flex items-center">
+-              Explore more <ChevronRight size={16} />
+-            </Button>
++      {/* Content */}
++      <div className="px-4 flex-1">
++        {/* Categories */}
++        <CarCategories 
++          onCategorySelect={handleCategorySelect}
++          selectedCategory={selectedCategory}
++        />
++
++        {/* Car listings */}
++        {isLoading ? (
++          <CarGridSkeleton />
++        ) : filteredCars && filteredCars.length > 0 ? (
++          <div>
++            {filteredCars.map((car) => (
++              <CarCard
++                key={car.id}
++                car={car}
++                isFavorite={favorites?.includes(car.id) ?? false}
++              />
++            ))}
+           </div>
+-
+-          {isLoading ? (
+-            <CarGridSkeleton count={4} />
+-          ) : economyCars && economyCars.length > 0 ? (
+-            <motion.div 
+-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+-              initial="hidden"
+-              whileInView="visible"
+-              viewport={{ once: true, margin: "-100px" }}
+-              variants={{
+-                visible: {
+-                  transition: {
+-                    staggerChildren: 0.1
+-                  }
+-                },
+-                hidden: {}
+-              }}
+-            >
+-              {economyCars.map((car) => (
+-                <motion.div 
+-                  key={car.id} 
+-                  className="rounded-lg overflow-hidden border border-gray-200 cursor-pointer"
+-                  variants={{
+-                    visible: { 
+-                      opacity: 1, 
+-                      y: 0,
+-                      transition: { duration: 0.5 }
+-                    },
+-                    hidden: { 
+-                      opacity: 0, 
+-                      y: 30
+-                    }
+-                  }}
+-                  whileHover={{ 
+-                    y: -8,
+-                    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+-                    transition: { duration: 0.2 } 
+-                  }}
+-                  onClick={() => navigate(`/cars/${car.id}`)}
+-                >
+-                  <div className="relative">
+-                    <img 
+-                      src={car.imageUrl ? `${car.imageUrl}&q=80&w=800&h=600&fit=crop&crop=entropy` : `https://placehold.co/800x600/e2e8f0/64748b?text=${car.make}+${car.model}`}
+-                      alt={`${car.make} ${car.model}`}
+-                      className="w-full h-48 object-cover"
+-                      onError={(e) => {
+-                        // Fallback to a placeholder if image fails to load
+-                        e.currentTarget.src = `https://placehold.co/800x600/e2e8f0/64748b?text=${car.make}+${car.model}`;
+-                      }}
+-                    />
+-                    <Badge className="absolute top-2 left-2 bg-white text-black">Guest favorite</Badge>
+-                  </div>
+-                  <div className="p-4">
+-                    <div className="flex justify-between">
+-                      <h3 className="font-semibold">{car.make} {car.model}</h3>
+-                      <div className="flex items-center">
+-                        <Star className="w-4 h-4 text-yellow-500 mr-1" />
+-                        <span className="text-sm">{car.rating || "4.8"}</span>
+-                      </div>
+-                    </div>
+-                    <p className="text-gray-500 text-sm">{car.location}</p>
+-                    <p className="mt-2">
+-                      <span className="font-semibold">FCFA {car.dailyRate.toLocaleString()}</span> / day
+-                    </p>
+-                  </div>
+-                </motion.div>
+-              ))}
+-            </motion.div>
+-          ) : (
+-            <motion.div 
+-              className="text-center py-12"
+-              initial={{ opacity: 0 }}
+-              animate={{ opacity: 1 }}
+-              transition={{ duration: 0.5 }}
+-            >
+-              <h3 className="text-xl font-semibold mb-2">No economy cars available at the moment</h3>
+-              <p className="text-gray-500 mb-4">Check back soon for economy vehicles.</p>
+-            </motion.div>
+-          )}
+-          
+-          <div className="mt-4 text-center md:hidden">
+-            <Button variant="outline" onClick={() => navigate('/category/sedan')} className="w-full">
+-              Show all economy cars
+-            </Button>
++        ) : (
++          <div className="flex flex-col items-center justify-center py-20">
++            <div className="mb-4">
++              <svg className="h-12 w-12 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
++                <rect x="2" y="6" width="20" height="12" rx="2" />
++                <circle cx="7" cy="18" r="2" />
++                <circle cx="17" cy="18" r="2" />
++                <path d="M5 6l2-3h10l2 3" />
++              </svg>
++            </div>
++            <h3 className="heading text-lg text-gray-900">No car found</h3>
++            <p className="text-sm text-gray-500 text-center mt-1 px-8">
++              No cars match your search criteria yet. Try adjusting your keyword or check back soon for more options!
++            </p>
+           </div>
+-        </div>
++        )}
++      </div>
+ 
+-        {/* List Your Car Banner - Bottom of Page */}
+-        <div className="bg-gradient-to-r from-red-500 to-red-600 py-6 mt-8">
+-          <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center">
+-            <motion.div 
+-              className="text-white mb-4 md:mb-0 text-center md:text-left"
+-              initial={{ opacity: 0 }}
+-              whileInView={{ opacity: 1 }}
+-              transition={{ duration: 0.5 }}
+-              viewport={{ once: true }}
+-            >
+-              <h2 className="text-2xl font-bold mb-2">Start earning with your car today!</h2>
+-              <p className="text-white/90 text-lg">Share your vehicle and earn additional income with Voom's secure platform</p>
+-            </motion.div>
+-            <motion.div
+-              whileHover={{ scale: 1.05 }}
+-              whileTap={{ scale: 0.95 }}
+-              initial={{ opacity: 0 }}
+-              whileInView={{ opacity: 1 }}
+-              transition={{ duration: 0.5, delay: 0.2 }}
+-              viewport={{ once: true }}
+-            >
+-              <Button 
+-                onClick={() => navigate("/become-host")} 
+-                className="bg-white text-red-600 hover:bg-gray-100 font-semibold"
+-                size="lg"
+-              >
+-                List Your Car
+-              </Button>
+-            </motion.div>
+-          </div>
+-        </div>
+-      </main>
++      {/* Bottom Navigation */}
+       <BottomNav />
+     </div>
+   );
+diff --git a/client/src/pages/message-detail.tsx b/client/src/pages/message-detail.tsx
+index d072f76..92f82b6 100644
+--- a/client/src/pages/message-detail.tsx
++++ b/client/src/pages/message-detail.tsx
+@@ -339,7 +339,7 @@ export default function MessageDetail() {
+                   <div className="w-full mt-6 space-y-3">
+                     <div className="flex items-center">
+                       <MapPin className="h-5 w-5 text-gray-400 mr-3" />
+-                      <span>ADL, Douala, Cameroon</span>
++                      <span>Accra, Ghana</span>
+                     </div>
+                     <div className="flex items-center">
+                       <Star className="h-5 w-5 text-yellow-400 mr-3" />
+@@ -587,7 +587,7 @@ export default function MessageDetail() {
+                       <MapPin className="h-4 w-4 text-red-600 mr-1" />
+                       <p className="text-sm font-medium">Pickup Location</p>
+                     </div>
+-                    <p className="text-sm">123 Main Street, ADL, Douala, Cameroon</p>
++                    <p className="text-sm">123 Main Street, Accra, Ghana</p>
+                     <p className="text-xs mt-1 text-right text-gray-500">
+                       10:42 am
+                     </p>
+diff --git a/client/src/pages/payment-methods.tsx b/client/src/pages/payment-methods.tsx
+index 6ac202a..c605f7d 100644
+--- a/client/src/pages/payment-methods.tsx
++++ b/client/src/pages/payment-methods.tsx
+@@ -82,7 +82,7 @@ export default function PaymentMethods() {
+               <div className="p-4 border rounded-lg">
+                 <div className="flex justify-between mb-2">
+                   <p className="font-medium">Mitsubishi Pajero</p>
+-                  <p className="font-medium text-red-600">FCFA 680,000</p>
++                  <p className="font-medium text-red-600">₵680</p>
+                 </div>
+                 <div className="flex justify-between">
+                   <p className="text-sm text-gray-500">Apr 16 - Apr 24, 2024</p>

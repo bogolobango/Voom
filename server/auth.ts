@@ -70,22 +70,21 @@ export function setupAuth(app: Express) {
   if (!process.env.SESSION_SECRET) {
     console.warn("WARNING: SESSION_SECRET not set. Using default — set SESSION_SECRET in production.");
   }
+  const isProduction = process.env.NODE_ENV === "production";
   const sessionSettings: session.SessionOptions = {
+    name: isProduction ? "voom.sid" : "connect.sid",
     secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
-    cookie: { 
-      secure: process.env.NODE_ENV === "production",
-      httpOnly: true, // Prevents client-side JS from accessing the cookie
-      sameSite: 'lax', // Provides some CSRF protection
+    proxy: isProduction,
+    cookie: {
+      secure: isProduction,
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
       maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
     },
-    // Additional protections for production
-    ...(process.env.NODE_ENV === "production" && {
-      name: "__Host-session", // Makes cookie more secure in modern browsers
-      proxy: true, // Trust the reverse proxy when setting secure cookies
-    })
   };
 
   app.set("trust proxy", 1);

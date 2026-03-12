@@ -27,9 +27,7 @@ async function getSessionUserId(req: IncomingMessage): Promise<number | null> {
     if (!cookieHeader) return null;
 
     const cookies = parseCookie(cookieHeader);
-    // The session store is connect-pg-simple which uses "connect.sid" by default
-    // In production it's "__Host-session". Try both.
-    const rawSid = cookies["connect.sid"] || cookies["__Host-session"];
+    const rawSid = cookies["voom.sid"] || cookies["connect.sid"];
     if (!rawSid) return null;
 
     // connect.sid format is "s:<sessionId>.<signature>"
@@ -56,6 +54,11 @@ async function getSessionUserId(req: IncomingMessage): Promise<number | null> {
  * The server broadcasts to relevant users.
  */
 export function setupWebSocket(server: HttpServer): void {
+  // Skip WebSocket setup in serverless environments (Vercel, Lambda)
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return;
+  }
+
   wss = new WebSocketServer({ server, path: "/ws" });
 
   wss.on("connection", async (ws: WebSocket, req: IncomingMessage) => {

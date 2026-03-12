@@ -88,6 +88,11 @@ export default function CarDetail() {
     queryKey: ["/api/auth/user"],
   });
 
+  const { data: reviews } = useQuery<{ id: number; rating: number; text?: string; createdAt: string; reviewer: { username: string; profilePicture?: string } }[]>({
+    queryKey: [`/api/reviews/car/${carId}`],
+    enabled: !!carId,
+  });
+
   // Initialize demo dates
   useEffect(() => {
     const tomorrow = new Date();
@@ -112,7 +117,7 @@ export default function CarDetail() {
       if (isFavorite) {
         return apiRequest("DELETE", `/api/favorites/${carId}`);
       } else {
-        return apiRequest("POST", "/api/favorites", { carId, userId: 1 });
+        return apiRequest("POST", "/api/favorites", { carId });
       }
     },
     onSuccess: () => {
@@ -170,21 +175,29 @@ export default function CarDetail() {
     navigate("/");
   };
 
-  const handleShare = () => {
-    toast({
-      title: "Share feature",
-      description: "This feature is coming soon.",
-      duration: 2000,
-    });
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${car?.make} ${car?.model} on Voom`,
+          text: `Check out this ${car?.make} ${car?.model} for rent on Voom!`,
+          url: window.location.href,
+        });
+      } catch {
+        // User cancelled share
+      }
+    } else {
+      await navigator.clipboard.writeText(window.location.href);
+      toast({
+        title: "Link copied",
+        description: "The link has been copied to your clipboard.",
+        duration: 2000,
+      });
+    }
   };
 
-  // Demo images for carousel with transformed URLs
-  const carImages = car ? [
-    car.imageUrl ? `${car.imageUrl}&q=80&w=1000&h=600&fit=crop&crop=entropy` : `https://placehold.co/800x600/e2e8f0/64748b?text=${car.make}+${car.model}`,
-    `https://images.unsplash.com/photo-1494976388531-d1058494cdd8?q=80&w=1000&h=600&fit=crop&crop=entropy`,
-    `https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1000&h=600&fit=crop&crop=entropy`,
-    `https://images.unsplash.com/photo-1511919884226-fd3cad34687c?q=80&w=1000&h=600&fit=crop&crop=entropy`,
-  ] : [];
+  // Car images for carousel
+  const carImages = car?.imageUrl ? [car.imageUrl] : [];
 
   if (isLoading || !car) {
     return (
@@ -215,8 +228,7 @@ export default function CarDetail() {
                       alt={`${car.make} ${car.model} - View ${index + 1}`}
                       className="w-full h-64 object-cover rounded-lg"
                       onError={(e) => {
-                        // Fallback to a placeholder if image fails to load
-                        e.currentTarget.src = `https://placehold.co/800x600/e2e8f0/64748b?text=${car.make}+${car.model}`;
+                        e.currentTarget.style.display = "none";
                       }}
                     />
                     {index === 0 && car.type && (
@@ -287,15 +299,15 @@ export default function CarDetail() {
           <div className="grid grid-cols-3 gap-4">
             <div className="flex flex-col items-center justify-center">
               <Users className="h-6 w-6 text-gray-500 mb-1" />
-              <span className="text-sm text-gray-700">5 Seats</span>
+              <span className="text-sm text-gray-700">{car.seats || 5} Seats</span>
             </div>
             <div className="flex flex-col items-center justify-center">
               <Fuel className="h-6 w-6 text-gray-500 mb-1" />
-              <span className="text-sm text-gray-700">Diesel</span>
+              <span className="text-sm text-gray-700">{car.fuelType || "Petrol"}</span>
             </div>
             <div className="flex flex-col items-center justify-center">
               <Settings className="h-6 w-6 text-gray-500 mb-1" />
-              <span className="text-sm text-gray-700">Automatic</span>
+              <span className="text-sm text-gray-700">{car.transmission || "Automatic"}</span>
             </div>
           </div>
         </div>
@@ -345,15 +357,15 @@ export default function CarDetail() {
                   </div>
                   <div className="flex items-center">
                     <Settings className="h-5 w-5 text-gray-500 mr-2" />
-                    <span className="text-gray-700">Automatic transmission</span>
+                    <span className="text-gray-700">{car.transmission || "Automatic"} transmission</span>
                   </div>
                   <div className="flex items-center">
                     <Users className="h-5 w-5 text-gray-500 mr-2" />
-                    <span className="text-gray-700">5 passengers</span>
+                    <span className="text-gray-700">{car.seats || 5} passengers</span>
                   </div>
                   <div className="flex items-center">
                     <Fuel className="h-5 w-5 text-gray-500 mr-2" />
-                    <span className="text-gray-700">Fuel type: Diesel</span>
+                    <span className="text-gray-700">Fuel type: {car.fuelType || "Petrol"}</span>
                   </div>
                   <div className="flex items-center">
                     <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200">
@@ -433,110 +445,50 @@ export default function CarDetail() {
               </TabsContent>
               
               <TabsContent value="reviews" className="pt-4">
-                {car.ratingCount && car.ratingCount > 0 ? (
+                {reviews && reviews.length > 0 ? (
                   <div className="space-y-4">
                     <div className="flex items-center mb-4">
                       <Star className="h-8 w-8 text-yellow-500 fill-current mr-2" />
                       <div>
-                        <p className="text-xl font-bold">{car.rating?.toFixed(1)}</p>
-                        <p className="text-sm text-gray-500">{car.ratingCount} reviews</p>
+                        <p className="text-xl font-bold">{car.rating?.toFixed(1) || "N/A"}</p>
+                        <p className="text-sm text-gray-500">{reviews.length} {reviews.length === 1 ? "review" : "reviews"}</p>
                       </div>
                     </div>
-                    
-                    <div className="mb-4 grid grid-cols-2 gap-3">
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <p className="text-sm text-gray-500">Cleanliness</p>
-                        <div className="flex items-center justify-between">
-                          <Rating value={4.8} size="sm" />
-                          <span className="text-sm font-medium">4.8</span>
-                        </div>
-                      </div>
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <p className="text-sm text-gray-500">Condition</p>
-                        <div className="flex items-center justify-between">
-                          <Rating value={4.7} size="sm" />
-                          <span className="text-sm font-medium">4.7</span>
-                        </div>
-                      </div>
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <p className="text-sm text-gray-500">Communication</p>
-                        <div className="flex items-center justify-between">
-                          <Rating value={4.9} size="sm" />
-                          <span className="text-sm font-medium">4.9</span>
-                        </div>
-                      </div>
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <p className="text-sm text-gray-500">Pickup/Return</p>
-                        <div className="flex items-center justify-between">
-                          <Rating value={4.6} size="sm" />
-                          <span className="text-sm font-medium">4.6</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <Card className="mb-4">
-                      <CardContent className="pt-6">
-                        <div className="flex items-start mb-2">
-                          <div className="mr-3">
-                            <div className="bg-blue-100 rounded-full h-10 w-10 flex items-center justify-center">
-                              <span className="text-blue-600 font-medium">JD</span>
+
+                    {reviews.map((review) => (
+                      <Card key={review.id} className="mb-4">
+                        <CardContent className="pt-6">
+                          <div className="flex items-start mb-2">
+                            <div className="mr-3">
+                              <div className="bg-red-100 rounded-full h-10 w-10 flex items-center justify-center">
+                                <span className="text-red-600 font-medium">
+                                  {getInitials(review.reviewer.username)}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium">{review.reviewer.username}</p>
+                              <p className="text-sm text-gray-500">
+                                {new Date(review.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                              </p>
+                              <div className="flex items-center mt-1 mb-2">
+                                <Rating value={review.rating} size="sm" />
+                              </div>
+                              {review.text && (
+                                <p className="text-gray-700">{review.text}</p>
+                              )}
                             </div>
                           </div>
-                          <div>
-                            <p className="font-medium">John Doe</p>
-                            <p className="text-sm text-gray-500">April 2024</p>
-                            <div className="flex items-center mt-1 mb-2">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <Star 
-                                  key={star}
-                                  className={`h-4 w-4 ${star <= 5 ? "text-yellow-500 fill-current" : "text-gray-300"}`} 
-                                />
-                              ))}
-                            </div>
-                            <p className="text-gray-700 mb-2">
-                              Great car, very clean and drove well. Host was punctual and friendly. Would definitely rent again.
-                            </p>
-                            <div className="flex items-center text-sm text-gray-500">
-                              <Calendar className="h-4 w-4 mr-1" />
-                              <span>5-day rental</span>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card className="mb-4">
-                      <CardContent className="pt-6">
-                        <div className="flex items-start mb-2">
-                          <div className="mr-3">
-                            <div className="bg-green-100 rounded-full h-10 w-10 flex items-center justify-center">
-                              <span className="text-green-600 font-medium">SA</span>
-                            </div>
-                          </div>
-                          <div>
-                            <p className="font-medium">Sarah A.</p>
-                            <p className="text-sm text-gray-500">March 2024</p>
-                            <div className="flex items-center mt-1 mb-2">
-                              <Rating value={4} size="sm" />
-                            </div>
-                            <p className="text-gray-700 mb-2">
-                              The vehicle was perfect for our weekend trip. It was comfortable and fuel-efficient.
-                            </p>
-                            <div className="flex items-center text-sm text-gray-500">
-                              <Calendar className="h-4 w-4 mr-1" />
-                              <span>2-day rental</span>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
                 ) : (
                   <div className="text-center py-8">
                     <Star className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                     <p className="text-lg font-medium text-gray-700">No reviews yet</p>
                     <p className="text-gray-500">
-                      This car doesn't have any reviews yet. Be the first to leave a review after your trip.
+                      Be the first to leave a review after your trip.
                     </p>
                   </div>
                 )}

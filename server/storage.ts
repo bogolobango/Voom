@@ -92,6 +92,10 @@ export interface IStorage {
   createPayment(payment: InsertPayment): Promise<Payment>;
   getPaymentByIdempotencyKey(key: string): Promise<Payment | undefined>;
   updatePaymentStatus(id: number, status: string, providerPaymentId?: string): Promise<Payment | undefined>;
+  updatePaymentStatusIfPending(id: number, status: string, providerPaymentId?: string): Promise<Payment | undefined>;
+
+  // Admin: get all users
+  getAllUsers(): Promise<User[]>;
 
   // Verification operations
   getVerificationDocuments(userId: number): Promise<VerificationDocument[]>;
@@ -422,6 +426,16 @@ export class MemStorage implements IStorage {
     this.paymentsMap.set(id, updated);
     return updated;
   }
+  async updatePaymentStatusIfPending(id: number, status: string, providerPaymentId?: string) {
+    const p = this.paymentsMap.get(id);
+    if (!p || p.status !== "pending") return undefined;
+    return this.updatePaymentStatus(id, status, providerPaymentId);
+  }
+
+  // Admin: get all users
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.usersMap.values());
+  }
 
   // ---- Verification ----
   async getVerificationDocuments(userId: number) { return Array.from(this.verificationDocumentsMap.values()).filter((d) => d.userId === userId); }
@@ -479,5 +493,16 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Use in-memory storage for MVP (can be swapped to DatabaseStorage with PostgreSQL)
-export const storage: IStorage = new MemStorage();
+// Use DatabaseStorage when DATABASE_URL is set, otherwise fall back to in-memory for local dev
+import { DatabaseStorage } from "./database-storage";
+
+function createStorage(): IStorage {
+  if (process.env.DATABASE_URL) {
+    console.log("Using PostgreSQL database storage");
+    return new DatabaseStorage();
+  }
+  console.log("Using in-memory storage (set DATABASE_URL for persistence)");
+  return new MemStorage();
+}
+
+export const storage: IStorage = createStorage();

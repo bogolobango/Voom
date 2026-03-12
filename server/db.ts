@@ -6,18 +6,18 @@ import * as schema from "@shared/schema";
 neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
+  console.warn(
+    "DATABASE_URL is not set. Database features will be unavailable (using in-memory storage).",
   );
 }
 
 // Optimized pool configuration for production workloads
-const poolConfig = {
+const poolConfig = process.env.DATABASE_URL ? {
   connectionString: process.env.DATABASE_URL,
-  max: process.env.NODE_ENV === 'production' ? 20 : 10, // Maximum connections in pool
-  idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed
-  connectionTimeoutMillis: 2000, // How long to wait for a connection
-};
+  max: process.env.NODE_ENV === 'production' ? 20 : 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+} : undefined;
 
 // Custom logger for database operations
 const dbLogger = {
@@ -28,17 +28,19 @@ const dbLogger = {
   },
 };
 
-// Create and export the connection pool
-export const pool = new Pool(poolConfig);
+// Create and export the connection pool (null when no DATABASE_URL)
+export const pool = poolConfig ? new Pool(poolConfig) : null!;
 
-// Create and export the drizzle database instance
-export const db = drizzle({ client: pool, schema, logger: dbLogger });
+// Create and export the drizzle database instance (null when no DATABASE_URL)
+export const db = poolConfig ? drizzle({ client: pool, schema, logger: dbLogger }) : null!;
 
 // Handle pool errors to prevent crashes
-pool.on('error', (err) => {
-  console.error('Unexpected database pool error:', err);
-  // Don't crash the process, just log the error
-});
+if (pool) {
+  pool.on('error', (err) => {
+    console.error('Unexpected database pool error:', err);
+    // Don't crash the process, just log the error
+  });
+}
 
 /**
  * Execute a query with automatic retries for transient errors
@@ -80,6 +82,7 @@ export async function executeWithRetry<T>(
 export async function withTransaction<T>(
   fn: (db: NeonDatabase<typeof schema>) => Promise<T>
 ): Promise<T> {
+  if (!pool) throw new Error("Database not configured (DATABASE_URL missing)");
   const client = await pool.connect();
   
   try {
@@ -100,6 +103,7 @@ export async function withTransaction<T>(
 
 // Graceful shutdown function
 export async function closeDatabase() {
+  if (!pool) return;
   try {
     await pool.end();
     console.log('All database connections closed');

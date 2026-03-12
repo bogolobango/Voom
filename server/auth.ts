@@ -22,7 +22,7 @@ const scryptAsync = promisify(scrypt);
  * @param iterations Optional cost factor for hashing (higher is more secure but slower)
  * @returns A string containing the hashed password and salt
  */
-async function hashPassword(password: string, iterations = 64) {
+export async function hashPassword(password: string, iterations = 64) {
   // Use a larger salt for increased security
   const salt = randomBytes(32).toString("hex");
   // Add a pepper if configured in environment (not shown in the hash)
@@ -66,8 +66,12 @@ async function comparePasswords(supplied: string, stored: string) {
 
 export function setupAuth(app: Express) {
   // Enhanced session security settings
+  const sessionSecret = process.env.SESSION_SECRET || "voom-car-sharing-secret";
+  if (!process.env.SESSION_SECRET) {
+    console.warn("WARNING: SESSION_SECRET not set. Using default — set SESSION_SECRET in production.");
+  }
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || "voom-car-sharing-secret",
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,

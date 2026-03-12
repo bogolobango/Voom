@@ -5,7 +5,7 @@ import { LoadingScreen } from "@/components/ui/loader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Booking, Car } from "@shared/schema";
-import { formatDateAndTime, formatCurrency, formatDuration } from "@/lib/utils";
+import { formatDateAndTime, formatCurrency, formatDuration, getStatusBadgeClass } from "@/lib/utils";
 import { Link } from "wouter";
 import { Calendar, Clock, MapPin } from "lucide-react";
 
@@ -19,18 +19,7 @@ export default function Bookings() {
     queryKey: ["/api/bookings"],
   });
 
-  const getStatusClass = (status: string) => {
-    switch (status) {
-      case "confirmed":
-        return "bg-green-100 text-green-800";
-      case "cancelled":
-        return "bg-red-100 text-red-800";
-      case "completed":
-        return "bg-blue-100 text-blue-800";
-      default:
-        return "bg-yellow-100 text-yellow-800";
-    }
-  };
+  const getStatusClass = getStatusBadgeClass;
 
   return (
     <>

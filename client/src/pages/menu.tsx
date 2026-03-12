@@ -1,26 +1,17 @@
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useHostMode } from "@/hooks/use-host-mode";
-import { 
-  Calendar, 
-  ChevronRight, 
-  DollarSign, 
-  Home, 
-  BarChart3, 
-  Book, 
-  UserPlus, 
-  MessageSquare, 
-  User,
+import {
+  Calendar,
+  ChevronRight,
+  DollarSign,
+  BarChart3,
+  MessageSquare,
   Settings,
   HelpCircle,
   LogOut,
   Plus,
   Shield,
-  FileText,
-  Users,
-  MessageCircle,
-  GiftIcon,
-  UserPlus2
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -28,11 +19,23 @@ import { Separator } from "@/components/ui/separator";
 import { getInitials } from "@/lib/utils";
 import { BottomNav } from "@/components/layout/bottom-nav";
 
+function MenuItem({ icon: Icon, label, onClick }: { icon: React.ComponentType<any>; label: string; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="flex items-center justify-between w-full py-4">
+      <div className="flex items-center">
+        <Icon className="h-6 w-6 mr-4 text-gray-600" />
+        <span className="text-base">{label}</span>
+      </div>
+      <ChevronRight className="h-5 w-5 text-gray-400" />
+    </button>
+  );
+}
+
 export default function Menu() {
   const [, navigate] = useLocation();
   const { user, logoutMutation } = useAuth();
-  const { isHostMode, toggleHostMode } = useHostMode();
-  
+  const { isHostMode } = useHostMode();
+
   const handleLogout = () => {
     logoutMutation.mutate();
     navigate("/auth");
@@ -43,105 +46,31 @@ export default function Menu() {
       <header className="px-4 py-6">
         <h1 className="text-3xl font-bold">Menu</h1>
       </header>
-      
+
       {isHostMode && (
         <>
           <div className="px-4 py-2">
-            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">HOSTING</h2>
+            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Hosting</h2>
           </div>
-          
+
           <div className="px-4">
-            <button 
-              onClick={() => navigate("/host-listings")}
-              className="flex items-center justify-between w-full py-4"
-            >
-              <div className="flex items-center">
-                <Calendar className="h-6 w-6 mr-4" />
-                <span className="text-base">Reservations</span>
-              </div>
-              <ChevronRight className="h-5 w-5 text-gray-400" />
-            </button>
-            
-            <button 
-              onClick={() => navigate("/host-earnings")}
-              className="flex items-center justify-between w-full py-4"
-            >
-              <div className="flex items-center">
-                <DollarSign className="h-6 w-6 mr-4" />
-                <span className="text-base">Earnings</span>
-              </div>
-              <ChevronRight className="h-5 w-5 text-gray-400" />
-            </button>
-            
-            <button 
-              onClick={() => navigate("/host-dashboard")}
-              className="flex items-center justify-between w-full py-4"
-            >
-              <div className="flex items-center">
-                <BarChart3 className="h-6 w-6 mr-4" />
-                <span className="text-base">Insights</span>
-              </div>
-              <ChevronRight className="h-5 w-5 text-gray-400" />
-            </button>
-            
-            <button 
-              onClick={() => navigate("/help")}
-              className="flex items-center justify-between w-full py-4"
-            >
-              <div className="flex items-center">
-                <Book className="h-6 w-6 mr-4" />
-                <span className="text-base">Guidebooks</span>
-              </div>
-              <ChevronRight className="h-5 w-5 text-gray-400" />
-            </button>
-            
-            <button 
-              onClick={() => navigate("/become-host/car-type")}
-              className="flex items-center justify-between w-full py-4"
-            >
-              <div className="flex items-center">
-                <Plus className="h-6 w-6 mr-4" />
-                <span className="text-base">Create a new listing</span>
-              </div>
-              <ChevronRight className="h-5 w-5 text-gray-400" />
-            </button>
-            
-            <button 
-              onClick={() => navigate("/find-cohost")}
-              className="flex items-center justify-between w-full py-4"
-            >
-              <div className="flex items-center">
-                <UserPlus className="h-6 w-6 mr-4" />
-                <span className="text-base">Find a co-host</span>
-              </div>
-              <ChevronRight className="h-5 w-5 text-gray-400" />
-            </button>
-            
-            <button 
-              onClick={() => navigate("/host-messages")}
-              className="flex items-center justify-between w-full py-4"
-            >
-              <div className="flex items-center">
-                <MessageSquare className="h-6 w-6 mr-4" />
-                <span className="text-base">Messages</span>
-              </div>
-              <ChevronRight className="h-5 w-5 text-gray-400" />
-            </button>
+            <MenuItem icon={Calendar} label="Reservations" onClick={() => navigate("/host-dashboard?tab=bookings")} />
+            <MenuItem icon={DollarSign} label="Earnings" onClick={() => navigate("/host-earnings")} />
+            <MenuItem icon={BarChart3} label="Analytics" onClick={() => navigate("/host-analytics")} />
+            <MenuItem icon={Plus} label="Create a new listing" onClick={() => navigate("/become-host/car-type")} />
+            <MenuItem icon={MessageSquare} label="Messages" onClick={() => navigate("/host-messages")} />
           </div>
-          
+
           <Separator className="my-4" />
         </>
       )}
-      
+
       <div className="px-4 py-2">
-        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">ACCOUNT</h2>
+        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Account</h2>
       </div>
-      
+
       <div className="px-4">
-        <button 
-          onClick={() => navigate("/profile")}
-          className="flex items-center justify-between w-full py-4"
-        >
+        <button onClick={() => navigate("/profile")} className="flex items-center justify-between w-full py-4">
           <div className="flex items-center">
             <div className="mr-4">
               <Avatar className="h-7 w-7">
@@ -153,98 +82,12 @@ export default function Menu() {
           </div>
           <ChevronRight className="h-5 w-5 text-gray-400" />
         </button>
-        
-        <button 
-          onClick={() => navigate("/account-preferences")}
-          className="flex items-center justify-between w-full py-4"
-        >
-          <div className="flex items-center">
-            <Settings className="h-6 w-6 mr-4" />
-            <span className="text-base">Settings</span>
-          </div>
-          <ChevronRight className="h-5 w-5 text-gray-400" />
-        </button>
-        
-        <button 
-          onClick={() => navigate("/help")}
-          className="flex items-center justify-between w-full py-4"
-        >
-          <div className="flex items-center">
-            <HelpCircle className="h-6 w-6 mr-4" />
-            <span className="text-base">Visit the Help Center</span>
-          </div>
-          <ChevronRight className="h-5 w-5 text-gray-400" />
-        </button>
 
-        <button 
-          onClick={() => navigate("/safety")}
-          className="flex items-center justify-between w-full py-4"
-        >
-          <div className="flex items-center">
-            <Shield className="h-6 w-6 mr-4" />
-            <span className="text-base">Get help with a safety issue</span>
-          </div>
-          <ChevronRight className="h-5 w-5 text-gray-400" />
-        </button>
-
-        <button 
-          onClick={() => navigate("/hosting-resources")}
-          className="flex items-center justify-between w-full py-4"
-        >
-          <div className="flex items-center">
-            <FileText className="h-6 w-6 mr-4" />
-            <span className="text-base">Explore hosting resources</span>
-          </div>
-          <ChevronRight className="h-5 w-5 text-gray-400" />
-        </button>
-
-        <button 
-          onClick={() => navigate("/connect-hosts")}
-          className="flex items-center justify-between w-full py-4"
-        >
-          <div className="flex items-center">
-            <Users className="h-6 w-6 mr-4" />
-            <span className="text-base">Connect with Hosts near you</span>
-          </div>
-          <ChevronRight className="h-5 w-5 text-gray-400" />
-        </button>
-
-        <button 
-          onClick={() => navigate("/feedback")}
-          className="flex items-center justify-between w-full py-4"
-        >
-          <div className="flex items-center">
-            <MessageCircle className="h-6 w-6 mr-4" />
-            <span className="text-base">Give us feedback</span>
-          </div>
-          <ChevronRight className="h-5 w-5 text-gray-400" />
-        </button>
-
-        <button 
-          onClick={() => navigate("/gift-cards")}
-          className="flex items-center justify-between w-full py-4"
-        >
-          <div className="flex items-center">
-            <GiftIcon className="h-6 w-6 mr-4" />
-            <span className="text-base">Gift cards</span>
-          </div>
-          <ChevronRight className="h-5 w-5 text-gray-400" />
-        </button>
-
-        <button 
-          onClick={() => navigate("/refer-host")}
-          className="flex items-center justify-between w-full py-4"
-        >
-          <div className="flex items-center">
-            <UserPlus2 className="h-6 w-6 mr-4" />
-            <span className="text-base">Refer a Host</span>
-          </div>
-          <ChevronRight className="h-5 w-5 text-gray-400" />
-        </button>
+        <MenuItem icon={Settings} label="Settings" onClick={() => navigate("/account-preferences")} />
+        <MenuItem icon={Shield} label="Privacy & Security" onClick={() => navigate("/privacy-security")} />
+        <MenuItem icon={HelpCircle} label="Help Center" onClick={() => navigate("/account")} />
       </div>
-      
-      {/* Mode switcher moved to bottom navigation */}
-      
+
       <div className="px-4 py-4">
         <Button
           variant="outline"
@@ -255,15 +98,11 @@ export default function Menu() {
           Log out
         </Button>
       </div>
-      
+
       <div className="text-center text-xs text-gray-500 pb-5">
-        <div className="flex justify-center space-x-2">
-          <a href="/terms" className="hover:underline">Terms of Service</a>
-          <span>·</span>
-          <a href="/privacy" className="hover:underline">Privacy Policy</a>
-        </div>
+        Voom Car Sharing &middot; v1.0
       </div>
-      
+
       <BottomNav />
     </div>
   );

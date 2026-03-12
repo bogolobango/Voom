@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Heart } from "lucide-react";
+import { Heart, MapPin } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Rating } from "@/components/ui/rating";
 import { formatCurrency } from "@/lib/utils";
-import { Car, InsertFavorite } from "@shared/schema";
+import { Car } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -24,29 +24,24 @@ export function CarCard({ car, isFavorite = false }: CarCardProps) {
       if (favorite) {
         return apiRequest("DELETE", `/api/favorites/${car.id}`);
       } else {
-        const favoriteData: InsertFavorite = {
-          carId: car.id,
-          userId: 1, // In a real app, get this from auth context
-        };
-        return apiRequest("POST", "/api/favorites", favoriteData);
+        return apiRequest("POST", "/api/favorites", { carId: car.id });
       }
     },
     onSuccess: () => {
       setFavorite(!favorite);
       queryClient.invalidateQueries({ queryKey: ["/api/favorites"] });
-      
+      queryClient.invalidateQueries({ queryKey: ["/api/favorites/ids"] });
       toast({
         title: favorite ? "Removed from favorites" : "Added to favorites",
         duration: 2000,
       });
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Error",
         description: `Failed to ${favorite ? "remove from" : "add to"} favorites`,
         variant: "destructive",
       });
-      console.error(error);
     },
   });
 
@@ -60,48 +55,48 @@ export function CarCard({ car, isFavorite = false }: CarCardProps) {
     <Card className="overflow-hidden relative">
       <div className="absolute top-4 right-4 z-10">
         <button
-          className={`text-${favorite ? "red-600" : "gray-100"} hover:text-red-600 transition-colors`}
+          className={`${favorite ? "text-red-600" : "text-white drop-shadow-md"} hover:text-red-600 transition-colors`}
           aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
           onClick={handleToggleFavorite}
         >
           <Heart className={favorite ? "fill-current" : ""} size={24} />
         </button>
       </div>
-      
+
       <Link href={`/cars/${car.id}`}>
         <div className="block cursor-pointer">
           <img
-            src={car.imageUrl ? `${car.imageUrl}&q=80&w=800&h=600&fit=crop&crop=entropy` : `https://placehold.co/800x600/e2e8f0/64748b?text=${car.make}+${car.model}`}
+            src={car.imageUrl || undefined}
             alt={`${car.make} ${car.model}`}
-            className="w-full h-48 object-cover"
+            className="w-full h-48 object-cover bg-gray-100"
             onError={(e) => {
-              // Fallback to a placeholder if image fails to load
-              e.currentTarget.src = `https://placehold.co/800x600/e2e8f0/64748b?text=${car.make}+${car.model}`;
+              e.currentTarget.style.display = "none";
             }}
           />
           <div className="p-4">
             <div className="flex justify-between items-start">
-              <div>
+              <div className="min-w-0 flex-1 mr-3">
                 <h2 className="text-lg font-semibold">{car.make} {car.model}</h2>
-                <Rating 
-                  value={car.rating ?? 0} 
-                  count={car.ratingCount ?? 0} 
-                  className="mt-1" 
+                <Rating
+                  value={car.rating ?? 0}
+                  count={car.ratingCount ?? 0}
+                  className="mt-1"
                 />
+                {car.location && (
+                  <p className="text-sm mt-1 text-gray-500 flex items-center">
+                    <MapPin className="h-3 w-3 mr-1 shrink-0" />
+                    <span className="truncate">{car.location}</span>
+                  </p>
+                )}
                 <p className="text-sm mt-1 text-gray-500">
-                  Prise en charge et retour: {car.location}
-                </p>
-                <p className="text-sm mt-1 text-gray-500">
-                  Annuler Gratuitement
+                  Free cancellation
                 </p>
               </div>
-              <div className="text-right">
+              <div className="text-right shrink-0">
                 <p className="font-semibold text-lg">
-                  {formatCurrency(car.dailyRate)}/jour
+                  {formatCurrency(car.dailyRate)}
                 </p>
-                <p className="text-xs uppercase font-semibold text-red-600 mt-1">
-                  VOOM
-                </p>
+                <p className="text-xs text-gray-500">/day</p>
               </div>
             </div>
           </div>

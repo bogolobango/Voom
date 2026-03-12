@@ -4,7 +4,6 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/use-auth";
-import { SupabaseAuthProvider } from "@/hooks/use-supabase-auth";
 import { HostModeProvider } from "@/hooks/use-host-mode";
 import { CurrencyProvider } from "@/hooks/use-currency";
 import { ProtectedRoute } from "@/components/protected-route";
@@ -61,6 +60,8 @@ const HostCalendar = React.lazy(() => import("@/pages/host-calendar"));
 const HostListings = React.lazy(() => import("@/pages/host-listings"));
 const HostMessages = React.lazy(() => import("@/pages/host-messages"));
 const HostMenu = React.lazy(() => import("@/pages/host-menu"));
+const HostEarnings = React.lazy(() => import("@/pages/host-earnings"));
+const HostAnalytics = React.lazy(() => import("@/pages/host-analytics"));
 const Menu = React.lazy(() => import("@/pages/menu"));
 
 function Router() {
@@ -191,15 +192,31 @@ function Router() {
           </Suspense>
         )} 
       />
-      <ProtectedRoute 
-        path="/host-menu" 
+      <ProtectedRoute
+        path="/host-menu"
         component={() => (
           <Suspense fallback={<LoadingScreen message="Loading menu..." />}>
             <HostMenu />
           </Suspense>
-        )} 
+        )}
       />
-      
+      <ProtectedRoute
+        path="/host-earnings"
+        component={() => (
+          <Suspense fallback={<LoadingScreen message="Loading earnings..." />}>
+            <HostEarnings />
+          </Suspense>
+        )}
+      />
+      <ProtectedRoute
+        path="/host-analytics"
+        component={() => (
+          <Suspense fallback={<LoadingScreen message="Loading analytics..." />}>
+            <HostAnalytics />
+          </Suspense>
+        )}
+      />
+
       <Route component={NotFound} />
     </Switch>
   );
@@ -208,18 +225,16 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <SupabaseAuthProvider>
-        <AuthProvider>
-          <HostModeProvider>
-            <CurrencyProvider>
-              <TooltipProvider>
-                <Router />
-                <Toaster />
-              </TooltipProvider>
-            </CurrencyProvider>
-          </HostModeProvider>
-        </AuthProvider>
-      </SupabaseAuthProvider>
+      <AuthProvider>
+        <HostModeProvider>
+          <CurrencyProvider>
+            <TooltipProvider>
+              <Router />
+              <Toaster />
+            </TooltipProvider>
+          </CurrencyProvider>
+        </HostModeProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

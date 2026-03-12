@@ -48,7 +48,7 @@ export const forgotPasswordSchema = z.object({
 // Car listings schema
 export const cars = pgTable("cars", {
   id: serial("id").primaryKey(),
-  hostId: integer("host_id").notNull(),
+  hostId: integer("host_id").notNull().references(() => users.id),
   make: text("make").notNull(),
   model: text("model").notNull(),
   year: integer("year").notNull(),
@@ -82,9 +82,9 @@ export const insertCarSchema = createInsertSchema(cars).omit({
 // Bookings schema
 export const bookings = pgTable("bookings", {
   id: serial("id").primaryKey(),
-  carId: integer("car_id").notNull(),
-  userId: integer("user_id").notNull(),
-  hostId: integer("host_id").notNull(),
+  carId: integer("car_id").notNull().references(() => cars.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  hostId: integer("host_id").notNull().references(() => users.id),
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
   pickupLocation: text("pickup_location").notNull(),
@@ -112,8 +112,8 @@ export const insertBookingSchema = createInsertSchema(bookings).omit({
 // Favorites schema
 export const favorites = pgTable("favorites", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  carId: integer("car_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  carId: integer("car_id").notNull().references(() => cars.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -125,8 +125,8 @@ export const insertFavoriteSchema = createInsertSchema(favorites).omit({
 // Messages schema
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
-  senderId: integer("sender_id").notNull(),
-  receiverId: integer("receiver_id").notNull(),
+  senderId: integer("sender_id").notNull().references(() => users.id),
+  receiverId: integer("receiver_id").notNull().references(() => users.id),
   bookingId: integer("booking_id"),
   content: text("content").notNull(),
   read: boolean("read").default(false),
@@ -142,10 +142,10 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
 // Reviews schema
 export const reviews = pgTable("reviews", {
   id: serial("id").primaryKey(),
-  bookingId: integer("booking_id").notNull(),
-  reviewerId: integer("reviewer_id").notNull(),
-  revieweeId: integer("reviewee_id").notNull(),
-  carId: integer("car_id").notNull(),
+  bookingId: integer("booking_id").notNull().references(() => bookings.id),
+  reviewerId: integer("reviewer_id").notNull().references(() => users.id),
+  revieweeId: integer("reviewee_id").notNull().references(() => users.id),
+  carId: integer("car_id").notNull().references(() => cars.id),
   rating: integer("rating").notNull(),
   text: text("text"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -159,7 +159,7 @@ export const insertReviewSchema = createInsertSchema(reviews).omit({
 // Payments schema
 export const payments = pgTable("payments", {
   id: serial("id").primaryKey(),
-  bookingId: integer("booking_id").notNull(),
+  bookingId: integer("booking_id").notNull().references(() => bookings.id),
   amount: integer("amount").notNull(),
   currency: text("currency").notNull().default("FCFA"),
   method: text("method").notNull(), // stripe, momo
@@ -182,7 +182,7 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
 // Verification documents schema
 export const verificationDocuments = pgTable("verification_documents", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id),
   documentType: text("document_type").notNull(),
   documentUrl: text("document_url").notNull(),
   status: text("status").default("pending"),
@@ -202,7 +202,7 @@ export const insertVerificationDocumentSchema = createInsertSchema(verificationD
 // Payout methods schema
 export const payoutMethods = pgTable("payout_methods", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id),
   methodType: text("method_type").notNull(),
   accountName: text("account_name"),
   accountNumber: text("account_number"),
@@ -225,8 +225,8 @@ export const insertPayoutMethodSchema = createInsertSchema(payoutMethods).omit({
 // Payout transactions schema
 export const payoutTransactions = pgTable("payout_transactions", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  payoutMethodId: integer("payout_method_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  payoutMethodId: integer("payout_method_id").notNull().references(() => payoutMethods.id),
   amount: integer("amount").notNull(),
   currency: text("currency").default("FCFA"),
   status: text("status").default("pending"),

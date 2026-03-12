@@ -11,7 +11,7 @@ import {
   insertVerificationDocumentSchema,
   insertReviewSchema,
   insertPaymentSchema,
-} from "@shared/schema";
+} from "../shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth } from "./auth";

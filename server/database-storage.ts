@@ -29,7 +29,7 @@ import {
   type InsertPayoutMethod,
   type PayoutTransaction,
   type InsertPayoutTransaction,
-} from "@shared/schema";
+} from "../shared/schema";
 import { eq, and, desc, asc, or, ne, lt, gt, sql } from "drizzle-orm";
 import { db, pool } from "./db";
 import { buildCarFilterConditions, buildCarSortClause } from "./utils/query-helpers";

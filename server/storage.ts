@@ -29,7 +29,7 @@ import {
   type InsertPayoutMethod,
   type PayoutTransaction,
   type InsertPayoutTransaction,
-} from "@shared/schema";
+} from "../shared/schema";
 import session from "express-session";
 import memorystore from "memorystore";
 import { eq, and, desc, sql, asc, or, gte, lte } from "drizzle-orm";

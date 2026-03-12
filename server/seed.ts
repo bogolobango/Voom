@@ -5,7 +5,7 @@
  */
 import "dotenv/config";
 import { db, pool } from "./db";
-import { users, cars, bookings, favorites, messages } from "@shared/schema";
+import { users, cars, bookings, favorites, messages } from "../shared/schema";
 import { sql } from "drizzle-orm";
 import { hashPassword } from "./auth";
 

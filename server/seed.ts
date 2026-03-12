@@ -10,8 +10,10 @@ import { sql } from "drizzle-orm";
 import { hashPassword } from "./auth";
 
 async function seed() {
-  if (!process.env.DATABASE_URL) {
-    console.error("DATABASE_URL is required to seed the database");
+  // Support both DATABASE_URL and POSTGRES_URL (Supabase integration uses POSTGRES_URL)
+  const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+  if (!databaseUrl) {
+    console.error("DATABASE_URL or POSTGRES_URL is required to seed the database");
     process.exit(1);
   }
 

@@ -5,15 +5,18 @@ import * as schema from "@shared/schema";
 
 neonConfig.webSocketConstructor = ws;
 
-if (!process.env.DATABASE_URL) {
+// Support both DATABASE_URL and POSTGRES_URL (Supabase integration uses POSTGRES_URL)
+const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+
+if (!databaseUrl) {
   console.warn(
-    "DATABASE_URL is not set. Database features will be unavailable (using in-memory storage).",
+    "DATABASE_URL/POSTGRES_URL is not set. Database features will be unavailable (using in-memory storage).",
   );
 }
 
 // Optimized pool configuration for production workloads
-const poolConfig = process.env.DATABASE_URL ? {
-  connectionString: process.env.DATABASE_URL,
+const poolConfig = databaseUrl ? {
+  connectionString: databaseUrl,
   max: process.env.NODE_ENV === 'production' ? 20 : 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,

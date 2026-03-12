@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { CurrencyType } from '@/lib/utils';
 
 type CurrencyContextType = {
@@ -8,14 +8,35 @@ type CurrencyContextType = {
 
 export const CurrencyContext = createContext<CurrencyContextType | null>(null);
 
+// Safe localStorage getter
+const getStoredCurrency = (): CurrencyType => {
+  if (typeof window === 'undefined') return 'FCFA';
+  try {
+    const stored = localStorage.getItem('preferredCurrency');
+    if (stored === 'FCFA' || stored === 'GHS' || stored === 'USD') {
+      return stored;
+    }
+  } catch (e) {
+    // localStorage not available
+  }
+  return 'FCFA';
+};
+
 export function CurrencyProvider({ children }: { children: ReactNode }) {
-  // Use local storage to persist currency preference if available
-  const storedCurrency = localStorage.getItem('preferredCurrency') as CurrencyType | null;
-  const [currency, setCurrency] = useState<CurrencyType>(storedCurrency || 'FCFA');
+  const [currency, setCurrency] = useState<CurrencyType>('FCFA');
+  
+  // Load from localStorage on mount
+  useEffect(() => {
+    setCurrency(getStoredCurrency());
+  }, []);
 
   const handleCurrencyChange = (newCurrency: CurrencyType) => {
     setCurrency(newCurrency);
-    localStorage.setItem('preferredCurrency', newCurrency);
+    try {
+      localStorage.setItem('preferredCurrency', newCurrency);
+    } catch (e) {
+      // localStorage not available
+    }
   };
 
   return (
